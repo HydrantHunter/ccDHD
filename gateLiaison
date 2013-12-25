@@ -249,8 +249,15 @@ local function endCall()
 end
 
 local function doCommand(thisCommand)
+  if thisCommand == "lockdown" then
+    lockDown()
+  end
   if thisCommand == "QRY" then
     updateStatus()
+    return
+  elseif thisCommand == "1stRun" then
+    --sleep(0.08)
+    rednet.send(gateControl,thisGate,true)
     return
   elseif thisCommand == "allclear" then
     displayMarque()
@@ -259,10 +266,8 @@ local function doCommand(thisCommand)
     gateStatus = "Disconnected"
     --rednet.send(gateControl,thisCommand,true)
     updateStatus()
+    return -- ?
   end                                  -- replaced elseif with end/if - split these into two if/thens
-  if thisCommand == "lockdown" then
-    lockDown()
-  end
   if gateStatus ~= "lockdown" then
     if thisCommand == "endCall" then
       endCall()
@@ -294,6 +299,13 @@ local function netReceive()
     --elseif eventNet[1] == "modem_message" and tonumber(eventNet[4]) == gateControl then
       --doCommand(eventNet[5])
      end
+  end
+end
+
+local function dataPoller()
+  while true do
+    sleep(3)
+    updateStatus()
   end
 end
 
