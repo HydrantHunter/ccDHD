@@ -1,6 +1,6 @@
 --[[     STARGATE     ]]--
 --[[      D H D       ]]--
---[[    ver. 0.6.11   ]]--
+--[[    ver. 0.6.2    ]]--
 --[[  core ver. 4.2   ]]--
 --[[   ui ver. 4.0    ]]--
 --[[ by HydrantHunter ]]--
@@ -23,10 +23,10 @@ Tested with/requires:
 TO DO:
   - FIX DIAL HIGHLIGHTING
 
-  - FIX FIRST RUN STARTUP (incorrect server# causes crash)
+  - FIX FIRST RUN STARTUP (incorrect server# causes crash) - add config question that asks for server on first run
 
   - FIX Monitor detection (either detects none, or only one - might not be an issue if I eliminate the 'list' monitor)
-
+      - instead of removing list monitor, add pagination and dial capability
   - Edit Mode
       - move Edit/Trim buttons up - 'Undo Sel' to exit TRIM mode
 
@@ -871,7 +871,7 @@ local function drawSettingsUI()
   term.setTextColor(gray)
   term.write("This gate")
   term.setCursorPos(17,4)
-  term.setTextColor(green)
+  term.setTextColor(cyan)
   term.write(dhdSettings.thisGate)   -- thisGate
   term.setCursorPos(2,6)
   term.setTextColor(gray)
@@ -894,6 +894,10 @@ local function drawSettingsUI()
     term.setBackgroundColor(gray)
     term.write("  ")
   end
+  term.setCursorPos(23,8)
+  term.setBackgroundColor(gray)
+  term.setTextColor(black)
+  term.write("#")
   term.setBackgroundColor(black)
   term.setCursorPos(2,10)
   if dhdSettings.net == "R" then     -- redNet (specify server #)
@@ -924,25 +928,60 @@ local function drawSettingsUI()
     term.write("Channels")
   end
   term.setCursorPos(17,12)
-  term.setTextColor(lgray)
   if dhdSettings.net == "R" then
+    term.setTextColor(red)
     term.write(dhdSettings.server)
   elseif dhdSettings.net == "C" then
-    term.write(dhdSettings.channels.send .. " / " .. dhdSettings.channels.recv)
+    term.setTextColor(green)
+    term.write(dhdSettings.channels.send)
+    term.setCursorPos(21,12)
+    term.setTextColor(lgray)
+    term.write("/")
+    term.setCursorPos(23,12)
+    term.setTextColor(green)
+    term.write(dhdSettings.channels.recv)
   end
   --term.write(dhdSettings.bio)
   term.setCursorPos(2,14)
   term.setTextColor(gray)
   term.write("Marque")
   term.setCursorPos(17,14)
-  term.setTextColor(lgray)
-  term.write(dhdSettings.monB)
+  if dhdSettings.monB == "none" then
+    term.setBackgroundColor(gray)
+    term.write("  ")
+    term.setBackgroundColor(red)
+    term.write("  ")
+  else
+    term.setBackgroundColor(green)
+    term.write("  ")
+    term.setBackgroundColor(gray)
+    term.write("  ")
+  end
+  term.setCursorPos(23,14)
+  term.setBackgroundColor(gray)
+  term.setTextColor(black)
+  term.write("#")
+  term.setBackgroundColor(black)
   term.setCursorPos(2,16)
   term.setTextColor(gray)
   term.write("List Monitor")
   term.setCursorPos(17,16)
-  term.setTextColor(lgray)
-  term.write(dhdSettings.monA)
+  if dhdSettings.monA == "none" then
+    term.setBackgroundColor(gray)
+    term.write("  ")
+    term.setBackgroundColor(red)
+    term.write("  ")
+  else
+    term.setBackgroundColor(green)
+    term.write("  ")
+    term.setBackgroundColor(gray)
+    term.write("  ")
+  end
+  term.setCursorPos(23,16)
+  term.setBackgroundColor(gray)
+  term.setTextColor(black)
+  term.write("#")
+  term.setBackgroundColor(black)
 end
 
 local function drawSecureUI()
@@ -970,24 +1009,53 @@ local function drawSecureUI()
   term.write("password: ")
 end
 
-local function drawSideList()
-  term.setTextColor(white)
+local function drawSideList(pSide)
   term.setBackgroundColor(gray)
   for i = 4,16,1 do
     term.setCursorPos(26,i)
     term.write("        ")
   end
   term.setCursorPos(27,5)
+  if pSide == "top" then
+    term.setTextColor(lime)
+  else
+    term.setTextColor(white)
+  end
   term.write("Top")
   term.setCursorPos(27,7)
+  if pSide == "bottom" then
+    term.setTextColor(lime)
+  else
+    term.setTextColor(white)
+  end
   term.write("Bottom")
   term.setCursorPos(27,9)
+  if pSide == "front" then
+    term.setTextColor(lime)
+  else
+    term.setTextColor(white)
+  end
   term.write("Front")
   term.setCursorPos(27,11)
+  if pSide == "back" then
+    term.setTextColor(lime)
+  else
+    term.setTextColor(white)
+  end
   term.write("Back")
   term.setCursorPos(27,13)
+  if pSide == "left" then
+    term.setTextColor(lime)
+  else
+    term.setTextColor(white)
+  end
   term.write("Left")
   term.setCursorPos(27,15)
+  if pSide == "right" then
+    term.setTextColor(lime)
+  else
+    term.setTextColor(white)
+  end
   term.write("Right")
 end
 
@@ -1533,7 +1601,7 @@ local function mClick()
         term.setTextColor(gray)
         term.setCursorPos(17,4)
         term.write(dhdSettings.thisGate)
-        term.setTextColor(green)
+        term.setTextColor(cyan)
         term.setCursorPos(17,4)
         local newGate = tostring(read())
         if newGate ~= "" and newGate ~= "nil" and newGate:len() > 6 and newGate:len() < 10 then
@@ -1568,6 +1636,43 @@ local function mClick()
         elseif dhdSettings.bio == "OFF" then
           dhdSettings.bio = "ON"
           configChange = true
+        end
+        drawSettingsUI()
+      elseif mcY == 8 and mcX > 22 and mcX < 24 and dhdSettings.bio ~= "none" then
+        drawSideList(dhdSettings.bioSide)
+        local bioSide = { os.pullEvent("mouse_click") }
+        if bioSide[3] > 26 and bioSide[2] < 35 then
+          if bioSide[4] == 5 then
+            dhdSettings.bio = "top"
+            sidesList.top = "bio"
+            bio = peripheral.wrap("top")
+            configChange = true
+          elseif bioSide[4] == 7 then
+            dhdSettings.bio = "bottom"
+            sidesList.bottom = "bio"
+            bio = peripheral.wrap("bottom")
+            configChange = true
+          elseif bioSide[4] == 9 then
+            dhdSettings.bio = "front"
+            sidesList.front = "bio"
+            bio = peripheral.wrap("front")
+            configChange = true
+          elseif bioSide[4] == 11 then
+            dhdSettings.bio = "back"
+            sidesList.back = "bio"
+            bio = peripheral.wrap("back")
+            configChange = true
+          elseif bioSide[4] == 13 then
+            dhdSettings.bio = "left"
+            sidesList.left = "bio"
+            bio = peripheral.wrap("left")
+            configChange = true
+          elseif bioSide[4] == 15 then
+            dhdSettings.bio = "right"
+            sidesList.right = "bio"
+            bio = peripheral.wrap("right")
+            configChange = true
+          end
         end
         drawSettingsUI()
         -- rednet/ccnet
@@ -1613,24 +1718,24 @@ local function mClick()
           drawSettingsUI()
         end
         -- change ccnet receive channel
-      elseif mcY == 12 and mcX > 23 and mcX < 27 then
+      elseif mcY == 12 and mcX > 22 and mcX < 26 then
         term.setBackgroundColor(black)
-        term.setCursorPos(24,12)
+        term.setCursorPos(23,12)
         term.setTextColor(gray)
         term.write(dhdSettings.channels.recv)
-        term.setCursorPos(24,12)
+        term.setCursorPos(23,12)
         term.setTextColor(green)
         local newServer = tonumber(read())
         if tostring(newServer) ~= "" and newServer ~= nil then
           dhdSettings.channels.recv = newServer
           configChange = true
         end
-        term.setCursorPos(24,12)
+        term.setCursorPos(23,12)
         term.write("     ")
         drawSettingsUI()
         -- select marque side
-      elseif mcY == 14 and mcX > 16 and mcX < 23 then
-        drawSideList()
+      elseif mcY == 14 and mcX > 22 and mcX < 24 then
+        drawSideList(dhdSettings.monB)
         local monBSide = { os.pullEvent("mouse_click") }
         if monBSide[3] > 26 and monBSide[2] < 35 then
           if monBSide[4] == 5 then
@@ -1667,8 +1772,8 @@ local function mClick()
         end
         drawSettingsUI()
         -- select list monitor side
-      elseif mcY == 16 and mcX > 16 and mcX < 23 then
-        drawSideList()
+      elseif mcY == 16 and mcX > 22 and mcX < 24 then
+        drawSideList(dhdSettings.monA)
         local monASide = { os.pullEvent("mouse_click") }
         if monASide[3] > 26 and monASide[2] < 35 then
           if monASide[4] == 5 then
