@@ -12,14 +12,14 @@ REQUIREMENTS:
 - LanteaCraft (snapshot 82+) or DeltaSG-Craft (latest) for MC 1.6.4
 
 DHD requires the following:
- Advanced Computer
- new directory:  /data
- 3 or (3 & 1) Advanced Monitors (optional)
+ - Advanced Computer
+ - new directory:  /data
+ - 3 or (3 & 1) Advanced Monitors (optional)
 
 gateLiaison requires the following:
- Advanced Computer
- new directory:  /logs
- 3 Advanced Monitors (optional)
+ - Advanced Computer
+ - new directory:  /logs
+ - 3 Advanced Monitors (optional)
 
 
 SUPPORTS:
