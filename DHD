@@ -929,7 +929,7 @@ local function drawSettingsUI()
   term.setCursorPos(2,12)
   term.setTextColor(gray)
   if dhdSettings.net == "R" then
-    term.write("Gate Liason")
+    term.write("Gate Liaison")
   elseif dhdSettings.net == "C" then
     term.write("Channels")
   end
