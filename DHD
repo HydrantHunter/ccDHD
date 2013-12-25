@@ -1,6 +1,6 @@
 --[[     STARGATE     ]]--
 --[[      D H D       ]]--
---[[    ver. 0.6.2    ]]--
+--[[    ver. 0.6.5    ]]--
 --[[  core ver. 4.2   ]]--
 --[[   ui ver. 4.0    ]]--
 --[[ by HydrantHunter ]]--
@@ -23,45 +23,27 @@ Tested with/requires:
 TO DO:
   - FIX DIAL HIGHLIGHTING
 
-  - FIX FIRST RUN STARTUP (incorrect server# causes crash) - add config question that asks for server on first run
+  - FIX Monitor detection (either detects none, or only one)
 
-  - FIX Monitor detection (either detects none, or only one - might not be an issue if I eliminate the 'list' monitor)
-      - instead of removing list monitor, add pagination and dial capability
   - Edit Mode
-      - move Edit/Trim buttons up - 'Undo Sel' to exit TRIM mode
-
-  - Settings
-      - Make 'sides' display as c/lc
-
-  - Get trim working so it's easy to remove gates
-
-  - Address Book:
-    - Add minecraft coordinates to data
     - Addressbook editting - in progress
       - use color coded dropdrown for classification
         - Translate base rating codes to 'words' for edit dropdown and notes viewer
       - use colored pips to the left of the options (like the settings/quit menu)
+    - Get trim working so it's easy to remove gates
 
-  - remove term.clear() wherever possible - working through it as code is reviewed and updated
-  - almost done: rework UI elements to eliminate secureStatus checks and rely on secureScreenUI()
-    - also developing drawCLI()
+  - Address Book:
+    - Add minecraft coordinates to data
 
-  - Eliminate 'list' monitor (monA) - works with 7 character addresses, but won't work w/8 & 9 in 2-column
-
-  - Marque - show dialed (and/or incoming?) address
+  - Marque - show dialed (and/or incoming?) address? NO - do this on List Monitor
     - this is important - need to rework gate liason code so it's 'more aware' of what's happening with the gate (even when not asked)
   - add polling to go with parallel so status is updated regularly  - done - handled server side
 
-  - Make runState a table containing runState,secureStatus,etc.
-  - Add MALP & MALP Control to "lockdown" and "allclear" ?
-
-  - Edit Mode/Drag Mode/Trim Mode
-   - NO - Left click should enter Drag Mode and right click should enter Trim Mode - NO
+  - Edit Mode/Trim Mode/?Drag Mode?
     - While in trim mode, any selected entries will be textColor(gray) - COMMIT will delete them
-    - While in edit mode, double-clicking an entry will open its edit screen (Name, Classification, Notes)
-      - clicking an entry in that screen will then edit that entry
     - Drag and drop reordering of addresses (drag mode)
     - Not sure about 'drag mode' - may have to do 'move' or 'order' mode and use numbering
+      - BEST BET - add gate number (from allGates) to properties edit screen and allow it to be edited
       - unless I can find an elegant way to handle dragging entries between pages
       - maybe have drag mode show a list of entries as just 'numbers' ([1] [2] etc.)
         - this way more entries can be shown per page and inter-page drag-n-drop is less of an issue (but still an issue)
@@ -69,11 +51,13 @@ TO DO:
     - Description should be displayed on overhead monitor when selected in term UI?  (And show selected gate on side monitor)
       - should this be selectable? ("Put it on the big screen")
       - Translate base rating codes to 'words' for edit dropdown and notes viewer
-  - Touch screen:
-    - Touch screen list should show same number of entries as term list, except 6x2 instead of 4x3
-      - page up/down buttons at bottom of screen
-      - and provide dial button when info displayed?
+  - List Monitor:
+      - show gate name of dialed address
+      - page +/- buttons at bottom of screen
+      - provide dial button when info displayed
   - moar?
+
+  - Make runState a table containing runState,secureStatus,etc.?
 
   - Possibly way down the line...
     - Big screen to put up a map with a dot showing gate coords
@@ -116,7 +100,7 @@ local sidesList = { bottom="none",
 -- Configuration
  -- Default settings
 local dhdSettings = { thisGate="ONEGATE",
-                      password="onegate",
+                      password="password",
                       monA="none",
                       monB="none",
                       bio="none",
@@ -240,7 +224,7 @@ local function updateInfo(newInfo)    -- Update shield, gate, etc. status
 end
 
 local function netSend(dataPack)
-  rednet.send(gateLiaison,dataPack,false)
+  rednet.send(gateLiaison,dataPack,true)
 end
 
 local function netReceive()
@@ -619,8 +603,6 @@ local function drawDialUI()    -- Gate Address Book
   local yPos = 4
   local j = ((pageNum - 1) * 23) + pageNum
   for i = j,#allGates,1 do
-    term.setTextColor(white)
-    bColor = assignColor(i)
     if (i > 0 and i < 7) or (i > 24 and i < 31) then
       xPos = 2
       yPos = 4
@@ -635,6 +617,8 @@ local function drawDialUI()    -- Gate Address Book
       yPos = -32
     end
     term.setCursorPos(xPos,yPos + ((i - ((pageNum - 1) * 24)) * 2))
+    term.setTextColor(white)
+    bColor = assignColor(i)
     term.setBackgroundColor(bColor)
     if allGates[i].addr == dialAddress then
       term.setTextColor(black)
@@ -650,8 +634,8 @@ end
 
 local function drawEditUI()
   local tColor = gray
-  term.setBackgroundColor(black)
   term.setTextColor(tColor)
+  term.setBackgroundColor(black)
   local xPos = 2
   local yPos = 4
   local k = ((pageNum - 1) * 23) + pageNum
@@ -683,8 +667,8 @@ end
 
 local function drawTrimUI()
   local tColor = gray
-  term.setBackgroundColor(black)
   term.setTextColor(tColor)
+  term.setBackgroundColor(black)
   local xPos = 2
   local yPos = 4
   local k = ((pageNum - 1) * 23) + pageNum
@@ -778,7 +762,7 @@ local function drawHelpUI()
   term.setBackgroundColor(black)
   term.clear()
   term.setCursorPos(1,1)
-  if runState == "DHDHelp" then
+  if runState == "DHDHelp" then     -- Header
     term.setBackgroundColor(cyan)
   elseif runState == "EditHelp" then
     term.setBackgroundColor(brown)
@@ -802,7 +786,7 @@ local function drawHelpUI()
     term.write(" ")
   end
   term.setCursorPos(2,2)
-  term.write("-- Key --")
+  term.write("-- Key --")           -- Color key for gate classifications
   term.setBackgroundColor(black)
   for q,r in pairs(colorDefs) do
     term.setCursorPos(xMod,yMod)
@@ -817,7 +801,7 @@ local function drawHelpUI()
       yMod = yMod + 1
     end
   end
-  if runState == "DHDHelp" then
+  if runState == "DHDHelp" then     -- Show either DHD or Edit help, depending on runState
     viewDHDHelp(colorCount)
   elseif runState == "EditHelp" then
     viewEditHelp(colorCount)
@@ -838,7 +822,7 @@ local function drawSettingsUI()
   term.setBackgroundColor(black)
   term.clear()
   term.setCursorPos(1,1)
-  term.setBackgroundColor(cyan)
+  term.setBackgroundColor(cyan)     -- Header
   for i = 1,termX,1 do
     term.setCursorPos(i,1)
     term.write(" ")
@@ -849,7 +833,7 @@ local function drawSettingsUI()
     term.write(" ")
   end
   term.setTextColor(white)
-  term.setCursorPos((termX/2)-((#thisGate/2)+5),1)
+  term.setCursorPos((termX/2)-((#thisGate/2)+(9-#thisGate)),1)
   term.write(" " .. thisGate .. " Settings ")
   for i = 1,termX,1 do
     term.setCursorPos(i,termY)
@@ -862,7 +846,7 @@ local function drawSettingsUI()
   elseif configChange == false then
     term.setTextColor(gray)
   end
-  term.write(" Save ")
+  term.write(" Save ")              -- Save / Close buttons
   term.setCursorPos(45,2)
   term.setTextColor(red)
   term.write(" Close ")
@@ -872,18 +856,18 @@ local function drawSettingsUI()
   term.write("This gate")
   term.setCursorPos(17,4)
   term.setTextColor(cyan)
-  term.write(dhdSettings.thisGate)   -- thisGate
+  term.write(dhdSettings.thisGate)  -- thisGate
   term.setCursorPos(2,6)
   term.setTextColor(gray)
   term.write("Lockdown pass")
   term.setCursorPos(17,6)
   term.setTextColor(orange)
-  term.write(dhdSettings.password)   -- superSecretPassword
+  term.write(dhdSettings.password)  -- superSecretPassword
   term.setCursorPos(2,8)
   term.setTextColor(gray)
   term.write("BioLock")
   term.setCursorPos(17,8)
-  if dhdSettings.bio == "OFF" then   -- Fistprint Authentication (Biolock mod)
+  if dhdSettings.bio == "OFF" then  -- Fistprint Authentication (Biolock mod)
     term.setBackgroundColor(gray)
     term.write("  ")
     term.setBackgroundColor(red)
@@ -908,7 +892,7 @@ local function drawSettingsUI()
     term.write("ccNet")
   end
   term.setCursorPos(17,10)
-  if dhdSettings.net == "R" then
+  if dhdSettings.net == "R" then     -- Red for RedNet, Green for ccNet
     term.setBackgroundColor(gray)
     term.write("  ")
    term.setBackgroundColor(red)
@@ -928,7 +912,7 @@ local function drawSettingsUI()
     term.write("Channels")
   end
   term.setCursorPos(17,12)
-  if dhdSettings.net == "R" then
+  if dhdSettings.net == "R" then         -- Gate Liaison (rNet) , Send Channel (ccNet)
     term.setTextColor(red)
     term.write(dhdSettings.server)
   elseif dhdSettings.net == "C" then
@@ -939,12 +923,11 @@ local function drawSettingsUI()
     term.write("/")
     term.setCursorPos(23,12)
     term.setTextColor(green)
-    term.write(dhdSettings.channels.recv)
+    term.write(dhdSettings.channels.recv) -- Receive Channel (ccNet)
   end
-  --term.write(dhdSettings.bio)
   term.setCursorPos(2,14)
   term.setTextColor(gray)
-  term.write("Marque")
+  term.write("Marque")                    -- Marque (monB)
   term.setCursorPos(17,14)
   if dhdSettings.monB == "none" then
     term.setBackgroundColor(gray)
@@ -964,7 +947,7 @@ local function drawSettingsUI()
   term.setBackgroundColor(black)
   term.setCursorPos(2,16)
   term.setTextColor(gray)
-  term.write("List Monitor")
+  term.write("List Monitor")              -- List Monitor (monA)
   term.setCursorPos(17,16)
   if dhdSettings.monA == "none" then
     term.setBackgroundColor(gray)
@@ -1608,6 +1591,16 @@ local function mClick()
           configChange = true
           dhdSettings.thisGate = newGate
           thisGate = newGate
+          longName = ""
+          tG = {}
+          for i = 1,thisGate:len(),1 do
+            tG[i] = thisGate:sub(i,i)
+            if i < thisGate:len() then
+              longName = longName .. tG[i] .. " "
+            else
+              longName = longName .. tG[i]
+            end
+          end
         end
         term.setCursorPos(16,4)
         term.write("         ")
@@ -1624,6 +1617,7 @@ local function mClick()
         if newPass ~= "" and newPass ~= "nil" then
           configChange = true
           dhdSettings.password = newPass
+          superSecretPassword = newPass
         end
         term.setCursorPos(17,6)
         term.write("           ")
@@ -1853,8 +1847,8 @@ end
 local function dhdKernel()
   if kernelState == true and secureStatus == "allclear" then
     parallel.waitForAny(mClick,mScroll,monTouch,netReceive)  --,keyClick
-  --elseif kernelState == true and secureStatus == "lockdown" then
-    --parallel.waitForAny(netReceive)
+  elseif kernelState == true and secureStatus == "lockdown" then
+    parallel.waitForAny(netReceive)
   else
     return kernelState
   end
@@ -1872,6 +1866,21 @@ end
 local function firstRun()
   localInventory()
   --networkInventory()
+  term.setCursorPos(2,6)
+  term.setTextColor(lblue)
+  term.write("Please enter the number of the Gate/Shield Liaison")
+  term.setTextColor(white)
+  term.setCursorPos(2,8)
+  local newServer = tonumber(read())
+  if newServer ~= "" and newServer ~= nil and newServer > 0 and newServer < 999 then
+    dhdSettings.server = newServer
+  end
+  rednet.send(dhdSettings.server,"1stRun",true)
+  local myGate = { rednet.receive(1) }
+  if tonumber(myGate[1]) == dhdSettings.server then
+    dhdSettings.thisGate = myGate[2]
+    thisGate = myGate[2]
+  end
   saveData(settingsData,"cfg")
   if not fs.exists("/data/DHDgates") then
     saveData(gateData,"gate")
