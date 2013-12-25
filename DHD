@@ -11,7 +11,7 @@ Tested with/requires:
   - Mincraft 1.6.4
   - Latest DeltaSG-Craft and LanteaCraft (snapshot 82)
   - 1 Advanced Computer & 4 Advanced Monitors - ComputerCraft ver. 1.57 & 1.58
-  - gateLiason running on an Advanced Computer with 3 Advanced Monitors
+  - gateLiaison running on an Advanced Computer with 3 Advanced Monitors
 
   Total hardware count: 2x Advanced Computer / 7x Advanced Monitor
   NOTE:  Monitors are OPTIONAL
@@ -150,7 +150,7 @@ local dhdSettings = { thisGate="NO GATE",
 local allGates = { {addr="NEWGATE",rating="u",note="Notes"} }
 local settingsData = "/data/DHDsettings"
 local gateData = "/data/DHDgates"
-local gateLiason = tonumber(dhdSettings.server)
+local gateLiaison = tonumber(dhdSettings.server)
 local thisGate
 local longName
 local superSecretPassword
@@ -256,17 +256,17 @@ local function updateInfo(newInfo)    -- Update shield, gate, etc. status
 end
 
 local function netSend(dataPack)
-  rednet.send(gateLiason,dataPack,true)
+  rednet.send(gateLiaison,dataPack,true)
 end
 
 local function netReceive()
   while true do
     local netEvent = {rednet.receive()}
-    if tonumber(netEvent[1]) == gateLiason then
+    if tonumber(netEvent[1]) == gateLiaison then
       if currentState ~= netEvent[2] then
         updateInfo(netEvent[2])
       end
-    --elseif tonumber(netEvent[4]) == gateLiason then
+    --elseif tonumber(netEvent[4]) == gateLiaison then
       --updateInfo(netEvent[5])
     end
     --if currentState ~= tostring(netEvent[2]) then updateInfo() end
@@ -278,7 +278,7 @@ local function ingestData(fileName,fileType)
   local dhdCfg = dhdConfig.readAll()
   if fileType == "cfg" then
     dhdSettings = textutils.unserialize(dhdCfg)
-    gateLiason = tonumber(dhdSettings.server)
+    gateLiaison = tonumber(dhdSettings.server)
     thisGate = dhdSettings.thisGate
     superSecretPassword = dhdSettings.password
     if dhdSettings.monA ~= "none" then
@@ -753,7 +753,7 @@ local function viewDHDHelp(pY)
   term.setCursorPos(2, pY + 7)
   term.write("  - reboot & quit are local")
   term.setCursorPos(2, pY + 8)
-  term.write("  - reset = reboots DHD & gateLiason")
+  term.write("  - reset = reboots DHD & gateLiaison")
 end
 
 local function viewEditHelp(pY)
@@ -1098,7 +1098,7 @@ local function secKernel(alertState)  -- LOCKDOWN handler
   secureStatus = "allclear"
   netSend(secureStatus)
   --local senderID, message = rednet.receive(1)
-  --if senderID == gateLiason and message == "YY" then
+  --if senderID == gateLiaison and message == "YY" then
   term.setBackgroundColor(black)
   term.setCursorPos(15,9)
   term.write("                      ")
@@ -1783,7 +1783,7 @@ local function initMe()
   else
     netSend("QRY")
     local senderID, message = rednet.receive(3)
-    if senderID == gateLiason then
+    if senderID == gateLiaison then
       updateInfo(message)
     end
   end
