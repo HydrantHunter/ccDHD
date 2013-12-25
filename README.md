@@ -24,4 +24,4 @@ new directory:  /logs
 
 SUPPORTS:
 
-GopherATL's BioLock 2.1.3 for MC 1.6.4 (updated by gamax92)
+GopherATL's BioLock 2.1.3 (updated for MC 1.6.4 by gamax92)
