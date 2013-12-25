@@ -1,6 +1,6 @@
 --[[ Stargate/Shield  ]]--
---[[     Liaison      ]]--
---[[  version 0.5.7   ]]--
+--[[     Liaison       ]]--
+--[[  version 0.5.8   ]]--
 --[[ by HydrantHunter ]]--
 --[[     aka Dog      ]]--
 
@@ -35,12 +35,12 @@ local gate = peripheral.wrap("top")  -- Stargate
 local shield = "bottom"              -- Side for redstone output
 local gateControl = 1                -- DHD Computer
 local pollTime = 2                   -- Number of seconds between status polls
+-- Monitor
+local mon = peripheral.wrap("monitor_0") -- Monitor (3xAdvanced) - set to "none" if no monitor
 -- Network
 rednet.open("front")
 --local IO = peripheral.wrap("right")
 --local chan = { send = 229, rec = 231 }
--- Monitor
-local mon = peripheral.wrap("monitor_0") -- Monitor (3xAdvanced) - set to "none" if no monitor
 -- END MANUAL CONFIGURATION
 
 -- AUTOMATIC/STATIC CONFIGURATION (Part 1)
@@ -77,7 +77,7 @@ local function drawTermScreen()
   term.setBackgroundColor(colors.blue)
   term.setTextColor(colors.white)
   term.setCursorPos(2,2)
-  term.write("        Gate Liason         ")
+  term.write("        Gate Liaison         ")
   term.setCursorPos(2,8)
   term.write("                            ")
   term.setCursorPos(2,8)
@@ -106,7 +106,7 @@ local function drawTermScreen()
   term.setCursorPos(17,5)
   term.write(dialAddress)
   term.setCursorPos(17,6)
-  if shieldStatus == true then term.write("ON ") elseif shieldStatus == false then term.write("OFF") end
+  if shieldStatus == true then term.write("ON ") elseif shieldStatus == false then term.write("OFF") else term.write("ERR") end
   term.setCursorPos(17,7)
   term.write(pData)
 end
@@ -121,11 +121,6 @@ local function updateStatus()
     pData = "1"
   else
     pData = "0"
-  end
-  if gateStatus == "lockdown" then
-    pData = "XX"
-  elseif gateStatus == "allclear" then
-    pData = "YY"
   end
   if tostring(connectStatus) == "true" then
     pData = pData .. "1"
@@ -171,6 +166,11 @@ local function updateStatus()
         pData = pData .. "1"
       end
     end
+  end
+  if gateStatus == "lockdown" then
+    pData = "XX"
+  elseif gateStatus == "allclear" then
+    pData = "YY"
   end
   --if currentState ~= pData then rednet.send(gateControl,pData,true) end  - doesn't work for "QRY" - fix that and it's golden
   if gateStatus ~= "Dialing" and gateStatus ~= "Connected" and gateStatus ~= "lockdown" then displayMarque() end
@@ -273,7 +273,7 @@ local function doCommand(thisCommand)
     elseif thisCommand == "restart" or thisCommand == "reset" then
       os.reboot()
     else
-      if thisCommand:len() >= 7 and thisCommand:len() <= 9 and thisCommand ~= "endCall" and thisCommand ~= "lockdown" and thisCommand ~= "allclear" then
+      if thisCommand:len() > 6 and thisCommand:len() < 10 and thisCommand ~= "endCall" and thisCommand ~= "lockdown" and thisCommand ~= "allclear" then
         if dialOut(thisCommand) == false then
           gateStatus = "Disconnected"
         else
@@ -297,31 +297,8 @@ local function netReceive()
   end
 end
 
-local function waitForIt()
-  while true do
-    local eventWait = {os.pullEvent("timer")}
-    if eventWait[2] == connectTimer then
-      if connectTimer == 0 then
-        local newEvent = os.startTimer(152)
-        connectTimer = 1
-      else
-        connectTimer = 0
-        updateStatus()
-      end
-    end
-    return("timer")
-  end
-end
-
-local function dataPoller()
-  while true do
-    sleep(3)
-    updateStatus()
-  end
-end
-
 local function gateKernel()
-  parallel.waitForAny(netReceive,dataPoller) --waitForIt,
+  parallel.waitForAny(netReceive,dataPoller)
 end
 
 -- AUTOMATIC/STATIC CONFIGURATION (Part 2)
