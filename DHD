@@ -1,8 +1,8 @@
 --[[     STARGATE      ]]--
 --[[      D H D        ]]--
---[[    ver. 0.6.7     ]]--
+--[[    ver. 0.6.74    ]]--
 --[[  core ver. 4.2    ]]--
---[[   ui ver. 4.1     ]]--
+--[[   ui ver. 4.1.1   ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin vMtcSz2e ]]--
@@ -10,15 +10,13 @@
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
-  - Latest DeltaSG-Craft and LanteaCraft (snapshot 82)
-  - ComputerCraft ver. 1.57 & 1.58
-    - 1 Advanced Computer (color & mouse) & 4 Advanced Monitors (color)
+  - Latest DeltaSG-Craft or LanteaCraft (snapshot 82)
+  - ComputerCraft ver. 1.57+ for MC 1.6.4
+    - HTTP API enabled
+    - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
     - gateLiaison running on an Advanced Computer with 3 optional Advanced Monitors
 
-  Total hardware count: 2x Advanced Computer / 7x Advanced Monitor
-  NOTE:  Monitors are OPTIONAL
-
-  - Also supports GopherATL's BioLock ver. 2.1.3 (updated for 1.6.4 by gamax92)
+  - DHD also supports GopherATL's BioLock ver. 2.1.3 (updated for 1.6.4 by gamax92)
 
   -- drawXXX = write to terminal - interactive
   -- viewXXX = write to terminal - non-interactive
@@ -28,19 +26,14 @@ Tested with/requires:
 --[[
 TO DO:
   - FIX DIAL HIGHLIGHTING
-
   - FIX Monitor detection (either detects none, or only one)
-
+  - Make runState a table containing runState,secureStatus,etc.?
   - Address Book:
     - Add minecraft coordinates to data
-
   - Edit Mode
-    - Addressbook editting - in progress
-      - use color coded dropdrown for classification
-        - Translate base rating codes to 'words' for edit dropdown and notes viewer
-      - use colored pips to the left of the options (like the settings/quit menu)
+    - Addressbook editting
+      - use colored pips to the left of ratings instead of b/g colors (like the settings/quit menu)
     - Get trim working so it's easy to remove gates
-
   - Edit Mode/Trim Mode/?Drag Mode?
     - While in trim mode, any selected entries will be textColor(gray) - COMMIT will delete them
     - Drag and drop reordering of addresses (drag mode)
@@ -49,21 +42,15 @@ TO DO:
       - unless I can find an elegant way to handle dragging entries between pages
       - maybe have drag mode show a list of entries as just 'numbers' ([1] [2] etc.)
         - this way more entries can be shown per page and inter-page drag-n-drop is less of an issue (but still an issue)
-
   - List Monitor:
       - show dialed address?
       - page +/- buttons at bottom of list screen
       - provide dial button when info from list displayed
-
   - Term:
-    - Description should be displayed on overhead monitor when selected in term UI?  (And show selected gate on side monitor)
+    - Notes displayed on overhead monitor when selected in term UI?  (And show selected gate on side monitor)
       - should this be selectable? ("Put it on the big screen")
       - Translate base rating codes to 'words' for edit dropdown and notes viewer
-
   - moar?
-
-  - Make runState a table containing runState,secureStatus,etc.?
-
   - Possibly way down the line...
     - Big screen to put up a map with a dot showing gate coords
       - this will probably be a separate machine, and may even take over marque duty from the dialer
@@ -91,6 +78,8 @@ local sidesList = { bottom="none",
                   }
 -- Configuration
  -- Default settings
+local settingsData = "/data/DHDsettings"
+local gateData = "/data/DHDgates"
 local dhdSettings = { thisGate="ONEGATE",
                       password="password",
                       monA="none",
@@ -105,12 +94,10 @@ local dhdSettings = { thisGate="ONEGATE",
                       uptime="OFF",
                       gps="OFF",
                       ["loc"]={["x"]=99999,["y"]=99999,["z"]=99999,},
+                      ecShield="ON",
                     }
 local allGates = { {addr="NEWGATE",rating="u",note="Notes"} }
-local settingsData = "/data/DHDsettings"
-local gateData = "/data/DHDgates"
 local gateLiaison = dhdSettings.server
-local thisGate = dhdSettings.thisGate
 local longName
 local superSecretPassword
 -- 'Static' menu options
@@ -242,7 +229,6 @@ local function ingestData(fileName,fileType)
     dhdSettings = textutils.unserialize(dhdCfg)
     dhdConfig.close()
     gateLiaison = dhdSettings.server
-    thisGate = dhdSettings.thisGate
     superSecretPassword = dhdSettings.password
     if dhdSettings.monA ~= "none" then
       monA = peripheral.wrap(dhdSettings.monA)
@@ -265,9 +251,9 @@ local function ingestData(fileName,fileType)
     end
     local tG = {}
     longName = ""
-    for i = 1,thisGate:len(),1 do
-      tG[i] = thisGate:sub(i,i)
-      if i < thisGate:len() then
+    for i = 1,dhdSettings.thisGate:len(),1 do
+      tG[i] = dhdSettings.thisGate:sub(i,i)
+      if i < dhdSettings.thisGate:len() then
         longName = longName .. tG[i] .. " "
       else
         longName = longName .. tG[i]
@@ -316,6 +302,7 @@ local function localInventory()  -- NEED TO LEARN metatables & (self/this) refer
   dhdSettings.uptime="OFF"
   dhdSettings.gps="OFF"
   dhdSettings.loc={["x"]=99999,["y"]=99999,["z"]=99999,}
+  dhdSettings.ecShield="ON"
   local side, perp
   for side,perp in pairs(sidesList) do
     if peripheral.isPresent(tostring(side)) then
@@ -825,8 +812,8 @@ local function drawSettingsUI()
     term.write(" ")
   end
   term.setTextColor(white)
-  term.setCursorPos((termX/2)-((#thisGate/2)+(9-#thisGate)),1)
-  term.write(" " .. thisGate .. " Settings ")
+  term.setCursorPos((termX/2)-((#dhdSettings.thisGate/2)+(9-#dhdSettings.thisGate)),1)
+  term.write(" " .. dhdSettings.thisGate .. " Settings ")
   for i = 1,termX,1 do
     term.setCursorPos(i,termY)
     term.write(" ")
@@ -895,16 +882,20 @@ local function drawSettingsUI()
     term.setBackgroundColor(gray)
     term.write("  ")
   end
+  term.setBackgroundColor(gray)
+  term.setTextColor(black)
+  term.setCursorPos(23,10)
+  term.write("#")
   term.setBackgroundColor(black)
-  term.setCursorPos(2,12)
   term.setTextColor(gray)
+  term.setCursorPos(2,12)
   if dhdSettings.net == "R" then
     term.write("Gate Liaison")
   elseif dhdSettings.net == "C" then
     term.write("Channels")
   end
   term.setCursorPos(17,12)
-  if dhdSettings.net == "R" then         -- Gate Liaison (rNet) , Send Channel (ccNet)
+  if dhdSettings.net == "R" then          -- Gate Liaison (rNet) , Send Channel (ccNet)
     term.setTextColor(red)
     term.write(dhdSettings.server)
   elseif dhdSettings.net == "C" then
@@ -936,8 +927,8 @@ local function drawSettingsUI()
   term.setBackgroundColor(gray)
   term.setTextColor(black)
   term.write("#")
-  term.setBackgroundColor(black)
   term.setCursorPos(2,16)
+  term.setBackgroundColor(black)
   term.setTextColor(gray)
   term.write("List Monitor")              -- List Monitor (monA)
   term.setCursorPos(17,16)
@@ -956,7 +947,23 @@ local function drawSettingsUI()
   term.setBackgroundColor(gray)
   term.setTextColor(black)
   term.write("#")
+  -- 2nd column
+  term.setCursorPos(28,4)
   term.setBackgroundColor(black)
+  term.setTextColor(gray)
+  term.write("END Call Shield")
+  term.setCursorPos(45,4)
+  if dhdSettings.ecShield == "OFF" then
+    term.setBackgroundColor(gray)
+    term.write("  ")
+    term.setBackgroundColor(red)
+    term.write("  ")
+  elseif dhdSettings.ecShield == "ON" then
+    term.setBackgroundColor(green)
+    term.write("  ")
+    term.setBackgroundColor(gray)
+    term.write("  ")
+  end
 end
 
 local function drawSecureUI()
@@ -1042,59 +1049,67 @@ local function drawRatingList(gRating,currentGate)
   end
   term.setTextColor(white)
   term.setCursorPos(15,6)
+  term.setBackgroundColor(blue)
   if gRating == "b" then
-    term.setBackgroundColor(lime)
+    term.setTextColor(white)
   else
-    term.setBackgroundColor(blue)
+    term.setTextColor(gray)
   end
   term.write("Base   ")
   term.setCursorPos(15,7)
+  term.setBackgroundColor(lblue)
   if gRating == "h" then
-    term.setBackgroundColor(lime)
+    term.setTextColor(white)
   else
-    term.setBackgroundColor(lblue)
+    term.setTextColor(gray)
   end
   term.write("Home   ")
   term.setCursorPos(15,8)
+  term.setBackgroundColor(brown)
   if gRating == "v" then
-    term.setBackgroundColor(lime)
+    term.setTextColor(white)
   else
-    term.setBackgroundColor(brown)
+    term.setTextColor(gray)
   end
   term.write("Village")
   term.setCursorPos(15,9)
+  term.setBackgroundColor(magenta)
   if gRating == "p" then
-    term.setBackgroundColor(lime)
+    term.setTextColor(white)
   else
-    term.setBackgroundColor(magenta)
+    term.setTextColor(gray)
   end
   term.write("Misc.  ")
   term.setCursorPos(15,10)
+  term.setBackgroundColor(green)
   if gRating == "s" then
-    term.setBackgroundColor(lime)
+    term.setTextColor(white)
   else
-    term.setBackgroundColor(green)
+    term.setTextColor(gray)
   end
   term.write("Safe   ")
   term.setCursorPos(15,11)
+  term.setBackgroundColor(orange)
   if gRating == "c" then
-    term.setBackgroundColor(lime)
+    term.setTextColor(white)
   else
-    term.setBackgroundColor(orange)
+    term.setTextColor(gray)
   end
   term.write("Caution")
   term.setCursorPos(15,12)
+  term.setBackgroundColor(red)
   if gRating == "d" then
-    term.setBackgroundColor(lime)
+    term.setTextColor(white)
   else
-    term.setBackgroundColor(red)
+    term.setTextColor(gray)
   end
   term.write("Danger ")
   term.setCursorPos(15,13)
+  term.setBackgroundColor(lgray)
   if gRating == "u" then
-    term.setBackgroundColor(lime)
+    term.setTextColor(white)
   else
-    term.setBackgroundColor(lgray)
+    term.setTextColor(gray)
   end
   term.write("Unknown")
 end
@@ -1250,29 +1265,29 @@ local function remoteCommand()
   local tempState = runState
   runState = "rCmd"
   term.setTextColor(lime)
-  term.setCursorPos(14,8)
+  term.setCursorPos(((termX/2)-8),8)
   term.setBackgroundColor(lgray)
   term.write("               ")
-  term.setCursorPos(14,9)
+  term.setCursorPos(((termX/2)-8),9)
   term.setBackgroundColor(lgray)
   term.write(" ")
   term.setBackgroundColor(gray)
-  term.setCursorPos(15,9)
+  term.setCursorPos(((termX/2)-7),9)
   term.write("             ")
-  term.setCursorPos(28,9)
+  term.setCursorPos(((termX/2)+6),9)
   term.setBackgroundColor(lgray)
   term.write(" ")
-  term.setCursorPos(14,10)
+  term.setCursorPos(((termX/2)-8),10)
   term.setBackgroundColor(lgray)
   term.write("               ")
-  term.setCursorPos(15,9)
+  term.setCursorPos(((termX/2)-7),9)
   term.setBackgroundColor(gray)
   --repeat
     local commandLine = read()
   --until commandLine ~= nil
   term.setBackgroundColor(black)
   for i = 8,10,1 do
-    term.setCursorPos(14,i)
+    term.setCursorPos(((termX/2)-8),i)
     term.write("               ")
   end
   if commandLine == "quit" or commandLine == "exit" then
@@ -1411,6 +1426,9 @@ local function mClick()
         elseif mcY == 11 then
           if runState == "DHD" then
             dialAddress = ""
+            if dhdSettings.ecShield == "ON" then
+              netSend("sON")
+            end
             netSend("endCall")
           elseif runState == "Edit" then
             editGateEntry("new")
@@ -1670,12 +1688,11 @@ local function mClick()
         if newGate ~= "" and newGate ~= "nil" and newGate:len() > 6 and newGate:len() < 10 then
           configChange = true
           dhdSettings.thisGate = newGate
-          thisGate = newGate
           longName = ""
           tG = {}
-          for i = 1,thisGate:len(),1 do
-            tG[i] = thisGate:sub(i,i)
-            if i < thisGate:len() then
+          for i = 1,dhdSettings.thisGate:len(),1 do
+            tG[i] = dhdSettings.thisGate:sub(i,i)
+            if i < dhdSettings.thisGate:len() then
               longName = longName .. tG[i] .. " "
             else
               longName = longName .. tG[i]
@@ -1759,6 +1776,84 @@ local function mClick()
           configChange = true
         end
         drawSettingsUI()
+        -- select rednet side
+      elseif mcY == 10 and mcX > 22 and mcX < 24 then
+        if dhdSettings.net == "R" then
+          drawSideList(dhdSettings.rednet)
+          local netSide = { os.pullEvent("mouse_click") }
+          if netSide[3] > 26 and netSide[2] < 35 then
+            if netSide[4] == 5 then
+              dhdSettings.rednet = "top"
+              sidesList.top = "wifi"
+              rednet.open("top")
+              configChange = true
+            elseif netSide[4] == 7 then
+              dhdSettings.rednet = "bottom"
+              sidesList.bottom = "wifi"
+              rednet.open("bottom")
+              configChange = true
+            elseif netSide[4] == 9 then
+              dhdSettings.rednet = "front"
+              sidesList.front = "wifi"
+              rednet.open("front")
+              configChange = true
+            elseif netSide[4] == 11 then
+              dhdSettings.rednet = "back"
+              sidesList.back = "wifi"
+              rednet.open("back")
+              configChange = true
+            elseif netSide[4] == 13 then
+              dhdSettings.rednet = "left"
+              sidesList.left = "wifi"
+              rednet.open("left")
+              configChange = true
+            elseif netSide[4] == 15 then
+              dhdSettings.rednet = "right"
+              sidesList.right = "wifi"
+              rednet.open("right")
+              configChange = true
+            end
+          end
+          drawSettingsUI()
+        -- select ccnet side
+        elseif dhdSettings.net == "C" then
+          drawSideList(dhdSettings.ccnet)
+          local netSide = { os.pullEvent("mouse_click") }
+          if netSide[3] > 26 and netSide[2] < 35 then
+            if netSide[4] == 5 then
+              dhdSettings.ccnet = "top"
+              sidesList.top = "lan"
+              lan = peripheral.wrap("top")
+              configChange = true
+            elseif netSide[4] == 7 then
+              dhdSettings.ccnet = "bottom"
+              sidesList.bottom = "lan"
+              lan = peripheral.wrap("bottom")
+              configChange = true
+            elseif netSide[4] == 9 then
+              dhdSettings.ccnet = "front"
+              sidesList.front = "lan"
+              lan = peripheral.wrap("front")
+              configChange = true
+            elseif netSide[4] == 11 then
+              dhdSettings.ccnet = "back"
+              sidesList.back = "lan"
+              lan = peripheral.wrap("back")
+              configChange = true
+            elseif netSide[4] == 13 then
+              dhdSettings.ccnet = "left"
+              sidesList.left = "lan"
+              lan = peripheral.wrap("left")
+              configChange = true
+            elseif netSide[4] == 15 then
+              dhdSettings.ccnet = "right"
+              sidesList.right = "lan"
+              lan = peripheral.wrap("right")
+              configChange = true
+            end
+          end
+          drawSettingsUI()
+        end
         -- change rednet server / ccnet send channel
       elseif mcY == 12 and mcX > 16 and mcX < 20 then
         term.setBackgroundColor(black)
@@ -1895,6 +1990,16 @@ local function mClick()
           end
         end
         drawSettingsUI()
+        -- End Call Shield (ON/OFF)
+      elseif mcY == 4 and mcX > 44 and mcX < 49 then
+        if dhdSettings.ecShield == "ON" then
+          dhdSettings.ecShield = "OFF"
+          configChange = true
+        elseif dhdSettings.ecShield == "OFF" then
+          dhdSettings.ecShield = "ON"
+          configChange = true
+        end
+        drawSettingsUI()
       end
     end
   end
@@ -1971,7 +2076,6 @@ local function firstRun()
   local myGate = { rednet.receive(1) }
   if tonumber(myGate[1]) == dhdSettings.server then
     dhdSettings.thisGate = myGate[2]
-    thisGate = myGate[2]
   end
   saveData(settingsData,"cfg")
   if not fs.exists("/data/DHDgates") then
