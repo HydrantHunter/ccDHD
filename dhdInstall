@@ -1,5 +1,5 @@
 --[[ DHD/Gate Installer ]]--
---[[    version 1.1     ]]--
+--[[    version 1.2     ]]--
 --[[  by HydrantHunter  ]]--
 --[[      aka Dog       ]]--
 --[[ pastebin  A6uxKyCy ]]--
@@ -84,7 +84,10 @@ while true do
       else
         downloadFile("xSHHqL0h","startup")
       end
-      shell.run("edit gateLiaison")
+      if fs.exists("gateLiaison") then
+        shell.run("edit gateLiaison")
+      else
+        shell.run("edit startup")
       drawCLI()
     elseif userInput[4] == 10 then
       term.clear()
