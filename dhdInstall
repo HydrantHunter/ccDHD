@@ -1,0 +1,95 @@
+--[[ DHD/Gate Installer ]]--
+--[[    version 1.1     ]]--
+--[[  by HydrantHunter  ]]--
+--[[      aka Dog       ]]--
+--[[ pastebin  A6uxKyCy ]]--
+
+--[[
+Test with/Requires:
+  - Minecraft 1.6.4
+  - HTTPget enabled
+  - Latest DeltaSG-Craft or LanteaCraft (snapshot 82)
+  - ComputerCraft 1.57+ for MC 1.6.4
+  - Installer for Dog's DHD & Gate Liaison
+    - DHD: Advanced Computer (color, mouse) with 4 optional Advanced Monitors (color) and optional Biolock
+    - gateLiaison: Advanced Computer (color, mouse) with 3 Advanced Monitors (color)
+]]--
+local function downloadFile(fileToken, fileName)
+  local fileURL = http.get("http://pastebin.com/raw.php?i="..textutils.urlEncode( fileToken ))
+  if fileURL then
+    local fileContents = fileURL.readAll()
+    fileURL.close()
+    local newFile = fs.open(fileName, "w")
+    newFile.write(fileContents)
+    newFile.close()
+  end
+end
+
+local function drawHeader()
+  term.setBackgroundColor(colors.black)
+  term.clear()
+  term.setBackgroundColor(colors.purple)
+  term.setTextColor(colors.white)
+  term.setCursorPos(2,1)
+  term.write("                 ")
+  term.setCursorPos(2,2)
+  term.write("  DHD Installer  ")
+  term.setCursorPos(2,3)
+  term.write("                 ")
+end
+
+local function drawCLI()
+  term.setBackgroundColor(colors.black)
+  term.setCursorPos(1,6)
+  if fs.exists("DHD") then
+    term.setTextColor(colors.green)
+  else
+    term.setTextColor(colors.white)
+  end
+  term.write(" [  Install DHD  ] ")
+  term.setCursorPos(1,8)
+  if fs.exists("gateLiaison") then
+    term.setTextColor(colors.green)
+  else
+    term.setTextColor(colors.white)
+  end
+  term.write(" [  Install Gate ] ")
+  term.setTextColor(colors.white)
+  term.setCursorPos(1,10)
+  term.write(" [     Quit      ] ")
+end
+
+drawHeader()
+drawCLI()
+
+while true do
+  userInput = { os.pullEvent("mouse_click") }
+  if userInput[3] > 1 and userInput[3] < 21 then
+    if userInput[4] == 6 then
+      if not fs.exists("data") then
+        fs.makeDir("data")
+      end
+      if fs.exists("startup") then
+        downloadFile("vMtcSz2e","DHD")
+      else
+        downloadFile("vMtcSz2e","startup")
+      end
+      drawCLI()
+    elseif userInput[4] == 8 then
+      if not fs.exists("logs") then
+        fs.makeDir("logs")
+      end
+      if fs.exists("startup") then
+        downloadFile("xSHHqL0h","gateLiaison")
+      else
+        downloadFile("xSHHqL0h","startup")
+      end
+      shell.run("edit gateLiaison")
+      drawCLI()
+    elseif userInput[4] == 10 then
+      term.clear()
+      term.setCursorPos(1,1)
+      break
+    end
+  end
+end
