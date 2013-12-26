@@ -1,6 +1,6 @@
 --[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[  version 0.5.9    ]]--
+--[[  version 0.6.0    ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
@@ -8,27 +8,21 @@
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
-  - Latest DeltaSG-Craft and LanteaCraft (snapshot 82)
-  - ComputerCraft ver. 1.57 & 1.58
-    - 1 Advanced Computer (color & mouse) with 3 Advanced Monitors (color)
+  - Latest DeltaSG-Craft or LanteaCraft (snapshot 82)
+  - ComputerCraft ver. 1.57+ for MC 1.6.4
+    - HTTP API enabled
+    - 1 Advanced Computer (color, mouse), 3 optional Advanced Monitors (color)
     - DHD running on an Advanced Computer with 4 optional Advanced Monitors
 
-  Total hardware count: 2x Advanced Computer / 7x Advanced Monitor
-  NOTE:  Monitors are OPTIONAL
-
-  - Also supports GopherATL's BioLock ver. 2.1.3 (updated for 1.6.4 by gamax92)
+  - DHD also supports GopherATL's BioLock ver. 2.1.3 (updated for 1.6.4 by gamax92)
 ]]--
 
 --[[
     To Do:
   -- High priority
       - add auto-detect routines for peripherals
-      - implement occassional state checking:  (poller working, not sure about incoming)
-        - to see if state has changed via actual DHD
-        - to note incoming wormholes (probably only able to note that it's 'connected')
   -- Low priority
-      - reinstate call direction checking for 'initiator only' calls - DROPPED (not supported)
-      - try modem wrap and experiment with chan.send & chan.rec
+      - try modem wrap and experiment with chan.send & chan.recv
 ]]--
 
 -- MANUAL CONFIGURATION
@@ -108,7 +102,13 @@ local function drawTermScreen()
   term.setCursorPos(17,5)
   term.write(dialAddress)
   term.setCursorPos(17,6)
-  if shieldStatus == true then term.write("ON ") elseif shieldStatus == false then term.write("OFF") else term.write("ERR") end
+  if shieldStatus == true then
+    term.write("ON ")
+  elseif shieldStatus == false then
+    term.write("OFF")
+  else
+    term.write("ERR")
+  end
   term.setCursorPos(17,7)
   term.write(pData)
 end
@@ -240,7 +240,7 @@ local function dialOut(targetAddress)
 end
 
 local function endCall()
-  shieldControl("ON")
+  --shieldControl("ON")
   gate.disconnect()
   sleep(0.5)
   if tostring(gate.isConnected()) == "false" then
