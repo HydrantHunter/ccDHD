@@ -1,15 +1,17 @@
---[[ Stargate/Shield  ]]--
+--[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[  version 0.5.9   ]]--
---[[ by HydrantHunter ]]--
---[[     aka Dog      ]]--
+--[[  version 0.5.9    ]]--
+--[[ by HydrantHunter  ]]--
+--[[     aka Dog       ]]--
+--[[ pastebin xSHHqL0h ]]--
 
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
   - Latest DeltaSG-Craft and LanteaCraft (snapshot 82)
-  - 1 Advanced Computer with 3 Advanced Monitors
-  - DHD running on an Advanced Computer & 4 Advanced Monitors - ComputerCraft ver. 1.57 & 1.58
+  - ComputerCraft ver. 1.57 & 1.58
+    - 1 Advanced Computer (color & mouse) with 3 Advanced Monitors (color)
+    - DHD running on an Advanced Computer with 4 optional Advanced Monitors
 
   Total hardware count: 2x Advanced Computer / 7x Advanced Monitor
   NOTE:  Monitors are OPTIONAL
