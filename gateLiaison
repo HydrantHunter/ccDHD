@@ -1,6 +1,6 @@
 --[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[  version 0.6.0    ]]--
+--[[  version 0.6.0.2  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
@@ -142,7 +142,7 @@ local function updateStatus()
       end
     end
   elseif tostring(connectStatus) == "false" then
-    if gateStatus == "Dialing" or tostring(dialStatus) == true then
+    if gateStatus == "Dialing" or tostring(dialStatus) == "true" then
       pData = pData .. "2"
       if mon ~= "none" then
         mon.clear()
@@ -159,7 +159,7 @@ local function updateStatus()
         end
       end
     end
-    if gateStatus ~= "Dialing" and gateStatus ~= "lockdown" and gateStatus ~= "allclear" then
+    if gateStatus ~= "Dialing" and tostring(dialStatus) == "false" and gateStatus ~= "lockdown" and gateStatus ~= "allclear" then
       if tostring(connectStatus) == "false" then
         gateStatus = "Disconnected"
         pData = pData .. "0"
@@ -258,7 +258,6 @@ local function doCommand(thisCommand)
     updateStatus()
     return
   elseif thisCommand == "1stRun" then
-    --sleep(0.08)
     rednet.send(gateControl,thisGate,true)
     return
   elseif thisCommand == "allclear" then
