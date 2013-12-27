@@ -1,6 +1,6 @@
 --[[     STARGATE      ]]--
 --[[      D H D        ]]--
---[[    ver. 0.6.74    ]]--
+--[[    ver. 0.6.75    ]]--
 --[[  core ver. 4.2    ]]--
 --[[   ui ver. 4.1.1   ]]--
 --[[ by HydrantHunter  ]]--
@@ -17,10 +17,6 @@ Tested with/requires:
     - gateLiaison running on an Advanced Computer with 3 optional Advanced Monitors
 
   - DHD also supports GopherATL's BioLock ver. 2.1.3 (updated for 1.6.4 by gamax92)
-
-  -- drawXXX = write to terminal - interactive
-  -- viewXXX = write to terminal - non-interactive
-  -- displayXXX = write to monitor
 ]]--
 
 --[[
@@ -113,6 +109,7 @@ local menuState = false
 local kernelState = true
 local currentState = "ZZ"
 local configChange = false
+local gateChange = false
 -- Gate info (dial entries, ratings, notes)
 local zPos = {}
 local numPages = 1
@@ -484,71 +481,74 @@ local function drawControlUI()
     end
   end
   --if runState == "DHD" then
-    term.setTextColor(white)
-    term.setCursorPos(43,7)
-    if runState == "DHD" then
+  term.setTextColor(white)
+  term.setCursorPos(43,7)
+  if runState == "DHD" then
+    term.setBackgroundColor(green)
+    term.write(dhdCommandOptions[1] .. "     ")
+  elseif runState == "Edit" then
+    term.setBackgroundColor(brown)
+    term.write(dhdCommandOptions[2] .. "     ")
+  elseif runState == "Trim" then
+    term.setBackgroundColor(orange)
+    term.write(dhdCommandOptions[3] .. "     ")
+  end
+  if runState == "DHD" then
+    term.setCursorPos(43,9)
+    term.setBackgroundColor(lblue)
+    term.write(dhdCommandOptions[4] .. "   ")
+    if shieldStatus == "ON" then
       term.setBackgroundColor(green)
-      term.write(dhdCommandOptions[1] .. "     ")
-    elseif runState == "Edit" then
-      term.setBackgroundColor(brown)
-      term.write(dhdCommandOptions[2] .. "     ")
-    elseif runState == "Trim" then
+    elseif shieldStatus == "OFF" then
       term.setBackgroundColor(orange)
-      term.write(dhdCommandOptions[3] .. "     ")
-    end
-    if runState == "DHD" then
-      term.setCursorPos(43,9)
-      term.setBackgroundColor(lblue)
-      term.write(dhdCommandOptions[4] .. "   ")
-      if shieldStatus == "ON" then
-        term.setBackgroundColor(green)
-      elseif shieldStatus == "OFF" then
-        term.setBackgroundColor(orange)
-      else
-        term.setBackgroundColor(red)
-      end
-      term.setCursorPos(termX,9)
-      term.write(" ")
-      term.setCursorPos(43,11)
-      term.setTextColor(black)
-      term.setBackgroundColor(orange)
-      term.write(dhdCommandOptions[5] .. " ")
-      term.setCursorPos(43,13)
-      term.setTextColor(orange)
+    else
       term.setBackgroundColor(red)
-      term.write(dhdCommandOptions[6] .. " ")
-      term.setCursorPos(43,15)
-      term.setTextColor(gray)
-      term.setBackgroundColor(cyan)
-      term.write(dhdCommandOptions[7] .. "     ")
-    elseif runState == "Edit" then
-      --term.setCursorPos(43,9)
-      --term.setTextColor(brown)
-      --term.setBackgroundColor(black)
-      --term.write(dhdCommandOptions[8] .. "     ")
-      term.setCursorPos(43,11)
-      term.setTextColor(white)
-      term.setBackgroundColor(blue)
-      term.write(dhdCommandOptions[10] .. "  ")
-      term.setCursorPos(43,13)
-      term.setTextColor(white)
-      term.setBackgroundColor(cyan)
-      term.write(dhdCommandOptions[11] .. "     ")
-    elseif runState == "Trim" then
-      --term.setCursorPos(43,9)
-      --term.setTextColor(orange)
-      --term.setBackgroundColor(black)
-      --term.write(dhdCommandOptions[9] .. "     ")
-      term.setCursorPos(43,11)
-      term.setTextColor(gray)
-      term.setBackgroundColor(lgray)
-      term.write(dhdCommandOptions[12] .. " ")
-      term.setCursorPos(43,13)
-      term.setTextColor(black)
-      term.setBackgroundColor(red)
-      term.write(dhdCommandOptions[13] .. " ")
     end
-    term.setBackgroundColor(black)
+    term.setCursorPos(termX,9)
+    term.write(" ")
+    term.setCursorPos(43,11)
+    term.setTextColor(black)
+    term.setBackgroundColor(orange)
+    term.write(dhdCommandOptions[5] .. " ")
+    term.setCursorPos(43,13)
+    term.setTextColor(orange)
+    term.setBackgroundColor(red)
+    term.write(dhdCommandOptions[6] .. " ")
+    term.setCursorPos(43,15)
+    term.setTextColor(gray)
+    term.setBackgroundColor(cyan)
+    term.write(dhdCommandOptions[7] .. "     ")
+  elseif runState == "Edit" then
+    --term.setCursorPos(43,9)
+    --term.setTextColor(brown)
+    --term.setBackgroundColor(black)
+    --term.write(dhdCommandOptions[8] .. "     ")
+    term.setCursorPos(43,11)
+    term.setTextColor(white)
+    term.setBackgroundColor(blue)
+    term.write(dhdCommandOptions[10] .. "  ")
+    term.setCursorPos(43,13)
+    term.setTextColor(white)
+    term.setBackgroundColor(cyan)
+    if gateChange == true then
+      term.setTextColor(lime)
+    end
+    term.write(dhdCommandOptions[11] .. "     ")
+  elseif runState == "Trim" then
+    --term.setCursorPos(43,9)
+    --term.setTextColor(orange)
+    --term.setBackgroundColor(black)
+    --term.write(dhdCommandOptions[9] .. "     ")
+    term.setCursorPos(43,11)
+    term.setTextColor(gray)
+    term.setBackgroundColor(lgray)
+    term.write(dhdCommandOptions[12] .. " ")
+    term.setCursorPos(43,13)
+    term.setTextColor(black)
+    term.setBackgroundColor(red)
+    term.write(dhdCommandOptions[13] .. " ")
+  end
+  term.setBackgroundColor(black)
 end
 
 local function drawNaviUI()
@@ -1442,7 +1442,9 @@ local function mClick()
             secureStatus = "lockdown"
             secKernel(secureStatus)
           elseif runState == "Edit" then
+            gateChange = false
             saveData(gateData,"gate")
+            drawControlUI()
           end
           return
         elseif mcY == 15 then
@@ -1570,6 +1572,7 @@ local function mClick()
           local newGate = tostring(read())
           if newGate ~= "" and newGate ~= "nil" and newGate:len() > 6 and newGate:len() < 10 then
             allGates[currentEdit].addr = newGate
+            gateChange = true
           end
           runState = "Edit"
           term.setCursorPos(2,7)
@@ -1591,28 +1594,28 @@ local function mClick()
           if newRating[3] > 14 and newRating[2] < 20 then
             if newRating[4] == 6 then
               allGates[currentEdit].rating = "b"
-              configChange = true
+              gateChange = true
             elseif newRating[4] == 7 then
               allGates[currentEdit].rating = "h"
-              configChange = true
+              gateChange = true
             elseif newRating[4] == 8 then
               allGates[currentEdit].rating = "v"
-              configChange = true
+              gateChange = true
             elseif newRating[4] == 9 then
               allGates[currentEdit].rating = "p"
-              configChange = true
+              gateChange = true
             elseif newRating[4] == 10 then
               allGates[currentEdit].rating = "s"
-              configChange = true
+              gateChange = true
             elseif newRating[4] == 11 then
               allGates[currentEdit].rating = "c"
-              configChange = true
+              gateChange = true
             elseif newRating[4] == 12 then
               allGates[currentEdit].rating = "d"
-              configChange = true
+              gateChange = true
             elseif newRating[4] == 13 then
               allGates[currentEdit].rating = "u"
-              configChange = true
+              gateChange = true
             end
           end
           runState = "Edit"
@@ -1640,6 +1643,7 @@ local function mClick()
         local newNote = tostring(read())
         if newNote ~= "" and newNote ~= "nil" then
           allGates[currentEdit].note = newNote
+          gateChange = true
         end
         runState = "Edit"
         term.setCursorPos(2,7)
