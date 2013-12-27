@@ -1,8 +1,8 @@
 --[[     STARGATE      ]]--
 --[[      D H D        ]]--
---[[    ver. 0.6.75    ]]--
---[[  core ver. 4.2    ]]--
---[[   ui ver. 4.1.1   ]]--
+--[[   ver. 0.6.75.2   ]]--
+--[[   core ver. 4.2   ]]--
+--[[   ui ver. 4.0.6   ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin vMtcSz2e ]]--
@@ -21,7 +21,6 @@ Tested with/requires:
 
 --[[
 TO DO:
-  - FIX DIAL HIGHLIGHTING
   - FIX Monitor detection (either detects none, or only one)
   - Make runState a table containing runState,secureStatus,etc.?
   - Address Book:
@@ -1321,6 +1320,8 @@ end
 local function editGateEntry(dataBlock)
   runState = "GateEdit"
   local gEntry = dataBlock
+  local colorBurst = { b = blue, h = lblue,  v = brown, p = magenta, s = green, c = orange, d = red, u = lgray, x = lgray }
+  local ratingBurst = { b = "Base", h = "Home",  v = "Village", p = "Misc.", s = "Safe", c = "Caution", d = "Danger", u = "Unknown", x = "obo" }
   if gEntry == "new" then    -- If we're adding a new gate, create a 'default' to edit
     --numGates = numGates + 1
     gEntry = numGates + 1
@@ -1345,13 +1346,26 @@ local function editGateEntry(dataBlock)
       term.setCursorPos(2,7)
       term.write(allGates[gEntry].addr)
       term.setCursorPos(12,7)
-      term.setTextColor(yellow)
-      term.write(allGates[gEntry].rating)
+      for i,j in pairs(colorBurst) do
+        if allGates[gEntry].rating == i then
+          term.setTextColor(j)
+        end
+      end
+      for i,j in pairs(ratingBurst) do
+        if allGates[gEntry].rating == i then
+          term.write(j)
+        end
+      end
+      --term.write(allGates[gEntry].rating)
       term.setCursorPos(2,9)
       term.setTextColor(white)
       term.write(allGates[gEntry].note)
     end
   end
+  term.setCursorPos((termX/2)-8,termY-1)
+  term.setTextColor(black)
+  term.setBackgroundColor(gray)
+  term.write(" < < < BACK > > > ")
 end
 
 local function mClick()
@@ -1576,11 +1590,13 @@ local function mClick()
           end
           runState = "Edit"
           term.setCursorPos(2,7)
-          term.write("            ")
+          term.write("                 ")
           term.setCursorPos(2,9)
           for i = 2,termX,1 do
             term.write(" ")
           end
+          term.setCursorPos((termX/2)-8,termY-1)
+          term.write("                  ")
           drawCLI()
           --return
         elseif mcX > 11 and mcX < 16 then  --edit rating
@@ -1621,19 +1637,25 @@ local function mClick()
           runState = "Edit"
           term.setBackgroundColor(black)
           term.setCursorPos(2,7)
-          term.write("            ")
+          term.write("                 ")
           for i = 2,termX,1 do
             term.setCursorPos(i,9)
             term.write(" ")
           end
+          term.setCursorPos(2,10)
+          for i = 2,termX,1 do
+            term.write(" ")
+          end
           for i = 5,14,1 do
             term.setCursorPos(14,i)
-            term.write("            ")
+            term.write("                 ")
           end
+          term.setCursorPos((termX/2)-8,termY-1)
+          term.write("                  ")
           drawCLI()
           --return
         end
-      elseif mcY > 8 then  --edit notes
+      elseif mcY > 8 and mcY < 11 then  --edit notes
         term.setBackgroundColor(black)
         term.setTextColor(gray)
         term.setCursorPos(2,9)
@@ -1646,22 +1668,36 @@ local function mClick()
           gateChange = true
         end
         runState = "Edit"
+        term.setBackgroundColor(black)
         term.setCursorPos(2,7)
-        term.write("            ")
+        term.write("                 ")
         term.setCursorPos(2,9)
         for i = 2,termX,1 do
           term.write(" ")
         end
+        term.setCursorPos(2,10)
+        for i = 2,termX,1 do
+          term.write(" ")
+        end
+        term.setCursorPos((termX/2)-8,termY-1)
+        term.write("                  ")
         drawCLI()
         --return
-      else
+      elseif mcY == (termY-1) then
         runState = "Edit"
+        term.setBackgroundColor(black)
         term.setCursorPos(2,7)
-        term.write("            ")
+        term.write("                 ")
         term.setCursorPos(2,9)
         for i = 2,termX,1 do
           term.write(" ")
         end
+        term.setCursorPos(2,10)
+        for i = 2,termX,1 do
+          term.write(" ")
+        end
+        term.setCursorPos((termX/2)-8,termY-1)
+        term.write("                  ")
         drawCLI()
         --return
       end
