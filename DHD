@@ -1,8 +1,8 @@
 --[[     STARGATE      ]]--
 --[[      D H D        ]]--
---[[   ver. 0.6.75.2   ]]--
+--[[   ver. 0.6.75.3   ]]--
 --[[   core ver. 4.2   ]]--
---[[   ui ver. 4.0.6   ]]--
+--[[   ui ver. 4.0.7   ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin vMtcSz2e ]]--
@@ -21,14 +21,16 @@ Tested with/requires:
 
 --[[
 TO DO:
+  - Update 'view' to include rating 'word' (and 'edit' button?)
   - FIX Monitor detection (either detects none, or only one)
+  - Add gate fuel level and connect timer
   - Make runState a table containing runState,secureStatus,etc.?
   - Address Book:
     - Add minecraft coordinates to data
   - Edit Mode
     - Addressbook editting
       - use colored pips to the left of ratings instead of b/g colors (like the settings/quit menu)
-    - Get trim working so it's easy to remove gates
+    - Get trim working so it's easy to remove gates (this will probably help reordering along as well)
   - Edit Mode/Trim Mode/?Drag Mode?
     - While in trim mode, any selected entries will be textColor(gray) - COMMIT will delete them
     - Drag and drop reordering of addresses (drag mode)
@@ -479,7 +481,6 @@ local function drawControlUI()
       term.write(" ")
     end
   end
-  --if runState == "DHD" then
   term.setTextColor(white)
   term.setCursorPos(43,7)
   if runState == "DHD" then
@@ -1348,7 +1349,8 @@ local function editGateEntry(dataBlock)
       term.setCursorPos(12,7)
       for i,j in pairs(colorBurst) do
         if allGates[gEntry].rating == i then
-          term.setTextColor(j)
+          --term.setTextColor(j)
+          term.setTextColor(gray)
         end
       end
       for i,j in pairs(ratingBurst) do
@@ -2175,6 +2177,6 @@ repeat
     term.clear()
     term.setCursorPos(1,1)
     if runState == "reboot" or runState == "reset" then os.reboot() end
-    return  -- break, error(), exit(), shell.exit(), os.pullEvent("terminate")
+    return
   end
 until kernelState == false
