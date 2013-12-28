@@ -1,6 +1,6 @@
 --[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[  version 0.6.0.2  ]]--
+--[[  version 0.6.0.3  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
@@ -73,7 +73,7 @@ local function drawTermScreen()
   term.setBackgroundColor(colors.blue)
   term.setTextColor(colors.white)
   term.setCursorPos(2,2)
-  term.write("        Gate Liaison         ")
+  term.write(" Gate Liaison  ver. 0.6.0.3 ")
   term.setCursorPos(2,8)
   term.write("                            ")
   term.setCursorPos(2,8)
@@ -224,7 +224,7 @@ local function dialOut(targetAddress)
   dialAddress = tostring(targetAddress)
   connectStatus = gate.isConnected()
   if dialAddress ~= thisGate and tostring(connectStatus) == "false" then -- Is the stargate connected to another stargate?  isConnected()
-    local dialNow = gate.connect(dialAddress)
+    local dialNow = gate.dial(dialAddress)
       updateStatus()
     if tostring(dialNow) == "true" then
       gateStatus = "Dialing"
