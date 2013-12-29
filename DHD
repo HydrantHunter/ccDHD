@@ -1,7 +1,7 @@
---[[     STARGATE      ]]--
---[[      D H D        ]]--
---[[   ver. 0.6.75.3   ]]--
---[[   core ver. 4.2   ]]--
+--[[    STARGATE       ]]--
+--[[      c c D H D    ]]--
+--[[   ver. 0.6.76.1   ]]--
+--[[  core ver. 4.2.1  ]]--
 --[[   ui ver. 4.0.7   ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
@@ -56,6 +56,10 @@ TO DO:
 local function itBegins()
 end
 
+if os.clock() < 1 then
+  sleep(1)
+end
+
 local tArgs = { ... }
 -- Peripherals
 local monA = "none"
@@ -97,6 +101,7 @@ local allGates = { {addr="NEWGATE",rating="u",note="Notes"} }
 local gateLiaison = dhdSettings.server
 local longName
 local superSecretPassword
+local fuelGuage
 -- 'Static' menu options
 local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "END Call", "LOCKDOWN", "rCmd", "Edit", "Trim", "+ Entry", "Save", "Undo Sel", "-COMMIT-" }
 local passSymbols = { "!", "@", "#", "$", "%", "*", "?", "x", "X" }
@@ -194,6 +199,10 @@ local function updateInfo(newInfo)    -- Update shield, gate, etc. status
     shieldStatus = "ON"
     gateStatus = "Disconnected"
     dialAddress = ""
+  elseif tostring(newInfo) ==  "gas" then
+    fuelGuage = true
+  elseif tostring(newInfo) ==  "nogas" then
+    fuelGuage = false
   end
   currentState = tostring(newInfo)
   drawCLI()
@@ -484,7 +493,11 @@ local function drawControlUI()
   term.setTextColor(white)
   term.setCursorPos(43,7)
   if runState == "DHD" then
-    term.setBackgroundColor(green)
+    if fuelGuage == true then
+      term.setBackgroundColor(green)
+    elseif fuelGuage == false then
+      term.setBackgroundColor(red)
+    end
     term.write(dhdCommandOptions[1] .. "     ")
   elseif runState == "Edit" then
     term.setBackgroundColor(brown)
@@ -964,6 +977,13 @@ local function drawSettingsUI()
     term.setBackgroundColor(gray)
     term.write("  ")
   end
+  term.setCursorPos(28,6)
+  term.setBackgroundColor(black)
+  term.setTextColor(gray)
+  --term.write("Shield Side")
+  term.setCursorPos(45,6)
+  term.setTextColor(lblue)
+  --term.write(shield)
 end
 
 local function drawSecureUI()
@@ -1196,7 +1216,7 @@ end
 
 local function secKernel(alertState)  -- LOCKDOWN handler
   netSend(secureStatus)
-  drawSecureUI()
+  drawSecureUI()                      -- secKernel doesn't work right (need a way around password if 'allclear' is received)
   term.setTextColor(yellow)
   while secureStatus == "lockdown" do
     local thisSymbol = passSymbols[math.floor(math.random(1,#passSymbols))]
