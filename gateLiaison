@@ -1,6 +1,6 @@
 --[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[  version 0.6.0.3  ]]--
+--[[   version 0.6.1   ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
@@ -21,6 +21,8 @@ Tested with/requires:
     To Do:
   -- High priority
       - add auto-detect routines for peripherals
+      - fix double send on activity
+      - fix no YY sent after allclear received
   -- Low priority
       - try modem wrap and experiment with chan.send & chan.recv
 ]]--
@@ -30,7 +32,7 @@ Tested with/requires:
 local gate = peripheral.wrap("top")  -- Stargate
 local shield = "bottom"              -- Side for redstone output
 local gateControl = 1                -- DHD Computer
-local pollTime = 2                   -- Number of seconds between status polls
+local pollTime = 5                   -- Number of seconds between status polls
 -- Monitor
 local mon = peripheral.wrap("monitor_0") -- Monitor (3xAdvanced) - set to "none" if no monitor
 -- Network
@@ -46,9 +48,10 @@ local dialAddress = "none"
 local gateStatus = "QRY"
 local pData
 local currentState = "ZZ"
+local fuelGuage = gate.hasFuel()
 --local connectTimer = 0
---local pollTimer = 0
---local timePoller = 0
+local pollTimer = 0
+local timePoller = 0
 local thisGate = gate.getAddress()
 local longName = ""
 local shieldStatus
@@ -73,52 +76,95 @@ local function drawTermScreen()
   term.setBackgroundColor(colors.blue)
   term.setTextColor(colors.white)
   term.setCursorPos(2,2)
-  term.write(" Gate Liaison  ver. 0.6.0.3 ")
-  term.setCursorPos(2,8)
+  term.write("  Gate Liaison  ver. 0.6.1  ")
+  term.setCursorPos(2,10)
   term.write("                            ")
-  term.setCursorPos(2,8)
+  term.setCursorPos(2,10)
   term.write(" " .. os.getComputerLabel())
   local cID = tostring(math.floor(os.getComputerID()))
-  term.setCursorPos(30-(3+#cID),8)
+  term.setCursorPos(30-(3+#cID),10)
   term.write("# " .. cID)
   term.setBackgroundColor(colors.lightGray)
   term.setTextColor(colors.black)
+  for i = 2,14,1 do
+    for j = 3,9,1 do
+      term.setCursorPos(i,j)
+      term.write(" ")
+    end
+  end
   term.setCursorPos(2,3)
-  term.write(" Gate:        ")
+  term.write(" Gate:")
   term.setCursorPos(2,4)
-  term.write(" State:       ")
+  term.write(" State:")
   term.setCursorPos(2,5)
-  term.write(" Target/Last: ")
+  term.write(" Target:")
   term.setCursorPos(2,6)
-  term.write(" Shield:      ")
+  term.write(" Shield:")
   term.setCursorPos(2,7)
-  term.write(" Status:      ")
+  term.write(" Fuel:")
+  term.setCursorPos(2,8)
+  term.write(" Status:")
+  term.setCursorPos(2,9)
+  term.write(" ccDHD:")
   term.setBackgroundColor(colors.black)
   term.setTextColor(colors.yellow)
   term.setCursorPos(17,3)
   term.write(thisGate)
   term.setCursorPos(17,4)
+  if gateStatus == "Disconnected" then
+    term.setTextColor(colors.green)
+  else
+    term.setTextColor(colors.orange)
+  end
   term.write(gateStatus)
   term.setCursorPos(17,5)
+  term.setTextColor(colors.brown)
   term.write(dialAddress)
   term.setCursorPos(17,6)
   if shieldStatus == true then
+    term.setTextColor(colors.green)
     term.write("ON ")
   elseif shieldStatus == false then
+    term.setTextColor(colors.orange)
     term.write("OFF")
   else
     term.write("ERR")
   end
   term.setCursorPos(17,7)
+  if fuelGuage == true then
+    term.setTextColor(colors.green)
+    term.write("Yes")
+  elseif fuelGuage == false then
+    term.setTextColor(colors.red)
+    term.write("NO")
+  else
+    term.setTextColor(colors.magenta)
+    term.write("ERROR")
+  end
+  term.setCursorPos(17,8)
+  term.setTextColor(colors.lightBlue)
   term.write(pData)
+  term.setCursorPos(17,9)
+  term.setTextColor(colors.lightGray)
+  term.write(gateControl)
 end
 
 local function updateStatus()
-  --local pData
   currentState = pData
   connectStatus = gate.isConnected()
   dialStatus = gate.isDialing()
+  fuelGuage = gate.hasFuel()
   shieldStatus = rs.getOutput(shield)
+  if gateStatus == "allclear" then
+    pData = "YY"
+    rednet.send(gateControl,pData,true)
+    gateStatus = "Disconnected"
+    dialAddress = "none"
+  elseif gateStatus == "lockdown" then
+    pData = "XX"
+    rednet.send(gateControl,pData,true)
+    return
+  end
   if shieldStatus == true then
     pData = "1"
   else
@@ -132,13 +178,17 @@ local function updateStatus()
       mon.setTextScale(2)
       mon.setCursorPos(1,1)
       mon.setTextColor(colors.lightBlue)
-      mon.write("Connected to")
-      mon.setTextColor(colors.yellow)
-      mon.setCursorPos(1,2)
-      local dA = {}
-      for i = 1,#dialAddress do
-        dA[i] = dialAddress:sub(i,i)
-        mon.write(" " .. dA[i])
+      if dialAddress ~= "none" then
+        mon.write("Connected to")
+        mon.setTextColor(colors.yellow)
+        mon.setCursorPos(1,2)
+        local dA = {}
+        for i = 1,#dialAddress do
+          dA[i] = dialAddress:sub(i,i)
+          mon.write(" " .. dA[i])
+        end
+      else
+        mon.write("Connected")
       end
     end
   elseif tostring(connectStatus) == "false" then
@@ -169,19 +219,18 @@ local function updateStatus()
       end
     end
   end
-  if gateStatus == "lockdown" then
-    pData = "XX"
-  elseif gateStatus == "allclear" then
-    pData = "YY"
-  end
-  --if currentState ~= pData then rednet.send(gateControl,pData,true) end  - doesn't work for "QRY" - fix that and it's golden
   if gateStatus ~= "Dialing" and gateStatus ~= "Connected" and gateStatus ~= "lockdown" then displayMarque() end
   if pData == "YY" then
     shieldState = false
     gateStatus = "Disconnected"
+    dialAddress = "none"
   end
+  --if currentState ~= pData then rednet.send(gateControl,pData,true) end  - doesn't work for "QRY" - fix that and it's golden
   rednet.send(gateControl,pData,true)
-  if currentState ~= pData then drawTermScreen() end
+  if currentState ~= pData then
+    drawTermScreen()
+    --rednet.send(gateControl,pData,true)
+  end
 end
 
 local function recordSessionData()  -- Human readable log files (last gate & history)
@@ -240,12 +289,11 @@ local function dialOut(targetAddress)
 end
 
 local function endCall()
-  --shieldControl("ON")
   gate.disconnect()
   sleep(0.5)
   if tostring(gate.isConnected()) == "false" then
     gateStatus = "Disconnected"
-    --dialAddress = "none"
+    dialAddress = "none"
   end
   updateStatus()
 end
@@ -256,6 +304,11 @@ local function doCommand(thisCommand)
   end
   if thisCommand == "QRY" then
     updateStatus()
+    if fuelGuage == true then
+      rednet.send(gateControl,"gas",true)
+    elseif fuelGuage == false then
+      rednet.send(gateControl,"nogas",true)
+    end
     return
   elseif thisCommand == "1stRun" then
     rednet.send(gateControl,thisGate,true)
@@ -263,8 +316,8 @@ local function doCommand(thisCommand)
   elseif thisCommand == "allclear" then
     displayMarque()
     shieldControl("OFF")
-    --gateStatus = "allclear"
-    gateStatus = "Disconnected"
+    gateStatus = "allclear"
+    --gateStatus = "Disconnected"
     --rednet.send(gateControl,thisCommand,true)
     updateStatus()
     return -- ?
@@ -280,6 +333,11 @@ local function doCommand(thisCommand)
       os.reboot()
     else
       if thisCommand:len() > 6 and thisCommand:len() < 10 and thisCommand ~= "endCall" and thisCommand ~= "lockdown" and thisCommand ~= "allclear" then
+        if fuelGuage == true then
+          rednet.send(gateControl,"gas",true)
+        elseif fuelGuage == false then
+          rednet.send(gateControl,"nogas",true)
+        end
         if dialOut(thisCommand) == false then
           gateStatus = "Disconnected"
         else
@@ -305,12 +363,20 @@ end
 
 local function dataPoller()
   while true do
-    sleep(3)
-    updateStatus()
+    local timerEvent = { os.pullEvent("timer") }
+    if timerEvent[2] == pollTimer then
+      timePoller = 0
+      updateStatus()
+      break
+    end
   end
 end
 
 local function gateKernel()
+  if timePoller == 0 then
+    pollTimer = os.startTimer(pollTime)
+    timerPoller = 1
+  end
   parallel.waitForAny(netReceive,dataPoller)
 end
 
@@ -322,7 +388,7 @@ local function initMe()
     mon.setTextColor(colors.cyan)
   end
   --local sCommandOptions = { "QRY" "sON" "sOFF" "lockdown" "allclear" "reboot" "reset" }
-  thisGate = gate.getAddress()
+  --thisGate = gate.getAddress()
   local tG = {}
   longName = ""
   for i = 1,thisGate:len(),1 do
@@ -334,7 +400,7 @@ local function initMe()
     end
   end
   rs.setOutput(shield,false)
-  sleep(1)
+  sleep(0.5)
   rs.setOutput(shield,true)
   shieldStatus = true
 end
