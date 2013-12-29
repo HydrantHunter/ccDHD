@@ -1,6 +1,6 @@
 --[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[   version 0.6.1   ]]--
+--[[  version 0.6.1.1  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
@@ -76,7 +76,7 @@ local function drawTermScreen()
   term.setBackgroundColor(colors.blue)
   term.setTextColor(colors.white)
   term.setCursorPos(2,2)
-  term.write("  Gate Liaison  ver. 0.6.1  ")
+  term.write(" Gate Liaison  ver. 0.6.1.1 ")
   term.setCursorPos(2,10)
   term.write("                            ")
   term.setCursorPos(2,10)
@@ -162,6 +162,7 @@ local function updateStatus()
     dialAddress = "none"
   elseif gateStatus == "lockdown" then
     pData = "XX"
+    dialAddress = "none"
     rednet.send(gateControl,pData,true)
     return
   end
@@ -212,6 +213,7 @@ local function updateStatus()
     if gateStatus ~= "Dialing" and tostring(dialStatus) == "false" and gateStatus ~= "lockdown" and gateStatus ~= "allclear" then
       if tostring(connectStatus) == "false" then
         gateStatus = "Disconnected"
+        dialAddress = "none"
         pData = pData .. "0"
       else
         gateStatus = "Connected"
@@ -260,6 +262,7 @@ local function lockDown()
   gateStatus = "lockdown"
   shieldControl("ON")
   gate.disconnect()
+  dialAddress = "none"
   updateStatus()
   if mon ~= "none" then
     mon.clear()
@@ -317,12 +320,14 @@ local function doCommand(thisCommand)
     displayMarque()
     shieldControl("OFF")
     gateStatus = "allclear"
+    dialAddress = "none"
     --gateStatus = "Disconnected"
     --rednet.send(gateControl,thisCommand,true)
     updateStatus()
     return -- ?
   end                                  -- replaced elseif with end/if - split these into two if/thens
   if gateStatus ~= "lockdown" then
+    dialAddress = "none"
     if thisCommand == "endCall" then
       endCall()
     elseif thisCommand == "sON" then
@@ -340,6 +345,7 @@ local function doCommand(thisCommand)
         end
         if dialOut(thisCommand) == false then
           gateStatus = "Disconnected"
+          dialAddress = "none"
         else
           gateStatus = "Dialing"
         end
