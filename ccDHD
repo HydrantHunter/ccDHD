@@ -1,12 +1,12 @@
 --[[    STARGATE       ]]--
 --[[      c c D H D    ]]--
---[[   ver. 0.6.76.1   ]]--
+--[[    ver. 0.6.77    ]]--
 --[[  core ver. 4.2.1  ]]--
 --[[   ui ver. 4.0.7   ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin vMtcSz2e ]]--
-
+local ccDHDVer = "0.6.77"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -21,7 +21,7 @@ Tested with/requires:
 
 --[[
 TO DO:
-  - Update 'view' to include rating 'word' (and 'edit' button?)
+  - Update 'view' to include 'edit' button?
   - FIX Monitor detection (either detects none, or only one)
   - Add gate fuel level and connect timer
   - Make runState a table containing runState,secureStatus,etc.?
@@ -35,7 +35,7 @@ TO DO:
     - While in trim mode, any selected entries will be textColor(gray) - COMMIT will delete them
     - Drag and drop reordering of addresses (drag mode)
     - Not sure about 'drag mode' - may have to do 'move' or 'order' mode and use numbering
-      - BEST BET - add gate number (from allGates) to properties edit screen and allow it to be edited
+      - Easiest? - add gate number (from allGates) to properties edit screen and allow it to be edited
       - unless I can find an elegant way to handle dragging entries between pages
       - maybe have drag mode show a list of entries as just 'numbers' ([1] [2] etc.)
         - this way more entries can be shown per page and inter-page drag-n-drop is less of an issue (but still an issue)
@@ -346,7 +346,7 @@ local function localInventory()  -- NEED TO LEARN metatables & (self/this) refer
 end
 
 local function assignColor(gateNumber)
-  local colorBurst = { b = blue, h = lblue,  v = brown, p = magenta, s = green, c = orange, d = red, u = lgray, x = lgray }
+  local colorBurst = { b = blue, h = lblue,  v = brown, p = magenta, s = green, c = orange, d = red, u = lgray, x = purple }
   if dialAddress == allGates[gateNumber].addr then
     term.setTextColor(black)
   end
@@ -355,6 +355,28 @@ local function assignColor(gateNumber)
       return w
     end
   end
+end
+
+local function assignRating(gateNumber)
+  local ratingBurst = { b = "Base", h = "Home",  v = "Village", p = "Misc.", s = "Safe", c = "Caution", d = "Danger", u = "Unknown", x = "obo" }
+  for i,j in pairs(ratingBurst) do
+    if allGates[gateNumber].rating == i then
+      return j
+    end
+  end
+end
+
+
+local function displayMarque()
+  monB.setTextScale(2)
+  monB.setBackgroundColor(black)
+  monB.clear()
+  monB.setTextColor(cyan)
+  monB.setCursorPos(1,1)
+  monB.write("Stargate")
+  monB.setTextColor(yellow)
+  monB.setCursorPos(2,2)
+  monB.write(longName)
 end
 
 local function displayGateData()
@@ -371,18 +393,6 @@ local function displayGateData()
     monA.setTextColor(txColor)
     monA.write(allGates[i].addr)
   end
-end
-
-local function displayMarque()
-  monB.setTextScale(2)
-  monB.setBackgroundColor(black)
-  monB.clear()
-  monB.setTextColor(cyan)
-  monB.setCursorPos(1,1)
-  monB.write("Stargate")
-  monB.setTextColor(yellow)
-  monB.setCursorPos(2,2)
-  monB.write(longName)
 end
 
 local function displayNotes(pX,pY)
@@ -793,12 +803,16 @@ local function drawHelpUI()
       yMod = yMod + 1
     end
   end
+  term.setBackgroundColor(gray)
+  term.setTextColor(lgray)
+  term.setCursorPos(2,termY)
+  term.write("ccDHD ver. " .. ccDHDVer)
   if runState == "DHDHelp" then     -- Show either DHD or Edit help, depending on runState
     viewDHDHelp(colorCount)
   elseif runState == "EditHelp" then
     viewEditHelp(colorCount)
   end
-
+  --
   local waitForClick = { os.pullEvent("mouse_click") }
   term.setBackgroundColor(black)
   term.clear()
@@ -1175,7 +1189,7 @@ local function drawMenu()
   term.write("  EXIT  ")
 end
 
-local function viewNotes(dataEntry)
+local function viewGateEntry(dataEntry)
   local tempState = runState
   if tempState ~= "GateEdit" then runState = "viewing" end
   term.setBackgroundColor(black)
@@ -1186,11 +1200,10 @@ local function viewNotes(dataEntry)
   term.setCursorPos(2,7)
   term.setTextColor(txtColor)
   term.write(allGates[dataEntry].addr)
-  if runState == "GateEdit" then
-    term.setCursorPos(12,7)
-    term.setTextColor(yellow)
-    term.write(allGates[dataEntry].rating)
-  end
+  term.setCursorPos(12,7)
+  term.setTextColor(gray)
+  local ratingWord = assignRating(dataEntry)
+  term.write(ratingWord)
   term.setCursorPos(2,9)
   term.setTextColor(white)
   term.write(allGates[dataEntry].note)
@@ -1202,7 +1215,7 @@ local function viewNotes(dataEntry)
   runState=tempState
   term.setBackgroundColor(black)
   term.setCursorPos(2,7)
-  term.write("            ")
+  term.write("                   ")
   term.setCursorPos(2,9)
   for i = 1,termX,1 do
     term.write(" ")
@@ -1214,30 +1227,76 @@ local function viewNotes(dataEntry)
   drawCLI()
 end
 
+local function editGateEntry(dataBlock)
+  runState = "GateEdit"
+  local gEntry = dataBlock
+  local colorBurst = { b = blue, h = lblue,  v = brown, p = magenta, s = green, c = orange, d = red, u = lgray, x = lgray }
+  local ratingBurst = { b = "Base", h = "Home",  v = "Village", p = "Misc.", s = "Safe", c = "Caution", d = "Danger", u = "Unknown", x = "obo" }
+  if gEntry == "new" then    -- If we're adding a new gate, create a 'default' to edit
+    --numGates = numGates + 1
+    gEntry = numGates + 1
+    local newGate = { addr = "NEWGATE", rating = "u", note = "notes" }
+    table.insert(allGates,gEntry,newGate)
+    numGates = #allGates
+    numPages = math.floor(numGates / 24)   -- Re-paginate gates
+    if numPages < (numGates / 24) then
+      numPages = numPages + 1
+    end
+  end
+  currentEdit = gEntry
+  term.setBackgroundColor(black)
+  term.clear()
+  drawHeader()
+  -- Display data for editing
+  term.setBackgroundColor(black)
+  if gEntry <= numGates then
+    local tColor = assignColor(gEntry)
+    if tColor ~= nil then
+      term.setTextColor(tColor)
+      term.setCursorPos(2,7)
+      term.write(allGates[gEntry].addr)
+      term.setCursorPos(12,7)
+      term.setTextColor(gray)
+      local ratingWord = assignRating(gEntry)
+      term.write(ratingWord)
+      term.setCursorPos(2,9)
+      term.setTextColor(white)
+      term.write(allGates[gEntry].note)
+    end
+  end
+  term.setCursorPos((termX/2)-8,termY-1)
+  term.setTextColor(black)
+  term.setBackgroundColor(gray)
+  term.write(" < < < BACK > > > ")
+end
+
 local function secKernel(alertState)  -- LOCKDOWN handler
   netSend(secureStatus)
-  drawSecureUI()                      -- secKernel doesn't work right (need a way around password if 'allclear' is received)
+  drawSecureUI()
   term.setTextColor(yellow)
   while secureStatus == "lockdown" do
     local thisSymbol = passSymbols[math.floor(math.random(1,#passSymbols))]
     term.setCursorPos(termX/2,15)
     local securePass = read(thisSymbol)
     if securePass == superSecretPassword then
+      noneShallPass = false
       secureStatus = "allclear"
+      netSend(secureStatus)
+      local senderID, message = rednet.receive(1)
+      if senderID == gateLiaison and message == "00" then
+        local senderIDb, messageB = rednet.receive(1)
+        if senderIDb == gateLiaison and messageB == "YY" then
+          term.setBackgroundColor(black)
+          term.setCursorPos(15,9)
+          term.write("                      ")
+          term.setCursorPos(15,15)
+          term.write("                      ")
+          drawCLI()
+        end
+      end
       break
     end
   end
-  noneShallPass = false
-  secureStatus = "allclear"
-  netSend(secureStatus)
-  --local senderID, message = rednet.receive(1)
-  --if senderID == gateLiaison and message == "YY" then
-  term.setBackgroundColor(black)
-  term.setCursorPos(15,9)
-  term.write("                      ")
-  term.setCursorPos(15,15)
-  term.write("                      ")
-  drawCLI()
 end
 
 function drawCLI()   -- Client Interface 'decider'
@@ -1275,7 +1334,7 @@ function drawCLI()   -- Client Interface 'decider'
         drawHelpUI()
       elseif runState == "GateEdit" then
         --return
-        --viewNotes(currentEdit)
+        --viewGateEntry(currentEdit)
       end
     end
   end
@@ -1336,58 +1395,6 @@ local function remoteCommand()
   end
   runState = tempState
   drawCLI()
-end
-
-local function editGateEntry(dataBlock)
-  runState = "GateEdit"
-  local gEntry = dataBlock
-  local colorBurst = { b = blue, h = lblue,  v = brown, p = magenta, s = green, c = orange, d = red, u = lgray, x = lgray }
-  local ratingBurst = { b = "Base", h = "Home",  v = "Village", p = "Misc.", s = "Safe", c = "Caution", d = "Danger", u = "Unknown", x = "obo" }
-  if gEntry == "new" then    -- If we're adding a new gate, create a 'default' to edit
-    --numGates = numGates + 1
-    gEntry = numGates + 1
-    local newGate = { addr = "NEWGATE", rating = "u", note = "notes" }
-    table.insert(allGates,gEntry,newGate)
-    numGates = #allGates
-    numPages = math.floor(numGates / 24)   -- Re-paginate gates
-    if numPages < (numGates / 24) then
-      numPages = numPages + 1
-    end
-  end
-  currentEdit = gEntry
-  term.setBackgroundColor(black)
-  term.clear()
-  drawHeader()
-  -- Display data for editing
-  term.setBackgroundColor(black)
-  if gEntry <= numGates then
-    local tColor = assignColor(gEntry)
-    if tColor ~= nil then
-      term.setTextColor(tColor)
-      term.setCursorPos(2,7)
-      term.write(allGates[gEntry].addr)
-      term.setCursorPos(12,7)
-      for i,j in pairs(colorBurst) do
-        if allGates[gEntry].rating == i then
-          --term.setTextColor(j)
-          term.setTextColor(gray)
-        end
-      end
-      for i,j in pairs(ratingBurst) do
-        if allGates[gEntry].rating == i then
-          term.write(j)
-        end
-      end
-      --term.write(allGates[gEntry].rating)
-      term.setCursorPos(2,9)
-      term.setTextColor(white)
-      term.write(allGates[gEntry].note)
-    end
-  end
-  term.setCursorPos((termX/2)-8,termY-1)
-  term.setTextColor(black)
-  term.setBackgroundColor(gray)
-  term.write(" < < < BACK > > > ")
 end
 
 local function mClick()
@@ -1519,7 +1526,7 @@ local function mClick()
               updateInfo("Dialing")
               netSend(dialAddress)
             elseif mButton == 2 then
-              viewNotes(i)
+              viewGateEntry(i)
               --return
             end
           elseif runState == "Edit" then
@@ -1540,7 +1547,7 @@ local function mClick()
               updateInfo("Dialing")
               netSend(dialAddress)
             elseif mButton == 2 then
-              viewNotes(i + 6)
+              viewGateEntry(i + 6)
             end
           elseif runState == "Edit" then
             if mButton == 1 then
@@ -1560,7 +1567,7 @@ local function mClick()
               updateInfo("Dialing")
               netSend(dialAddress)
             elseif mButton == 2 then
-              viewNotes(i + 12)
+              viewGateEntry(i + 12)
             end
           elseif runState == "Edit" then
             if mButton == 1 then
@@ -1580,7 +1587,7 @@ local function mClick()
               updateInfo("Dialing")
               netSend(dialAddress)
             elseif mButton == 2 then
-              viewNotes(i + 18)
+              viewGateEntry(i + 18)
             end
           elseif runState == "Edit" then
             if mButton == 1 then
