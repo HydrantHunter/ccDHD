@@ -1,12 +1,12 @@
 --[[    STARGATE       ]]--
 --[[      c c D H D    ]]--
---[[    ver. 0.6.77    ]]--
---[[  core ver. 4.2.1  ]]--
---[[   ui ver. 4.0.7   ]]--
+--[[    ver. 0.6.89    ]]--
+--[[  core ver. 4.2.3  ]]--
+--[[   ui ver. 4.1.1   ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "0.6.77"
+local ccDHDVer = "0.6.89"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -21,18 +21,16 @@ Tested with/requires:
 
 --[[
 TO DO:
-  - Update 'view' to include 'edit' button?
   - FIX Monitor detection (either detects none, or only one)
-  - Add gate fuel level and connect timer
-  - Make runState a table containing runState,secureStatus,etc.?
-  - Address Book:
-    - Add minecraft coordinates to data
-  - Edit Mode
-    - Addressbook editting
-      - use colored pips to the left of ratings instead of b/g colors (like the settings/quit menu)
-    - Get trim working so it's easy to remove gates (this will probably help reordering along as well)
-  - Edit Mode/Trim Mode/?Drag Mode?
+  - add bioAuth (minimum auth level for bioscan) to Settings
+  - Add connect timer ?
+  - Get trim working so it's easy to remove gates - use table.remove(allGates,#)
     - While in trim mode, any selected entries will be textColor(gray) - COMMIT will delete them
+  - Addressbook editting
+    - use colored pips to the left of ratings instead of b/g colors (like the settings/quit menu)
+  - Update 'view' to include 'edit' button?
+  - Make runState a table containing runState,secureStatus,etc.?
+  - Reordering?
     - Drag and drop reordering of addresses (drag mode)
     - Not sure about 'drag mode' - may have to do 'move' or 'order' mode and use numbering
       - Easiest? - add gate number (from allGates) to properties edit screen and allow it to be edited
@@ -42,7 +40,7 @@ TO DO:
   - List Monitor:
       - show dialed address?
       - page +/- buttons at bottom of list screen
-      - provide dial button when info from list displayed
+      - provide dial button when info from list displayed ?
   - Term:
     - Notes displayed on overhead monitor when selected in term UI?  (And show selected gate on side monitor)
       - should this be selectable? ("Put it on the big screen")
@@ -65,10 +63,9 @@ local tArgs = { ... }
 local monA = "none"
 local monB = "none"
 local termX,termY = term.getSize()
+local IO  -- Modem (for ccNet)
 
---local IO = peripheral.wrap("front")    -- Modem (for ccNet)
---local chan = { send = 231, rec = 229 }
-
+--[[
  -- Table for peripheral side reference
 local sidesList = { bottom="none",
                     back="none",
@@ -77,8 +74,9 @@ local sidesList = { bottom="none",
                     front="none",
                     right="none",
                   }
+]]--
 -- Configuration
- -- Default settings
+ -- Default Settings
 local settingsData = "/data/DHDsettings"
 local gateData = "/data/DHDgates"
 local dhdSettings = { thisGate="ONEGATE",
@@ -94,18 +92,24 @@ local dhdSettings = { thisGate="ONEGATE",
                       ["channels"]={["send"]=241,["recv"]=242,},
                       uptime="OFF",
                       gps="OFF",
-                      ["loc"]={["x"]=99999,["y"]=99999,["z"]=99999,},
+                      ["loc"]={["x"]=99999,["y"]=99999,["z"]=99999,["dim"]=0,},
                       ecShield="ON",
+                      startShield="ON",
+                      logs="ON",
+                      cTimer="OFF",
+                      callEnd="OFF",
                     }
-local allGates = { {addr="NEWGATE",rating="u",note="Notes"} }
+local allGates = { {addr="NEWGATE",rating="u",note="Notes",["loc"]={["x"]=99999,["y"]=99999,["z"]=99999,["dim"]=1,},}, }
 local gateLiaison = dhdSettings.server
 local longName
 local superSecretPassword
 local fuelGuage
--- 'Static' menu options
-local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "END Call", "LOCKDOWN", "rCmd", "Edit", "Trim", "+ Entry", "Save", "Undo Sel", "-COMMIT-" }
+local fistAuth = false
+local bioAuth = 4
+ -- 'Static' Menu Options
+local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "END Call", "LOCKDOWN", "rCmd", "+ Entry", "Save", "Undo Sel", "-COMMIT-" }
 local passSymbols = { "!", "@", "#", "$", "%", "*", "?", "x", "X" }
--- Status info
+ -- Status Info
 local runState = "DHD"
 local shieldStatus = "QRY"
 local gateStatus = "QRY"
@@ -116,14 +120,14 @@ local kernelState = true
 local currentState = "ZZ"
 local configChange = false
 local gateChange = false
--- Gate info (dial entries, ratings, notes)
+local dialAddress
+local currentEdit
+ -- Gate List
 local zPos = {}
 local numPages = 1
 local pageNum = 1
 local numGates = 1
-local dialAddress
-local currentEdit
--- color definitions
+ -- Color Definitions
 local white = colors.white
 local lgray = colors.lightGray
 local gray = colors.gray
@@ -140,18 +144,50 @@ local cyan = colors.cyan
 local lime = colors.lime
 local green = colors.green
 
+local function bioAnimation()
+  while true do
+    for i = 2,20,1 do
+      term.setCursorPos(i,4)
+      term.setBackgroundColor(blue)
+      term.write(" ")
+      term.setBackgroundColor(black)
+      term.setCursorPos(i-1,4)
+      term.write(" ")
+      sleep(0.04)
+    end
+    for i = 20,2,-1 do
+      term.setCursorPos(i,4)
+      term.setBackgroundColor(blue)
+      term.write(" ")
+      term.setBackgroundColor(black)
+      term.setCursorPos(i+1,4)
+      term.write(" ")
+      sleep(0.04)
+    end
+  end
+end
+
+local function bioScan()
+  while true do
+    local fistPrint = {os.pullEvent("biolock")}
+    if fistPrint[5] >= bioAuth then
+      fistAuth = true
+      return fistAuth
+    end
+  end
+end
+
 local function bioLogin()
   local bio = peripheral.wrap(dhdSettings.bioSide)
-  local fistAuth = false
+  fistAuth = false
   term.setBackgroundColor(black)
   term.clear()
   term.setTextColor(yellow)
   term.setCursorPos(2,2)
   term.write("Waiting for Bioscan")
   while fistAuth == false do
-    local fistPrint = {os.pullEvent("biolock")}
-    if fistPrint[5] > 4 then
-      fistAuth = true
+    local fistPrint = parallel.waitForAny(bioScan,bioAnimation)
+    if fistAuth == true then
       return fistAuth
     end
   end
@@ -221,8 +257,6 @@ local function netReceive()
         if currentState ~= netEvent[2] then
           updateInfo(netEvent[2])
         end
-      --elseif tonumber(netEvent[4]) == gateLiaison then
-        --updateInfo(netEvent[5])
       end
       --if currentState ~= tostring(netEvent[2]) then updateInfo() end
     end
@@ -239,22 +273,22 @@ local function ingestData(fileName,fileType)
     superSecretPassword = dhdSettings.password
     if dhdSettings.monA ~= "none" then
       monA = peripheral.wrap(dhdSettings.monA)
-      sidesList.side = "monA"
+      --sidesList.side = "monA"
     end
     if dhdSettings.monB ~= "none" then
       monB = peripheral.wrap(dhdSettings.monB)
-      sidesList.side = "monB"
+      --sidesList.side = "monB"
     end
     if dhdSettings.rednet ~= "none" then
       rednet.open(dhdSettings.rednet)
-      sidesList.side = "RedNet"
+      --sidesList.side = "RedNet"
     end
     if dhdSettings.ccnet ~= "none" then
       modem = peripheral.wrap(dhdSettings.ccnet)
-      sidesList.side = "ccNet"
+      --sidesList.side = "ccNet"
     end
     if dhdSettings.bio ~= "none" then
-      sidesList.side = "BioLock"
+      --sidesList.side = "BioLock"
     end
     local tG = {}
     longName = ""
@@ -289,14 +323,7 @@ local function saveData(filename,filetype)
   dhdConfig.close()
 end
 
-local function localInventory()  -- NEED TO LEARN metatables & (self/this) referencing
-  sidesList = { bottom="none",
-                back="none",
-                top="none",
-                left="none",
-                front="none",
-                right="none",
-              }
+local function localInventory()
   dhdSettings.monA="none"
   dhdSettings.monB="none"
   dhdSettings.bio="none"
@@ -308,10 +335,14 @@ local function localInventory()  -- NEED TO LEARN metatables & (self/this) refer
   dhdSettings.channels={["send"]=241,["recv"]=242,}
   dhdSettings.uptime="OFF"
   dhdSettings.gps="OFF"
-  dhdSettings.loc={["x"]=99999,["y"]=99999,["z"]=99999,}
+  dhdSettings.loc={["x"]=99999,["y"]=99999,["z"]=99999,["dim"]=0,}
   dhdSettings.ecShield="ON"
+  dhdSettings.startShield="ON"
+  dhdSettings.logs="ON"
+  dhdSettings.cTimer="OFF"
+  dhdSettings.callEnd="OFF"
   local side, perp
-  for side,perp in pairs(sidesList) do
+  for _,side in pairs(rs.getSides()) do
     if peripheral.isPresent(tostring(side)) then
       perp = peripheral.getType(tostring(side))
       if tostring(perp) == "modem" then
@@ -319,12 +350,11 @@ local function localInventory()  -- NEED TO LEARN metatables & (self/this) refer
           rednet.open(side)
           dhdSettings.rednet = side
         elseif peripheral.call(tostring(side),"isWireless") == false and dhdSettings.net == "C" then
-          modem = peripheral.wrap(side)
+          IO = peripheral.wrap(side)
           dhdSettings.ccnet = side
         end
       end
       if tostring(perp) == "monitor" then
-        --peripheral.call(side,"setTextScale(1)")
         local tmX, tmY = peripheral.call(side,"getSize")
         if tmX == 15 then
           dhdSettings.monA = side
@@ -366,7 +396,6 @@ local function assignRating(gateNumber)
   end
 end
 
-
 local function displayMarque()
   monB.setTextScale(2)
   monB.setBackgroundColor(black)
@@ -379,7 +408,7 @@ local function displayMarque()
   monB.write(longName)
 end
 
-local function displayGateData()
+local function displayGateData()     -- Need to reformat for 2x8, multiple pages, add +/- page buttons
   monA.setTextScale(0.5)
   monA.setBackgroundColor(black)
   monA.clear()
@@ -395,30 +424,30 @@ local function displayGateData()
   end
 end
 
-local function displayNotes(pX,pY)
+local function displayNotes(pX,pY)   -- Need to reformat for more than 20 gates
   local numNotes
-    monA.setBackgroundColor(black)
-    monA.setTextScale(1)
-    monA.setCursorPos(1,3)
-    monA.clear()
-    monB.setTextScale(1)
-    monB.setTextColor(white)
-    monB.setBackgroundColor(black)
-    monB.clear()
-    monB.setCursorPos(1,3)
-    for numNotes = 1,#allGates,1 do
-      if pX > 0 and pX < 9 and pY == numNotes then
-        monB.write(allGates[numNotes].note)
-        local gColor = assignColor(numNotes)
-        monA.setTextColor(gColor)
-        monA.write(allGates[numNotes].addr)
-      elseif pX > 8 and pX < 16 and pY == (numNotes - 10) then
-        monB.write(allGates[numNotes].note)
-        local gColor = assignColor(numNotes)
-        monA.setTextColor(gColor)
-        monA.write(allGates[numNotes].addr)
-      end
+  monA.setBackgroundColor(black)
+  monA.setTextScale(1)
+  monA.setCursorPos(1,3)
+  monA.clear()
+  monB.setTextScale(1)
+  monB.setTextColor(white)
+  monB.setBackgroundColor(black)
+  monB.clear()
+  monB.setCursorPos(1,3)
+  for numNotes = 1,#allGates,1 do
+    if pX > 0 and pX < 9 and pY == numNotes then
+      monB.write(allGates[numNotes].note)
+      local gColor = assignColor(numNotes)
+      monA.setTextColor(gColor)
+      monA.write(allGates[numNotes].addr)
+    elseif pX > 8 and pX < 16 and pY == (numNotes - 10) then
+      monB.write(allGates[numNotes].note)
+      local gColor = assignColor(numNotes)
+      monA.setTextColor(gColor)
+      monA.write(allGates[numNotes].addr)
     end
+  end
 end
 
 local function drawHeader()
@@ -427,7 +456,7 @@ local function drawHeader()
   term.setTextColor(white)
   zPos[1] = 1
   if secureStatus == "allclear" then
-    if runState == "DHD" or runState == "viewing" then
+    if runState == "DHD" or runState == "rCmd" or runState == "viewing" then
       term.setBackgroundColor(blue)
     elseif runState == "Edit" then
       term.setBackgroundColor(brown)
@@ -490,6 +519,10 @@ local function drawHeader()
   term.setCursorPos(38,3)
   term.setTextColor(yellow)
   term.write(dialAddress)
+  if runState == "rCmd" then
+    term.setCursorPos(((termX/2)-7),9) -- this repositions the rCmd cursor for the rCmd box after an update is received
+    term.setTextColor(lime)            -- this returns the rCmd cursor to 'lime' after an update is received
+  end
 end
 
 local function drawControlUI()
@@ -542,34 +575,26 @@ local function drawControlUI()
     term.setBackgroundColor(cyan)
     term.write(dhdCommandOptions[7] .. "     ")
   elseif runState == "Edit" then
-    --term.setCursorPos(43,9)
-    --term.setTextColor(brown)
-    --term.setBackgroundColor(black)
-    --term.write(dhdCommandOptions[8] .. "     ")
     term.setCursorPos(43,11)
     term.setTextColor(white)
     term.setBackgroundColor(blue)
-    term.write(dhdCommandOptions[10] .. "  ")
+    term.write(dhdCommandOptions[8] .. "  ")
     term.setCursorPos(43,13)
     term.setTextColor(white)
     term.setBackgroundColor(cyan)
     if gateChange == true then
       term.setTextColor(lime)
     end
-    term.write(dhdCommandOptions[11] .. "     ")
+    term.write(dhdCommandOptions[9] .. "     ")
   elseif runState == "Trim" then
-    --term.setCursorPos(43,9)
-    --term.setTextColor(orange)
-    --term.setBackgroundColor(black)
-    --term.write(dhdCommandOptions[9] .. "     ")
     term.setCursorPos(43,11)
     term.setTextColor(gray)
     term.setBackgroundColor(lgray)
-    term.write(dhdCommandOptions[12] .. " ")
+    term.write(dhdCommandOptions[10] .. " ")
     term.setCursorPos(43,13)
     term.setTextColor(black)
     term.setBackgroundColor(red)
-    term.write(dhdCommandOptions[13] .. " ")
+    term.write(dhdCommandOptions[11] .. " ")
   end
   term.setBackgroundColor(black)
 end
@@ -806,7 +831,7 @@ local function drawHelpUI()
   term.setBackgroundColor(gray)
   term.setTextColor(lgray)
   term.setCursorPos(2,termY)
-  term.write("ccDHD ver. " .. ccDHDVer)
+  term.write("ccDHD ver. " .. ccDHDVer)  -- Show ccDHD version in bottom pane
   if runState == "DHDHelp" then     -- Show either DHD or Edit help, depending on runState
     viewDHDHelp(colorCount)
   elseif runState == "EditHelp" then
@@ -978,7 +1003,7 @@ local function drawSettingsUI()
   term.setCursorPos(28,4)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
-  term.write("END Call Shield")
+  term.write("END Call Shield")           -- END Call Shield (ON/OFF)
   term.setCursorPos(45,4)
   if dhdSettings.ecShield == "OFF" then
     term.setBackgroundColor(gray)
@@ -994,10 +1019,69 @@ local function drawSettingsUI()
   term.setCursorPos(28,6)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
-  --term.write("Shield Side")
+  term.write("STARTUP Shield")            -- Shield ON/OFF @ startup
   term.setCursorPos(45,6)
-  term.setTextColor(lblue)
-  --term.write(shield)
+  --term.setTextColor(lblue)
+  if dhdSettings.startShield == "OFF" then
+    term.setBackgroundColor(gray)
+    term.write("  ")
+    term.setBackgroundColor(red)
+    term.write("  ")
+  elseif dhdSettings.startShield == "ON" then
+    term.setBackgroundColor(green)
+    term.write("  ")
+    term.setBackgroundColor(gray)
+    term.write("  ")
+  end
+  term.setCursorPos(28,8)
+  term.setBackgroundColor(black)
+  term.setTextColor(gray)
+  term.write("Call Logging")              -- Gate Liaison should/not log outbound calls
+  term.setCursorPos(45,8)
+  --term.setTextColor(lblue)
+  if dhdSettings.logs == "OFF" then
+    term.setBackgroundColor(gray)
+    term.write("  ")
+    term.setBackgroundColor(red)
+    term.write("  ")
+  elseif dhdSettings.logs == "ON" then
+    term.setBackgroundColor(green)
+    term.write("  ")
+    term.setBackgroundColor(gray)
+    term.write("  ")
+  end
+  term.setCursorPos(28,10)
+  term.setBackgroundColor(black)
+  term.setTextColor(gray)
+  term.write("Call Timer")               -- Call Timer Display (ON/OFF)
+  term.setCursorPos(45,10)
+  if dhdSettings.cTimer == "OFF" then
+    term.setBackgroundColor(gray)
+    term.write("  ")
+    term.setBackgroundColor(red)
+    term.write("  ")
+  elseif dhdSettings.cTimer == "ON" then
+    term.setBackgroundColor(green)
+    term.write("  ")
+    term.setBackgroundColor(gray)
+    term.write("  ")
+  end
+  term.setCursorPos(28,12)
+  term.setBackgroundColor(black)
+  term.setTextColor(gray)
+  term.write("Initiator Only")           -- Only call initiator can end call (ON/OFF)
+  term.setCursorPos(45,12)
+  if dhdSettings.callEnd == "OFF" then
+    term.setBackgroundColor(gray)
+    term.write("  ")
+    term.setBackgroundColor(red)
+    term.write("  ")
+  elseif dhdSettings.callEnd == "ON" then
+    term.setBackgroundColor(green)
+    term.write("  ")
+    term.setBackgroundColor(gray)
+    term.write("  ")
+  end
 end
 
 local function drawSecureUI()
@@ -1207,6 +1291,25 @@ local function viewGateEntry(dataEntry)
   term.setCursorPos(2,9)
   term.setTextColor(white)
   term.write(allGates[dataEntry].note)
+  term.setCursorPos(2,12)
+  term.write("Dimension: ")
+  term.setTextColor(lgray)
+  term.write(allGates[dataEntry].loc.dim)
+  term.setCursorPos(2,13)
+  term.setTextColor(white)
+  term.write("x: ")
+  term.setTextColor(brown)
+  term.write(allGates[dataEntry].loc.x)
+  term.setCursorPos(2,14)
+  term.setTextColor(white)
+  term.write("y: ")
+  term.setTextColor(brown)
+  term.write(allGates[dataEntry].loc.y)
+  term.setCursorPos(2,15)
+  term.setTextColor(white)
+  term.write("z: ")
+  term.setTextColor(brown)
+  term.write(allGates[dataEntry].loc.z)
   term.setCursorPos((termX/2)-8,termY-1)
   term.setTextColor(black)
   term.setBackgroundColor(gray)
@@ -1215,10 +1318,14 @@ local function viewGateEntry(dataEntry)
   runState=tempState
   term.setBackgroundColor(black)
   term.setCursorPos(2,7)
-  term.write("                   ")
+  term.write("                                        ")
   term.setCursorPos(2,9)
   for i = 1,termX,1 do
     term.write(" ")
+  end
+  for i = 12,15,1 do
+    term.setCursorPos(2,i)
+    term.write("                ")
   end
   term.setCursorPos(1,termY-1)
   for i = 1,termX,1 do
@@ -1235,7 +1342,7 @@ local function editGateEntry(dataBlock)
   if gEntry == "new" then    -- If we're adding a new gate, create a 'default' to edit
     --numGates = numGates + 1
     gEntry = numGates + 1
-    local newGate = { addr = "NEWGATE", rating = "u", note = "notes" }
+    local newGate = { addr = "NEWGATE", rating = "u", note = "notes", loc = {x=99999,y=99999,z=99999,dim=1,}, }
     table.insert(allGates,gEntry,newGate)
     numGates = #allGates
     numPages = math.floor(numGates / 24)   -- Re-paginate gates
@@ -1259,9 +1366,29 @@ local function editGateEntry(dataBlock)
       term.setTextColor(gray)
       local ratingWord = assignRating(gEntry)
       term.write(ratingWord)
+      term.setTextColor(white)
       term.setCursorPos(2,9)
       term.setTextColor(white)
       term.write(allGates[gEntry].note)
+      term.setCursorPos(2,12)
+      term.write("Dimension: ")
+      term.setTextColor(lgray)
+      term.write(allGates[gEntry].loc.dim)
+      term.setCursorPos(2,13)
+      term.setTextColor(white)
+      term.write("x: ")
+      term.setTextColor(brown)
+      term.write(allGates[gEntry].loc.x)
+      term.setCursorPos(2,14)
+      term.setTextColor(white)
+      term.write("y: ")
+      term.setTextColor(brown)
+      term.write(allGates[gEntry].loc.y)
+      term.setCursorPos(2,15)
+      term.setTextColor(white)
+      term.write("z: ")
+      term.setTextColor(brown)
+      term.write(allGates[gEntry].loc.z)
     end
   end
   term.setCursorPos((termX/2)-8,termY-1)
@@ -1283,7 +1410,7 @@ local function secKernel(alertState)  -- LOCKDOWN handler
       secureStatus = "allclear"
       netSend(secureStatus)
       local senderID, message = rednet.receive(1)
-      if senderID == gateLiaison and message == "00" then
+      if senderID == gateLiaison and (message == "00" or message == "XX") then
         local senderIDb, messageB = rednet.receive(1)
         if senderIDb == gateLiaison and messageB == "YY" then
           term.setBackgroundColor(black)
@@ -1361,9 +1488,7 @@ local function remoteCommand()
   term.write("               ")
   term.setCursorPos(((termX/2)-7),9)
   term.setBackgroundColor(gray)
-  --repeat
     local commandLine = read()
-  --until commandLine ~= nil
   term.setBackgroundColor(black)
   for i = 8,10,1 do
     term.setCursorPos(((termX/2)-8),i)
@@ -1372,16 +1497,16 @@ local function remoteCommand()
   if commandLine == "quit" or commandLine == "exit" then
     runState = "exit"
     kernelState = false
-    --return
+    return
   elseif commandLine == "reboot" then
     runState = "reboot"
     kernelState = false
-    --return
+    return
   elseif commandLine == "reset" then
     runState = "reset"
     kernelState = false
     netSend(commandLine)
-    --return
+    return
   elseif commandLine == "sON" then
     netSend(commandLine)
     --return
@@ -1449,7 +1574,7 @@ local function mClick()
         end
       end
       -- Command Buttons (change modes, mode operation)
-      if mcX > 41 and mcX <= termX then
+      if mcX > 41 and mcX <= termX and (runState == "DHD" or runState == "Edit" or runState == "Trim") then
         if mcY == 7 then
           if runState == "DHD" then
             runState = "Edit"
@@ -1468,12 +1593,15 @@ local function mClick()
           return
         elseif mcY == 11 then
           if runState == "DHD" then
-            dialAddress = ""
             if dhdSettings.ecShield == "ON" then
               netSend("sON")
             end
-            netSend("endCall")
+            if dhdSettings.callEnd == "OFF" or (dhdSettings.callEnd == "ON" and dialAddress ~= "") then
+              netSend("endCall")
+              dialAddress = ""
+            end
           elseif runState == "Edit" then
+            gateChange = true
             editGateEntry("new")
           elseif runState == "Trim" then
             runState = "Edit"
@@ -1605,30 +1733,26 @@ local function mClick()
     -- Gate Editing
     if runState == "GateEdit" then
       if mcY == 7 then
-        if mcX > 1 and mcX < 10 then  --edit name
+         -- Edit Gate Address
+        if mcX > 1 and mcX < 10 then
           term.setBackgroundColor(black)
           term.setTextColor(gray)
           term.setCursorPos(2,7)
           term.write(allGates[currentEdit].addr)
           term.setTextColor(yellow)
           term.setCursorPos(2,7)
-          local newGate = tostring(read())
+          local newGate = string.upper(tostring(read()))
           if newGate ~= "" and newGate ~= "nil" and newGate:len() > 6 and newGate:len() < 10 then
             allGates[currentEdit].addr = newGate
             gateChange = true
           end
-          runState = "Edit"
           term.setCursorPos(2,7)
-          term.write("                 ")
-          term.setCursorPos(2,9)
-          for i = 2,termX,1 do
-            term.write(" ")
-          end
-          term.setCursorPos((termX/2)-8,termY-1)
-          term.write("                  ")
-          drawCLI()
-          --return
-        elseif mcX > 11 and mcX < 16 then  --edit rating
+          local gColor = assignColor(currentEdit)
+          term.setTextColor(gColor)
+          term.setBackgroundColor(black)
+          term.write(allGates[currentEdit].addr)
+         -- Edit Gate Rating/Classification
+        elseif mcX > 11 and mcX < 16 then
           term.setBackgroundColor(black)
           term.setTextColor(gray)
           term.setCursorPos(12,7)
@@ -1663,10 +1787,7 @@ local function mClick()
               gateChange = true
             end
           end
-          runState = "Edit"
           term.setBackgroundColor(black)
-          term.setCursorPos(2,7)
-          term.write("                 ")
           for i = 2,termX,1 do
             term.setCursorPos(i,9)
             term.write(" ")
@@ -1679,12 +1800,24 @@ local function mClick()
             term.setCursorPos(14,i)
             term.write("                 ")
           end
-          term.setCursorPos((termX/2)-8,termY-1)
-          term.write("                  ")
-          drawCLI()
-          --return
+          term.setCursorPos(2,7)
+          local gtColor = assignColor(currentEdit)
+          term.setTextColor(gtColor)
+          term.write(allGates[currentEdit].addr)
+          term.setCursorPos(12,7)
+          term.setTextColor(gray)
+          local gtRating = assignRating(currentEdit)
+          term.write(gtRating)
+          term.setCursorPos(13,12)
+          term.setTextColor(lgray)
+          term.write(allGates[currentEdit].loc.dim)
+          term.setCursorPos(2,9)
+          term.setTextColor(white)
+          term.write(allGates[currentEdit].note)
         end
-      elseif mcY > 8 and mcY < 11 then  --edit notes
+
+       -- Edit Gate Notes
+      elseif mcY > 8 and mcY < 11 then
         term.setBackgroundColor(black)
         term.setTextColor(gray)
         term.setCursorPos(2,9)
@@ -1696,10 +1829,7 @@ local function mClick()
           allGates[currentEdit].note = newNote
           gateChange = true
         end
-        runState = "Edit"
         term.setBackgroundColor(black)
-        term.setCursorPos(2,7)
-        term.write("                 ")
         term.setCursorPos(2,9)
         for i = 2,termX,1 do
           term.write(" ")
@@ -1708,15 +1838,99 @@ local function mClick()
         for i = 2,termX,1 do
           term.write(" ")
         end
-        term.setCursorPos((termX/2)-8,termY-1)
-        term.write("                  ")
-        drawCLI()
-        --return
+        term.setCursorPos(2,9)
+        term.setTextColor(white)
+        term.write(allGates[currentEdit].note)
+         -- Gate Dimension
+      elseif mcY == 12 then
+        if mcX > 12 and mcX < 16 then
+          term.setCursorPos(13,12)
+          term.setTextColor(gray)
+          term.setBackgroundColor(black)
+          term.write(allGates[currentEdit].loc.dim)
+          term.setCursorPos(13,12)
+          term.setTextColor(lgray)
+          local newDim = tonumber(read())
+          if tostring(newDim) ~= "" and newDim ~= nil then
+            allGates[currentEdit].loc.dim = newDim
+            gateChange = true
+          end
+          term.setCursorPos(13,12)
+          term.write("     ")
+          term.setCursorPos(13,12)
+          term.setTextColor(lgray)
+          term.setBackgroundColor(black)
+          term.write(allGates[currentEdit].loc.dim)
+        end
+         -- Gate X position
+      elseif mcY == 13 then
+        if mcX > 4 and mcX < 10 then
+          term.setCursorPos(5,13)
+          term.setTextColor(gray)
+          term.setBackgroundColor(black)
+          term.write(allGates[currentEdit].loc.x)
+          term.setCursorPos(5,13)
+          term.setTextColor(brown)
+          local newX = tonumber(read())
+          if tostring(newX) ~= "" and newX ~= nil then
+            allGates[currentEdit].loc.x = newX
+            gateChange = true
+          end
+          term.setCursorPos(5,13)
+          term.write("     ")
+          term.setCursorPos(5,13)
+          term.setTextColor(brown)
+          term.setBackgroundColor(black)
+          term.write(allGates[currentEdit].loc.x)
+        end
+         -- Gate Y position
+      elseif mcY == 14 then
+        if mcX > 4 and mcX < 10 then
+          term.setCursorPos(5,14)
+          term.setTextColor(gray)
+          term.setBackgroundColor(black)
+          term.write(allGates[currentEdit].loc.y)
+          term.setCursorPos(5,14)
+          term.setTextColor(brown)
+          local newY = tonumber(read())
+          if tostring(newY) ~= "" and newY ~= nil then
+            allGates[currentEdit].loc.y = newY
+            gateChange = true
+          end
+          term.setCursorPos(5,14)
+          term.write("     ")
+          term.setCursorPos(5,14)
+          term.setTextColor(brown)
+          term.setBackgroundColor(black)
+          term.write(allGates[currentEdit].loc.y)
+        end
+         -- Gate Z position
+      elseif mcY == 15 then
+        if mcX > 4 and mcX < 10 then
+          term.setCursorPos(5,15)
+          term.setTextColor(gray)
+          term.setBackgroundColor(black)
+          term.write(allGates[currentEdit].loc.z)
+          term.setCursorPos(5,15)
+          term.setTextColor(brown)
+          local newZ = tonumber(read())
+          if tostring(newZ) ~= "" and newZ ~= nil then
+            allGates[currentEdit].loc.z = newZ
+            gateChange = true
+          end
+          term.setCursorPos(5,15)
+          term.write("     ")
+          term.setCursorPos(5,15)
+          term.setTextColor(brown)
+          term.setBackgroundColor(black)
+          term.write(allGates[currentEdit].loc.z)
+        end
+        -- Exit Edit Screen
       elseif mcY == (termY-1) then
         runState = "Edit"
         term.setBackgroundColor(black)
         term.setCursorPos(2,7)
-        term.write("                 ")
+        term.write("                                        ")
         term.setCursorPos(2,9)
         for i = 2,termX,1 do
           term.write(" ")
@@ -1725,27 +1939,30 @@ local function mClick()
         for i = 2,termX,1 do
           term.write(" ")
         end
+        for i = 12,15,1 do
+          term.setCursorPos(2,i)
+          term.write("                ")
+        end
         term.setCursorPos((termX/2)-8,termY-1)
         term.write("                  ")
         drawCLI()
-        --return
       end
     end
-      -- Settings
+      -- DHD Settings
     if runState == "Cfg" then
-        -- save settings
+        -- Save Settings
       if mcY == 2 and mcX > 38 and mcX < 45 then
         saveData(settingsData,"cfg")
         configChange = false
         drawSettingsUI()
-        -- close settings (no save)
+        -- Close Settings (no save)
       elseif mcY == 2 and mcX > 44 and mcX <= termX then
         runState = "DHD"
         term.setBackgroundColor(black)
         term.clear()
         drawCLI()
       end
-        -- edit thisGate
+        -- Edit thisGate
       if mcY == 4 and mcX > 16 and mcX < 27 then
         term.setBackgroundColor(black)
         term.setTextColor(gray)
@@ -1771,7 +1988,7 @@ local function mClick()
         term.setCursorPos(16,4)
         term.write("         ")
         drawSettingsUI()
-        -- change password
+        -- Change LOCKDOWN Password
       elseif mcY == 6 and mcX > 16 and mcX < 31 then
         term.setBackgroundColor(black)
         term.setTextColor(gray)
@@ -1788,7 +2005,7 @@ local function mClick()
         term.setCursorPos(17,6)
         term.write("           ")
         drawSettingsUI()
-        -- biolock ON/OFF
+        -- Biolock ON/OFF
       elseif mcY == 8 and mcX > 16 and mcX < 21 and dhdSettings.bio ~= "none" then
         if dhdSettings.bio == "ON" then
           dhdSettings.bio = "OFF"
@@ -1804,38 +2021,38 @@ local function mClick()
         if bioSide[3] > 26 and bioSide[2] < 35 then
           if bioSide[4] == 5 then
             dhdSettings.bio = "top"
-            sidesList.top = "bio"
+            --sidesList.top = "bio"
             bio = peripheral.wrap("top")
             configChange = true
           elseif bioSide[4] == 7 then
             dhdSettings.bio = "bottom"
-            sidesList.bottom = "bio"
+            --sidesList.bottom = "bio"
             bio = peripheral.wrap("bottom")
             configChange = true
           elseif bioSide[4] == 9 then
             dhdSettings.bio = "front"
-            sidesList.front = "bio"
+            --sidesList.front = "bio"
             bio = peripheral.wrap("front")
             configChange = true
           elseif bioSide[4] == 11 then
             dhdSettings.bio = "back"
-            sidesList.back = "bio"
+            --sidesList.back = "bio"
             bio = peripheral.wrap("back")
             configChange = true
           elseif bioSide[4] == 13 then
             dhdSettings.bio = "left"
-            sidesList.left = "bio"
+            --sidesList.left = "bio"
             bio = peripheral.wrap("left")
             configChange = true
           elseif bioSide[4] == 15 then
             dhdSettings.bio = "right"
-            sidesList.right = "bio"
+            --sidesList.right = "bio"
             bio = peripheral.wrap("right")
             configChange = true
           end
         end
         drawSettingsUI()
-        -- rednet/ccnet
+        -- redNet/ccNet
       elseif mcY == 10 and mcX > 16 and mcX < 21 then
         if dhdSettings.net == "R" then
           dhdSettings.net = "C"
@@ -1845,7 +2062,7 @@ local function mClick()
           configChange = true
         end
         drawSettingsUI()
-        -- select rednet side
+        -- Select redNet Side
       elseif mcY == 10 and mcX > 22 and mcX < 24 then
         if dhdSettings.net == "R" then
           drawSideList(dhdSettings.rednet)
@@ -1853,77 +2070,77 @@ local function mClick()
           if netSide[3] > 26 and netSide[2] < 35 then
             if netSide[4] == 5 then
               dhdSettings.rednet = "top"
-              sidesList.top = "wifi"
+              --sidesList.top = "wifi"
               rednet.open("top")
               configChange = true
             elseif netSide[4] == 7 then
               dhdSettings.rednet = "bottom"
-              sidesList.bottom = "wifi"
+              --sidesList.bottom = "wifi"
               rednet.open("bottom")
               configChange = true
             elseif netSide[4] == 9 then
               dhdSettings.rednet = "front"
-              sidesList.front = "wifi"
+              --sidesList.front = "wifi"
               rednet.open("front")
               configChange = true
             elseif netSide[4] == 11 then
               dhdSettings.rednet = "back"
-              sidesList.back = "wifi"
+              --sidesList.back = "wifi"
               rednet.open("back")
               configChange = true
             elseif netSide[4] == 13 then
               dhdSettings.rednet = "left"
-              sidesList.left = "wifi"
+              --sidesList.left = "wifi"
               rednet.open("left")
               configChange = true
             elseif netSide[4] == 15 then
               dhdSettings.rednet = "right"
-              sidesList.right = "wifi"
+              --sidesList.right = "wifi"
               rednet.open("right")
               configChange = true
             end
           end
           drawSettingsUI()
-        -- select ccnet side
+        -- Select ccNet Side
         elseif dhdSettings.net == "C" then
           drawSideList(dhdSettings.ccnet)
           local netSide = { os.pullEvent("mouse_click") }
           if netSide[3] > 26 and netSide[2] < 35 then
             if netSide[4] == 5 then
               dhdSettings.ccnet = "top"
-              sidesList.top = "lan"
+              --sidesList.top = "lan"
               lan = peripheral.wrap("top")
               configChange = true
             elseif netSide[4] == 7 then
               dhdSettings.ccnet = "bottom"
-              sidesList.bottom = "lan"
+              --sidesList.bottom = "lan"
               lan = peripheral.wrap("bottom")
               configChange = true
             elseif netSide[4] == 9 then
               dhdSettings.ccnet = "front"
-              sidesList.front = "lan"
+              --sidesList.front = "lan"
               lan = peripheral.wrap("front")
               configChange = true
             elseif netSide[4] == 11 then
               dhdSettings.ccnet = "back"
-              sidesList.back = "lan"
+              --sidesList.back = "lan"
               lan = peripheral.wrap("back")
               configChange = true
             elseif netSide[4] == 13 then
               dhdSettings.ccnet = "left"
-              sidesList.left = "lan"
+              --sidesList.left = "lan"
               lan = peripheral.wrap("left")
               configChange = true
             elseif netSide[4] == 15 then
               dhdSettings.ccnet = "right"
-              sidesList.right = "lan"
+              --sidesList.right = "lan"
               lan = peripheral.wrap("right")
               configChange = true
             end
           end
           drawSettingsUI()
         end
-        -- change rednet server / ccnet send channel
+        -- Change redNet Server / ccNet Send Channel
       elseif mcY == 12 and mcX > 16 and mcX < 20 then
         term.setBackgroundColor(black)
         term.setTextColor(gray)
@@ -1955,7 +2172,7 @@ local function mClick()
           term.write("     ")
           drawSettingsUI()
         end
-        -- change ccnet receive channel
+        -- Change ccNet Receive Channel
       elseif mcY == 12 and mcX > 22 and mcX < 26 then
         term.setBackgroundColor(black)
         term.setCursorPos(23,12)
@@ -1971,10 +2188,10 @@ local function mClick()
         term.setCursorPos(23,12)
         term.write("     ")
         drawSettingsUI()
-        -- select marque side
+        -- Select Marque Side
       elseif mcY == 14 then
         if mcX > 16 and mcX < 21  and dhdSettings.monB ~= "none" then
-          sidesList[dhdSettings.monB] = "none"
+          --sidesList[dhdSettings.monB] = "none"
           dhdSettings.monB = "none"
           configChange = true
         elseif mcX > 22 and mcX < 24 then
@@ -1983,42 +2200,42 @@ local function mClick()
           if monBSide[3] > 26 and monBSide[2] < 35 then
             if monBSide[4] == 5 then
               dhdSettings.monB = "top"
-              sidesList.top = "monB"
+              --sidesList.top = "monB"
               monB = peripheral.wrap("top")
               configChange = true
             elseif monBSide[4] == 7 then
               dhdSettings.monB = "bottom"
-              sidesList.bottom = "monB"
+              --sidesList.bottom = "monB"
               monB = peripheral.wrap("bottom")
               configChange = true
             elseif monBSide[4] == 9 then
               dhdSettings.monB = "front"
-              sidesList.front = "monB"
+              --sidesList.front = "monB"
               monB = peripheral.wrap("front")
               configChange = true
             elseif monBSide[4] == 11 then
               dhdSettings.monB = "back"
-              sidesList.back = "monB"
+              --sidesList.back = "monB"
               monB = peripheral.wrap("back")
               configChange = true
             elseif monBSide[4] == 13 then
               dhdSettings.monB = "left"
-              sidesList.left = "monB"
+              --sidesList.left = "monB"
               monB = peripheral.wrap("left")
               configChange = true
             elseif monBSide[4] == 15 then
               dhdSettings.monB = "right"
-              sidesList.right = "monB"
+              --sidesList.right = "monB"
               monB = peripheral.wrap("right")
               configChange = true
             end
           end
         end
         drawSettingsUI()
-        -- select list monitor side
+        -- Select List Monitor Side
       elseif mcY == 16 then
         if mcX > 16 and mcX < 21  and dhdSettings.monA ~= "none" then
-          sidesList[dhdSettings.monA] = "none"
+          --sidesList[dhdSettings.monA] = "none"
           dhdSettings.monA = "none"
           configChange = true
         elseif mcX > 22 and mcX < 24 then
@@ -2027,32 +2244,32 @@ local function mClick()
           if monASide[3] > 26 and monASide[2] < 35 then
             if monASide[4] == 5 then
               dhdSettings.monA = "top"
-              sidesList.top = "monA"
+              --sidesList.top = "monA"
               monA = peripheral.wrap("top")
               configChange = true
             elseif monASide[4] == 7 then
               dhdSettings.monA = "bottom"
-              sidesList.bottom = "monA"
+              --sidesList.bottom = "monA"
               monA = peripheral.wrap("bottom")
               configChange = true
             elseif monASide[4] == 9 then
               dhdSettings.monA = "front"
-              sidesList.front = "monA"
+              --sidesList.front = "monA"
               monA = peripheral.wrap("front")
               configChange = true
             elseif monASide[4] == 11 then
               dhdSettings.monA = "back"
-              sidesList.back = "monA"
+              --sidesList.back = "monA"
               monA = peripheral.wrap("back")
               configChange = true
             elseif monASide[4] == 13 then
               dhdSettings.monA = "left"
-              sidesList.left = "monA"
+              --sidesList.left = "monA"
               monA = peripheral.wrap("left")
               configChange = true
             elseif monASide[4] == 15 then
               dhdSettings.monA = "right"
-              sidesList.right = "monA"
+              --sidesList.right = "monA"
               monA = peripheral.wrap("right")
               configChange = true
             end
@@ -2066,6 +2283,46 @@ local function mClick()
           configChange = true
         elseif dhdSettings.ecShield == "OFF" then
           dhdSettings.ecShield = "ON"
+          configChange = true
+        end
+        drawSettingsUI()
+        -- Startup Shield (ON/OFF)
+      elseif mcY == 6 and mcX > 44 and mcX < 49 then
+        if dhdSettings.startShield == "ON" then
+          dhdSettings.startShield = "OFF"
+          configChange = true
+        elseif dhdSettings.startShield == "OFF" then
+          dhdSettings.startShield = "ON"
+          configChange = true
+        end
+        drawSettingsUI()
+        -- Call Logging (ON/OFF)
+      elseif mcY == 8 and mcX > 44 and mcX < 49 then
+        if dhdSettings.logs == "ON" then
+          dhdSettings.logs = "OFF"
+          configChange = true
+        elseif dhdSettings.logs == "OFF" then
+          dhdSettings.logs = "ON"
+          configChange = true
+        end
+        drawSettingsUI()
+        -- Call Timer (ON/OFF)
+      elseif mcY == 10 and mcX > 44 and mcX < 49 then
+        if dhdSettings.cTimer == "ON" then
+          dhdSettings.cTimer = "OFF"
+          configChange = true
+        elseif dhdSettings.cTimer == "OFF" then
+          dhdSettings.cTimer = "ON"
+          configChange = true
+        end
+        drawSettingsUI()
+        -- Call Initiator ONLY for endCall (ON/OFF)
+      elseif mcY == 12 and mcX > 44 and mcX < 49 then
+        if dhdSettings.callEnd == "ON" then
+          dhdSettings.callEnd = "OFF"
+          configChange = true
+        elseif dhdSettings.callEnd == "OFF" then
+          dhdSettings.callEnd = "ON"
           configChange = true
         end
         drawSettingsUI()
@@ -2175,16 +2432,23 @@ local function initMe()
     end
   else
     term.setCursorPos(2,4)
+    term.write("Setting Shield . . .")
+    if dhdSettings.startShield == "ON" then
+      netSend("sON")
+    elseif dhdSettings.startShield == "OFF" then
+      netSend("sOFF")
+    end
+    term.setCursorPos(2,6)
     term.write("Querying Gate . . .")
     netSend("QRY")
-    term.setCursorPos(2,6)
+    term.setCursorPos(2,8)
     term.write("Awaiting response . . .")
     local senderID, message = rednet.receive(1)
     if senderID == gateLiaison then
       updateInfo(message)
     end
   end
-  term.setCursorPos(2,8)
+  term.setCursorPos(2,10)
   term.write("Ingesting gate data . . .")
   ingestData(gateData,"gate")
   term.setBackgroundColor(black)
