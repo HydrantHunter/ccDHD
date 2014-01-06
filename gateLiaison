@@ -1,10 +1,10 @@
 --[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[  version 0.6.1.3  ]]--
+--[[  version  0.6.23  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "0.6.1.3"
+local gVer = "0.6.23"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -20,43 +20,39 @@ Tested with/requires:
 --[[
     To Do:
   -- High priority
-      - add auto-detect routines for peripherals
-      - fix double send on activity
-      - fix YY sent 2nd after allclear received
+      - fix double send on activity             \___ probably related - need to eliminate spurious 'first' send
+      - fix YY sent 2nd after allclear received /
   -- Low priority
       - try modem wrap and experiment with chan.send & chan.recv
 ]]--
-
+--
 -- MANUAL CONFIGURATION
--- Gate & Shield
-local gate = peripheral.wrap("top")  -- Stargate
-local shield = "bottom"              -- Side for redstone output
-local gateControl = 1                -- DHD Computer
-local pollTime = 3                   -- Number of seconds between status polls
--- Monitor
-local mon = peripheral.wrap("monitor_0") -- Monitor (3xAdvanced) - set to "none" if no monitor
--- Network
-rednet.open("front")
---local IO = peripheral.wrap("back")
+--
+local gateControl = 1   -- DHD Computer
+local shield = "bottom" -- Side for redstone output
+local pollTime = 3      -- Seconds b/t status polls
 --local chan = { send = 229, rec = 231 }
 -- Logs
 local lastGate = "/logs/DHDlast"
 local gateHistory = "/logs/DHDhistory"
+--
 -- END MANUAL CONFIGURATION
-
+--
 -- AUTOMATIC/STATIC CONFIGURATION (Part 1)
-local dialStatus = gate.isDialing()
-local connectStatus = gate.isConnected()
+local gate
+local thisGate
+local dialStatus
+local connectStatus
+local fuelGuage
 local dialAddress = "none"
 local gateStatus = "QRY"
 local pData
 local currentState = "ZZ"
-local fuelGuage = gate.hasFuel()
 --local connectTimer = 0
 local pollTimer = 0
 local timePoller = 0
-local thisGate = gate.getAddress()
 local longName = ""
+local mon = "none"
 local shieldStatus
 -- END AUTOMATIC/STATIC CONFIGURATION (Part 1)
 
@@ -79,7 +75,7 @@ local function drawTermScreen()
   term.setBackgroundColor(colors.blue)
   term.setTextColor(colors.white)
   term.setCursorPos(2,2)
-  term.write(" Gate Liaison  ver. " .. gVer)
+  term.write(" Gate Liaison   ver. " .. gVer .. " ")
   term.setCursorPos(2,10)
   term.write("                            ")
   term.setCursorPos(2,10)
@@ -160,6 +156,7 @@ local function updateStatus()
   shieldStatus = rs.getOutput(shield)
   if gateStatus == "allclear" then
     pData = "YY"
+    shieldState = false
     gateStatus = "Disconnected"
     dialAddress = "none"
     rednet.send(gateControl,pData,true)
@@ -170,69 +167,58 @@ local function updateStatus()
     dialAddress = "none"
     rednet.send(gateControl,pData,true)
     return
-  end
-  if shieldStatus == true then
-    pData = "1"
   else
-    pData = "0"
-  end
-  if tostring(connectStatus) == "true" then
-    pData = pData .. "1"
-    gateStatus = "Connected"
-    if mon ~= "none" then
-      mon.clear()
-      mon.setTextScale(2)
-      mon.setCursorPos(1,1)
-      mon.setTextColor(colors.lightBlue)
-      if dialAddress ~= "none" then
-        mon.write("Connected to")
-        mon.setTextColor(colors.yellow)
-        mon.setCursorPos(1,2)
-        local dA = {}
-        for i = 1,#dialAddress do
-          dA[i] = dialAddress:sub(i,i)
-          mon.write(" " .. dA[i])
-        end
-      else
-        mon.write("Connected")
-      end
+    if shieldStatus == true then
+      pData = "1"
+    else
+      pData = "0"
     end
-  elseif tostring(connectStatus) == "false" then
-    if gateStatus == "Dialing" or tostring(dialStatus) == "true" then
-      pData = pData .. "2"
+    if tostring(connectStatus) == "true" then
+      pData = pData .. "1"
+      gateStatus = "Connected"
       if mon ~= "none" then
         mon.clear()
         mon.setTextScale(2)
         mon.setCursorPos(1,1)
         mon.setTextColor(colors.lightBlue)
-        mon.write("Dialing")
-        mon.setTextColor(colors.yellow)
-        mon.setCursorPos(1,2)
-        local dA = {}
-        for i = 1,#dialAddress do
-          dA[i] = dialAddress:sub(i,i)
-          mon.write(" " .. dA[i])
+        if dialAddress ~= "none" then
+          mon.write("Connected to")
+          mon.setTextColor(colors.yellow)
+          mon.setCursorPos(1,2)
+          local dA = {}
+          for i = 1,#dialAddress do
+            dA[i] = dialAddress:sub(i,i)
+            mon.write(" " .. dA[i])
+          end
+        else
+          mon.write("Connected")
         end
       end
-    end
-    if gateStatus ~= "Dialing" and tostring(dialStatus) == "false" and gateStatus ~= "lockdown" and gateStatus ~= "allclear" then
-      if tostring(connectStatus) == "false" then
+    elseif tostring(connectStatus) == "false" then
+      if gateStatus == "Dialing" or tostring(dialStatus) == "true" then
+        pData = pData .. "2"
+        if mon ~= "none" then
+          mon.clear()
+          mon.setTextScale(2)
+          mon.setCursorPos(1,1)
+          mon.setTextColor(colors.lightBlue)
+          mon.write("Dialing")
+          mon.setTextColor(colors.yellow)
+          mon.setCursorPos(1,2)
+          local dA = {}
+          for i = 1,#dialAddress do
+            dA[i] = dialAddress:sub(i,i)
+            mon.write(" " .. dA[i])
+          end
+        end
+      elseif gateStatus ~= "Dialing" or tostring(dialStatus) == "false" then
         gateStatus = "Disconnected"
         dialAddress = "none"
         pData = pData .. "0"
-      else
-        gateStatus = "Connected"
-        pData = pData .. "1"
       end
     end
   end
   if gateStatus ~= "Dialing" and gateStatus ~= "Connected" and gateStatus ~= "lockdown" then displayMarque() end
-  if pData == "YY" then
-    shieldState = false
-    gateStatus = "Disconnected"
-    dialAddress = "none"
-  end
-  --if currentState ~= pData then rednet.send(gateControl,pData,true) end  - doesn't work for "QRY" - fix that and it's golden
   rednet.send(gateControl,pData,true)
   if currentState ~= pData then
     drawTermScreen()
@@ -315,8 +301,6 @@ local function doCommand(thisCommand)
     shieldControl("OFF")
     gateStatus = "allclear"
     dialAddress = "none"
-    --gateStatus = "Disconnected"
-    --rednet.send(gateControl,"YY",true)
     updateStatus()
     return -- ?
   elseif thisCommand == "QRY" then
@@ -332,7 +316,6 @@ local function doCommand(thisCommand)
     return
   end                                  -- replaced elseif with end/if - split these into two if/thens
   if gateStatus ~= "lockdown" then
-    --dialAddress = "none"
     if thisCommand == "endCall" then
       endCall()
     elseif thisCommand == "sON" then
@@ -407,20 +390,45 @@ local function initMe()
   end
   --local sCommandOptions = { "QRY", "sON", "sOFF", "lockdown", "allclear", "reboot", "reset", }
   --thisGate = gate.getAddress()
-  local tG = {}
-  longName = ""
-  for i = 1,thisGate:len(),1 do
-    tG[i] = thisGate:sub(i,i)
-    if i < thisGate:len() then
-      longName = longName .. tG[i] .. " "
-    else
-      longName = longName .. tG[i]
-    end
-  end
   rs.setOutput(shield,false)
   sleep(0.5)
   rs.setOutput(shield,true)
   shieldStatus = true
+  for k,v in pairs(rs.getSides()) do
+      -- Stargate
+    if peripheral.getType(v) == "stargate" then
+      gate = peripheral.wrap(tostring(v))
+      thisGate = gate.getAddress()
+      dialStatus = gate.isDialing()
+      connectStatus = gate.isConnected()
+      fuelGuage = gate.hasFuel()
+      local tG = {}
+      longName = ""
+      for i = 1,thisGate:len(),1 do
+        tG[i] = thisGate:sub(i,i)
+        if i < thisGate:len() then
+          longName = longName .. tG[i] .. " "
+        else
+          longName = longName .. tG[i]
+        end
+      end
+    elseif peripheral.getType(v) == "modem" then
+        -- Modem
+      if peripheral.call(tostring(v),"isWireless") == true then
+        rednet.open(v)
+        -- Network
+      elseif peripheral.call(tostring(v),"isWireless") == false then
+        --local IO = peripheral.wrap("back")
+        -- Monitor
+        mPerps = peripheral.call(tostring(v),"getNamesRemote")
+        for num,mPerp in pairs(mPerps) do
+          if tostring(mPerp):sub(1,7) == "monitor" then
+            mon = peripheral.wrap(mPerp)
+          end
+        end
+      end
+    end
+  end
 end
 -- END AUTOMATIC/STATIC CONFIGURATION (Part 2)
 
