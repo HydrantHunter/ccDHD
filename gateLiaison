@@ -1,10 +1,10 @@
 --[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[  version  0.6.23  ]]--
+--[[  version  0.6.25  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "0.6.23"
+local gVer = "0.6.25"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -20,10 +20,9 @@ Tested with/requires:
 --[[
     To Do:
   -- High priority
-      - fix double send on activity             \___ probably related - need to eliminate spurious 'first' send
-      - fix YY sent 2nd after allclear received /
   -- Low priority
       - try modem wrap and experiment with chan.send & chan.recv
+      - re-write with less spaghetti
 ]]--
 --
 -- MANUAL CONFIGURATION
@@ -155,15 +154,22 @@ local function updateStatus()
   fuelGuage = gate.hasFuel()
   shieldStatus = rs.getOutput(shield)
   if gateStatus == "allclear" then
-    pData = "YY"
     shieldState = false
     gateStatus = "Disconnected"
     dialAddress = "none"
+    if fuelGuage == false then
+      pData = "YY0"
+    elseif fuelGuage == true then
+      pData = "YY1"
+    end
     rednet.send(gateControl,pData,true)
-    pData = "00"
     return
   elseif gateStatus == "lockdown" then
-    pData = "XX"
+    if fuelGuage == false then
+      pData = "XX0"
+    elseif fuelGuage == true then
+      pData = "XX1"
+    end
     dialAddress = "none"
     rednet.send(gateControl,pData,true)
     return
@@ -217,12 +223,16 @@ local function updateStatus()
         pData = pData .. "0"
       end
     end
+    if fuelGuage == false then
+      pData = pData .. "0"
+    elseif fuelGuage == true then
+      pData = pData .. "1"
+    end
   end
   if gateStatus ~= "Dialing" and gateStatus ~= "Connected" and gateStatus ~= "lockdown" then displayMarque() end
   rednet.send(gateControl,pData,true)
   if currentState ~= pData then
     drawTermScreen()
-    --rednet.send(gateControl,pData,true)
   end
 end
 
@@ -246,7 +256,7 @@ local function shieldControl(state)
   else
     rs.setOutput(shield,true)
   end
-  updateStatus()
+  return
 end
 
 local function lockDown()
@@ -289,7 +299,6 @@ local function endCall()
     gateStatus = "Disconnected"
     dialAddress = "none"
   end
-  updateStatus()
 end
 
 local function doCommand(thisCommand)
@@ -305,43 +314,39 @@ local function doCommand(thisCommand)
     return -- ?
   elseif thisCommand == "QRY" then
     updateStatus()
-    if fuelGuage == true then
-      rednet.send(gateControl,"gas",true)
-    elseif fuelGuage == false then
-      rednet.send(gateControl,"nogas",true)
-    end
     return
-  elseif thisCommand == "1stRun" then
+  elseif thisCommand == "1stRun" then  -- When DHD signifies its first run, it is given the gate's address
     rednet.send(gateControl,thisGate,true)
     return
   end                                  -- replaced elseif with end/if - split these into two if/thens
   if gateStatus ~= "lockdown" then
     if thisCommand == "endCall" then
       endCall()
+      updateStatus()
+      return
     elseif thisCommand == "sON" then
       shieldControl("ON")
+      updateStatus()
+      return
     elseif thisCommand == "sOFF" then
       shieldControl("OFF")
+      updateStatus()
+      return
     elseif thisCommand == "restart" or thisCommand == "reset" then
       os.reboot()
     else
       if thisCommand:len() > 6 and thisCommand:len() < 10 and thisCommand ~= "endCall" and thisCommand ~= "lockdown" and thisCommand ~= "allclear" then
-        if fuelGuage == true then
-          rednet.send(gateControl,"gas",true)
-        elseif fuelGuage == false then
-          rednet.send(gateControl,"nogas",true)
-          dialAddress = "none"
-        end
-        if dialOut(thisCommand) == false then
+        if dialOut(thisCommand) == true then
+          gateStatus = "Dialing"
+          updateStatus()
+        else
           gateStatus = "Disconnected"
           dialAddress = "none"
-        else
-          gateStatus = "Dialing"
+          updateStatus()
         end
       end
     end
   end
-  updateStatus()
 end
 
 local function netReceive()
@@ -349,7 +354,9 @@ local function netReceive()
     if not IO then
       eventNet = { rednet.receive() }
       if tonumber(eventNet[1]) == gateControl then
-        if eventNet[2] ~= nil and eventNet[2] ~= "" then doCommand(eventNet[2]) end
+        if eventNet[2] ~= nil and eventNet[2] ~= "" then
+          doCommand(eventNet[2])
+        end
       end
       return
     else
@@ -363,7 +370,6 @@ end
 
 local function dataPoller()
   while true do
-  --while gateStatus ~= "lockdown" do
     local timerEvent = { os.pullEvent("timer") }
     if timerEvent[2] == pollTimer then
       timePoller = 0
@@ -389,7 +395,6 @@ local function initMe()
     mon.setTextColor(colors.cyan)
   end
   --local sCommandOptions = { "QRY", "sON", "sOFF", "lockdown", "allclear", "reboot", "reset", }
-  --thisGate = gate.getAddress()
   rs.setOutput(shield,false)
   sleep(0.5)
   rs.setOutput(shield,true)
