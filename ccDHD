@@ -16,13 +16,13 @@ Tested with/requires:
     - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
     - gateLiaison running on an Advanced Computer with 3 optional Advanced Monitors
 
-  - DHD also supports GopherATL's BioLock ver. 2.1.3 (updated for 1.6.4 by gamax92)
+  - DHD also supports the FistPrint Scanner in GopherATL's BioLock ver. 2.1.3 (updated for 1.6.4 by gamax92)
 ]]--
 
 --[[
 TO DO:
   - FIX Monitor detection (either detects none, or only one)
-  - add bioAuth (minimum auth level for bioscan) to Settings
+  - add dhdSettings.bio.auth (minimum auth level for bioscan) to Settings
   - Add connect timer ?
   - Get trim working so it's easy to remove gates - use table.remove(allGates,#)
     - While in trim mode, any selected entries will be textColor(gray) - COMMIT will delete them
@@ -47,6 +47,7 @@ TO DO:
       - Translate base rating codes to 'words' for edit dropdown and notes viewer
   - moar?
   - Possibly way down the line...
+    - re-write with significantly less spaghetti
     - Big screen to put up a map with a dot showing gate coords
       - this will probably be a separate machine, and may even take over marque duty from the dialer
 ]]--
@@ -83,8 +84,7 @@ local dhdSettings = { thisGate="ONEGATE",
                       password="password",
                       monA="none",
                       monB="none",
-                      bio="none",
-                      bioSide="none",
+                      ["bio"]={lock="none",side="none",auth=4,},
                       net="R",
                       rednet="none",
                       server=999,
@@ -99,13 +99,12 @@ local dhdSettings = { thisGate="ONEGATE",
                       cTimer="OFF",
                       callEnd="OFF",
                     }
-local allGates = { {addr="NEWGATE",rating="u",note="Notes",["loc"]={["x"]=99999,["y"]=99999,["z"]=99999,["dim"]=1,},}, }
+local allGates = { {addr="NEWGATE",rating="u",note="short note",["loc"]={["x"]=99999,["y"]=99999,["z"]=99999,["dim"]=1,},}, }
 local gateLiaison = dhdSettings.server
 local longName
 local superSecretPassword
 local fuelGuage
 local fistAuth = false
-local bioAuth = 4
  -- 'Static' Menu Options
 local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "END Call", "LOCKDOWN", "rCmd", "+ Entry", "Save", "Undo Sel", "-COMMIT-" }
 local passSymbols = { "!", "@", "#", "$", "%", "*", "?", "x", "X" }
@@ -170,7 +169,7 @@ end
 local function bioScan()
   while true do
     local fistPrint = {os.pullEvent("biolock")}
-    if fistPrint[5] >= bioAuth then
+    if fistPrint[5] >= dhdSettings.bio.auth then
       fistAuth = true
       return fistAuth
     end
@@ -178,7 +177,7 @@ local function bioScan()
 end
 
 local function bioLogin()
-  local bio = peripheral.wrap(dhdSettings.bioSide)
+  local bio = peripheral.wrap(dhdSettings.bio.side)
   fistAuth = false
   term.setBackgroundColor(black)
   term.clear()
@@ -287,7 +286,7 @@ local function ingestData(fileName,fileType)
       modem = peripheral.wrap(dhdSettings.ccnet)
       --sidesList.side = "ccNet"
     end
-    if dhdSettings.bio ~= "none" then
+    if dhdSettings.bio.lock ~= "none" then
       --sidesList.side = "BioLock"
     end
     local tG = {}
@@ -326,8 +325,8 @@ end
 local function localInventory()
   dhdSettings.monA="none"
   dhdSettings.monB="none"
-  dhdSettings.bio="none"
-  dhdSettings.bioSide="none"
+  dhdSettings.bio.lock="none"
+  dhdSettings.bio.side="none"
   dhdSettings.net="R"
   dhdSettings.rednet="none"
   dhdSettings.server=999
@@ -365,8 +364,8 @@ local function localInventory()
         end
       end
       if tostring(perp) == "biolock" then
-        dhdSettings.bio = "OFF"
-        dhdSettings.bioSide = side
+        dhdSettings.bio.lock = "OFF"
+        dhdSettings.bio.side = side
         --bio = peripheral.wrap(side)
       end
     end
@@ -898,12 +897,12 @@ local function drawSettingsUI()
   term.setTextColor(gray)
   term.write("BioLock")
   term.setCursorPos(17,8)
-  if dhdSettings.bio == "OFF" then  -- Fistprint Authentication (Biolock mod)
+  if dhdSettings.bio.lock == "OFF" then  -- Fistprint Authentication (Biolock mod)
     term.setBackgroundColor(gray)
     term.write("  ")
     term.setBackgroundColor(red)
     term.write("  ")
-  elseif dhdSettings.bio == "ON" then
+  elseif dhdSettings.bio.lock == "ON" then
     term.setBackgroundColor(green)
     term.write("  ")
     term.setBackgroundColor(gray)
@@ -1292,21 +1291,22 @@ local function viewGateEntry(dataEntry)
   term.setTextColor(white)
   term.write(allGates[dataEntry].note)
   term.setCursorPos(2,12)
-  term.write("Dimension: ")
   term.setTextColor(lgray)
+  term.write("Dimension: ")
+  term.setTextColor(lblue)
   term.write(allGates[dataEntry].loc.dim)
   term.setCursorPos(2,13)
-  term.setTextColor(white)
+  term.setTextColor(lgray)
   term.write("x: ")
   term.setTextColor(brown)
   term.write(allGates[dataEntry].loc.x)
   term.setCursorPos(2,14)
-  term.setTextColor(white)
+  term.setTextColor(lgray)
   term.write("y: ")
   term.setTextColor(brown)
   term.write(allGates[dataEntry].loc.y)
   term.setCursorPos(2,15)
-  term.setTextColor(white)
+  term.setTextColor(lgray)
   term.write("z: ")
   term.setTextColor(brown)
   term.write(allGates[dataEntry].loc.z)
@@ -1342,7 +1342,7 @@ local function editGateEntry(dataBlock)
   if gEntry == "new" then    -- If we're adding a new gate, create a 'default' to edit
     --numGates = numGates + 1
     gEntry = numGates + 1
-    local newGate = { addr = "NEWGATE", rating = "u", note = "notes", loc = {x=99999,y=99999,z=99999,dim=1,}, }
+    local newGate = { addr = "NEWGATE", rating = "u", note = "short note", loc = {x=99999,y=99999,z=99999,dim=1,}, }
     table.insert(allGates,gEntry,newGate)
     numGates = #allGates
     numPages = math.floor(numGates / 24)   -- Re-paginate gates
@@ -1371,21 +1371,22 @@ local function editGateEntry(dataBlock)
       term.setTextColor(white)
       term.write(allGates[gEntry].note)
       term.setCursorPos(2,12)
-      term.write("Dimension: ")
       term.setTextColor(lgray)
+      term.write("Dimension: ")
+      term.setTextColor(lblue)
       term.write(allGates[gEntry].loc.dim)
       term.setCursorPos(2,13)
-      term.setTextColor(white)
+      term.setTextColor(lgray)
       term.write("x: ")
       term.setTextColor(brown)
       term.write(allGates[gEntry].loc.x)
       term.setCursorPos(2,14)
-      term.setTextColor(white)
+      term.setTextColor(lgray)
       term.write("y: ")
       term.setTextColor(brown)
       term.write(allGates[gEntry].loc.y)
       term.setCursorPos(2,15)
-      term.setTextColor(white)
+      term.setTextColor(lgray)
       term.write("z: ")
       term.setTextColor(brown)
       term.write(allGates[gEntry].loc.z)
@@ -1649,7 +1650,7 @@ local function mClick()
           -- Column 1
         if mcX > 1 and mcX < 11 and mcY == 4 + ((i - l) * 2) and i <= numGates then
           if runState == "DHD" then
-            if mButton == 1 and gateStatus ~= "Dialing" then
+            if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
               dialAddress = allGates[i].addr
               updateInfo("Dialing")
               netSend(dialAddress)
@@ -1670,7 +1671,7 @@ local function mClick()
           -- Column 2
         elseif mcX > 11 and mcX < 21 and mcY == 4 + ((i - l) * 2) and (i + 6) <= numGates then
           if runState == "DHD" then
-            if mButton == 1 and gateStatus ~= "Dialing" then
+            if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
               dialAddress = allGates[i + 6].addr
               updateInfo("Dialing")
               netSend(dialAddress)
@@ -1690,7 +1691,7 @@ local function mClick()
           -- Column 3
         elseif mcX > 21 and mcX < 31 and mcY == 4 + ((i - l) * 2) and (i + 12) <= numGates then
           if runState == "DHD" then
-            if mButton == 1 and gateStatus ~= "Dialing" then
+            if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
               dialAddress = allGates[i + 12].addr
               updateInfo("Dialing")
               netSend(dialAddress)
@@ -1710,7 +1711,7 @@ local function mClick()
           -- Column 4
         elseif mcX > 31 and mcX < 41 and mcY == 4 + ((i - l) * 2) and (i + 18) <= numGates then
           if runState == "DHD" then
-            if mButton == 1 and gateStatus ~= "Dialing" then
+            if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
               dialAddress = allGates[i + 18].addr
               updateInfo("Dialing")
               netSend(dialAddress)
@@ -1815,14 +1816,13 @@ local function mClick()
           term.setTextColor(white)
           term.write(allGates[currentEdit].note)
         end
-
        -- Edit Gate Notes
       elseif mcY > 8 and mcY < 11 then
         term.setBackgroundColor(black)
         term.setTextColor(gray)
         term.setCursorPos(2,9)
         term.write(allGates[currentEdit].note)
-        term.setTextColor(yellow)
+        term.setTextColor(white)
         term.setCursorPos(2,9)
         local newNote = tostring(read())
         if newNote ~= "" and newNote ~= "nil" then
@@ -1849,7 +1849,7 @@ local function mClick()
           term.setBackgroundColor(black)
           term.write(allGates[currentEdit].loc.dim)
           term.setCursorPos(13,12)
-          term.setTextColor(lgray)
+          term.setTextColor(lblue)
           local newDim = tonumber(read())
           if tostring(newDim) ~= "" and newDim ~= nil then
             allGates[currentEdit].loc.dim = newDim
@@ -1858,7 +1858,7 @@ local function mClick()
           term.setCursorPos(13,12)
           term.write("     ")
           term.setCursorPos(13,12)
-          term.setTextColor(lgray)
+          term.setTextColor(lblue)
           term.setBackgroundColor(black)
           term.write(allGates[currentEdit].loc.dim)
         end
@@ -2006,46 +2006,46 @@ local function mClick()
         term.write("           ")
         drawSettingsUI()
         -- Biolock ON/OFF
-      elseif mcY == 8 and mcX > 16 and mcX < 21 and dhdSettings.bio ~= "none" then
-        if dhdSettings.bio == "ON" then
-          dhdSettings.bio = "OFF"
+      elseif mcY == 8 and mcX > 16 and mcX < 21 and dhdSettings.bio.lock ~= "none" then
+        if dhdSettings.bio.lock == "ON" then
+          dhdSettings.bio.lock = "OFF"
           configChange = true
-        elseif dhdSettings.bio == "OFF" then
-          dhdSettings.bio = "ON"
+        elseif dhdSettings.bio.lock == "OFF" then
+          dhdSettings.bio.lock = "ON"
           configChange = true
         end
         drawSettingsUI()
-      elseif mcY == 8 and mcX > 22 and mcX < 24 and dhdSettings.bio ~= "none" then
-        drawSideList(dhdSettings.bioSide)
+      elseif mcY == 8 and mcX > 22 and mcX < 24 and dhdSettings.bio.lock ~= "none" then
+        drawSideList(dhdSettings.bio.side)
         local bioSide = { os.pullEvent("mouse_click") }
         if bioSide[3] > 26 and bioSide[2] < 35 then
           if bioSide[4] == 5 then
-            dhdSettings.bio = "top"
+            dhdSettings.bio.lock = "top"
             --sidesList.top = "bio"
             bio = peripheral.wrap("top")
             configChange = true
           elseif bioSide[4] == 7 then
-            dhdSettings.bio = "bottom"
+            dhdSettings.bio.lock = "bottom"
             --sidesList.bottom = "bio"
             bio = peripheral.wrap("bottom")
             configChange = true
           elseif bioSide[4] == 9 then
-            dhdSettings.bio = "front"
+            dhdSettings.bio.lock = "front"
             --sidesList.front = "bio"
             bio = peripheral.wrap("front")
             configChange = true
           elseif bioSide[4] == 11 then
-            dhdSettings.bio = "back"
+            dhdSettings.bio.lock = "back"
             --sidesList.back = "bio"
             bio = peripheral.wrap("back")
             configChange = true
           elseif bioSide[4] == 13 then
-            dhdSettings.bio = "left"
+            dhdSettings.bio.lock = "left"
             --sidesList.left = "bio"
             bio = peripheral.wrap("left")
             configChange = true
           elseif bioSide[4] == 15 then
-            dhdSettings.bio = "right"
+            dhdSettings.bio.lock = "right"
             --sidesList.right = "bio"
             bio = peripheral.wrap("right")
             configChange = true
@@ -2419,7 +2419,7 @@ local function initMe()
   term.setCursorPos(1,4)
   if not fs.exists(settingsData) then firstRun() end
   ingestData(settingsData,"cfg")
-  if dhdSettings.bio == "ON" then bioLogin() end
+  if dhdSettings.bio.lock == "ON" then bioLogin() end
   if #tArgs > 0 then
     for i = 1,#tArgs,1 do
       if tArgs[i] == "on" or tArgs[i] == "ON" or tArgs[i] == "On" or tArgs[i] == "oN" then
