@@ -1,12 +1,12 @@
 --[[    STARGATE       ]]--
 --[[      c c D H D    ]]--
---[[    ver. 0.6.89    ]]--
---[[  core ver. 4.2.3  ]]--
+--[[    ver. 0.6.90    ]]--
+--[[  core ver. 4.2.4  ]]--
 --[[   ui ver. 4.1.1   ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "0.6.89"
+local ccDHDVer = "0.6.90"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -27,7 +27,7 @@ TO DO:
   - Get trim working so it's easy to remove gates - use table.remove(allGates,#)
     - While in trim mode, any selected entries will be textColor(gray) - COMMIT will delete them
   - Addressbook editting
-    - use colored pips to the left of ratings instead of b/g colors (like the settings/quit menu)
+    - use colored pips to the left of ratings instead of b/g colors (like the settings/quit menu) ?
   - Update 'view' to include 'edit' button?
   - Make runState a table containing runState,secureStatus,etc.?
   - Reordering?
@@ -80,7 +80,7 @@ local sidesList = { bottom="none",
  -- Default Settings
 local settingsData = "/data/DHDsettings"
 local gateData = "/data/DHDgates"
-local dhdSettings = { thisGate="ONEGATE",
+local dhdSettings = { thisGate="GATEONE",
                       password="password",
                       monA="none",
                       monB="none",
@@ -193,51 +193,101 @@ local function bioLogin()
 end
 
 local function updateInfo(newInfo)    -- Update shield, gate, etc. status
-  if tostring(newInfo) ==  "00" then
+  if tostring(newInfo) ==  "000" then -- 1st bit = shield
+    shieldStatus = "OFF"              -- 2nd trit = connection/dialing
+    gateStatus = "Disconnected"       -- 3rd bit = fuel
+    secureStatus = "allclear"
+    fuelGuage = false
+    dialAddress = ""
+  elseif tostring(newInfo) ==  "001" then
     shieldStatus = "OFF"
     gateStatus = "Disconnected"
     secureStatus = "allclear"
+    fuelGuage = true
     dialAddress = ""
-  elseif tostring(newInfo) ==  "01" then
+  elseif tostring(newInfo) ==  "010" then
     shieldStatus = "OFF"
     gateStatus = "Connected"
     secureStatus = "allclear"
-  elseif tostring(newInfo) ==  "02" then
+    fuelGuage = false
+  elseif tostring(newInfo) ==  "011" then
+    shieldStatus = "OFF"
+    gateStatus = "Connected"
+    secureStatus = "allclear"
+    fuelGuage = true
+  elseif tostring(newInfo) ==  "020" then
     shieldStatus = "OFF"
     gateStatus = "Dialing"
     secureStatus = "allclear"
-  elseif tostring(newInfo) ==  "10" then
+    fuelGuage = false
+  elseif tostring(newInfo) ==  "021" then
+    shieldStatus = "OFF"
+    gateStatus = "Dialing"
+    secureStatus = "allclear"
+    fuelGuage = true
+  elseif tostring(newInfo) ==  "100" then
     shieldStatus = "ON"
     gateStatus = "Disconnected"
     secureStatus = "allclear"
     dialAddress = ""
-  elseif tostring(newInfo) ==  "11" then
+    fuelGuage = false
+  elseif tostring(newInfo) ==  "101" then
+    shieldStatus = "ON"
+    gateStatus = "Disconnected"
+    secureStatus = "allclear"
+    dialAddress = ""
+    fuelGuage = true
+  elseif tostring(newInfo) ==  "110" then
     shieldStatus = "ON"
     gateStatus = "Connected"
     secureStatus = "allclear"
-  elseif tostring(newInfo) ==  "12" then
+    fuelGuage = false
+  elseif tostring(newInfo) ==  "111" then
+    shieldStatus = "ON"
+    gateStatus = "Connected"
+    secureStatus = "allclear"
+    fuelGuage = true
+  elseif tostring(newInfo) ==  "120" then
     shieldStatus = "ON"
     gateStatus = "Dialing"
     secureStatus = "allclear"
+    fuelGuage = false
+  elseif tostring(newInfo) ==  "121" then
+    shieldStatus = "ON"
+    gateStatus = "Dialing"
+    secureStatus = "allclear"
+    fuelGuage = true
   elseif tostring(newInfo) ==  "Dialing" then
     gateStatus = "Dialing"
     secureStatus = "allclear"
-  elseif tostring(newInfo) ==  "YY" then
+  elseif tostring(newInfo) ==  "YY0" then
     secureStatus = "allclear"
     shieldStatus = "OFF"
     gateStatus = "Disconnected"
+    fuelGuage = false
     dialAddress = ""
     term.setBackgroundColor(black)
     term.clear()
-  elseif tostring(newInfo) ==  "XX" then
+  elseif tostring(newInfo) ==  "YY1" then
+    secureStatus = "allclear"
+    shieldStatus = "OFF"
+    gateStatus = "Disconnected"
+    fuelGuage = true
+    dialAddress = ""
+    term.setBackgroundColor(black)
+    term.clear()
+  elseif tostring(newInfo) ==  "XX0" then
     secureStatus = "lockdown"
     shieldStatus = "ON"
     gateStatus = "Disconnected"
-    dialAddress = ""
-  elseif tostring(newInfo) ==  "gas" then
-    fuelGuage = true
-  elseif tostring(newInfo) ==  "nogas" then
     fuelGuage = false
+    dialAddress = ""
+  elseif tostring(newInfo) ==  "XX1" then
+    secureStatus = "lockdown"
+    shieldStatus = "ON"
+    gateStatus = "Disconnected"
+    fuelGuage = true
+    dialAddress = ""
   end
   currentState = tostring(newInfo)
   drawCLI()
@@ -721,7 +771,6 @@ local function drawTrimUI()
       term.write("/" .. allGates[i].addr .. "/")
     end
   end
-  --term.setBackgroundColor(black)
 end
 
 local function viewDHDHelp(pY)
@@ -1411,16 +1460,13 @@ local function secKernel(alertState)  -- LOCKDOWN handler
       secureStatus = "allclear"
       netSend(secureStatus)
       local senderID, message = rednet.receive(1)
-      if senderID == gateLiaison and (message == "00" or message == "XX") then
-        local senderIDb, messageB = rednet.receive(1)
-        if senderIDb == gateLiaison and messageB == "YY" then
-          term.setBackgroundColor(black)
-          term.setCursorPos(15,9)
-          term.write("                      ")
-          term.setCursorPos(15,15)
-          term.write("                      ")
-          drawCLI()
-        end
+      if senderID == gateLiaison and (message == "YY0" or message == "YY1") then
+        term.setBackgroundColor(black)
+        term.setCursorPos(15,9)
+        term.write("                      ")
+        term.setCursorPos(15,15)
+        term.write("                      ")
+        drawCLI()
       end
       break
     end
@@ -1431,6 +1477,7 @@ function drawCLI()   -- Client Interface 'decider'
   if menuState == false then
     drawHeader()
   end
+  if runState == "viewing" then return end
   if secureStatus == "lockdown" then
     secKernel(secureStatus)
     return
@@ -1460,9 +1507,6 @@ function drawCLI()   -- Client Interface 'decider'
         drawNaviUI()
       elseif runState == "DHDHelp" or runState == "EditHelp" then
         drawHelpUI()
-      elseif runState == "GateEdit" then
-        --return
-        --viewGateEntry(currentEdit)
       end
     end
   end
@@ -2021,32 +2065,32 @@ local function mClick()
         if bioSide[3] > 26 and bioSide[2] < 35 then
           if bioSide[4] == 5 then
             dhdSettings.bio.lock = "top"
-            --sidesList.top = "bio"
+            --sidesList.top = "bio.side"
             bio = peripheral.wrap("top")
             configChange = true
           elseif bioSide[4] == 7 then
             dhdSettings.bio.lock = "bottom"
-            --sidesList.bottom = "bio"
+            --sidesList.bottom = "bio.side"
             bio = peripheral.wrap("bottom")
             configChange = true
           elseif bioSide[4] == 9 then
             dhdSettings.bio.lock = "front"
-            --sidesList.front = "bio"
+            --sidesList.front = "bio.side"
             bio = peripheral.wrap("front")
             configChange = true
           elseif bioSide[4] == 11 then
             dhdSettings.bio.lock = "back"
-            --sidesList.back = "bio"
+            --sidesList.back = "bio.side"
             bio = peripheral.wrap("back")
             configChange = true
           elseif bioSide[4] == 13 then
             dhdSettings.bio.lock = "left"
-            --sidesList.left = "bio"
+            --sidesList.left = "bio.side"
             bio = peripheral.wrap("left")
             configChange = true
           elseif bioSide[4] == 15 then
             dhdSettings.bio.lock = "right"
-            --sidesList.right = "bio"
+            --sidesList.right = "bio.side"
             bio = peripheral.wrap("right")
             configChange = true
           end
@@ -2161,12 +2205,8 @@ local function mClick()
           configChange = true
           if dhdSettings.net == "R" then
             dhdSettings.server = newServer
-            --term.setTextColor(gray)
-            --term.write(dhdSettings.server)
           elseif dhdSettings.net == "C" then
             dhdSettings.channels.send = newServer
-            --term.setTextColor(gray)
-            --term.write(dhdSettings.lan.send)
           end
           term.setCursorPos(17,12)
           term.write("     ")
