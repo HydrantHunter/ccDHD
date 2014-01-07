@@ -102,9 +102,9 @@ while true do
         downloadFile("xSHHqL0h","startup")
       end
       if fs.exists("gateLiaison") then
-        shell.run("edit gateLiaison")
+        shell.run("edit /gateLiaison")
       else
-        shell.run("edit startup")
+        shell.run("edit /startup")
       end
       drawCLI()
     elseif userInput[4] == 10 then
