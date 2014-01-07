@@ -1,18 +1,18 @@
 --[[ DHD/Gate Installer ]]--
---[[    version 1.2     ]]--
+--[[    version 1.4     ]]--
 --[[  by HydrantHunter  ]]--
 --[[      aka Dog       ]]--
 --[[ pastebin  A6uxKyCy ]]--
-
+local iVer = 1.4
 --[[
 Test with/Requires:
   - Minecraft 1.6.4
-  - HTTPget enabled
   - Latest DeltaSG-Craft or LanteaCraft (snapshot 82)
   - ComputerCraft 1.57+ for MC 1.6.4
+    - HTTP API enabled
   - Installer for Dog's DHD & Gate Liaison
-    - DHD: Advanced Computer (color, mouse) with 4 optional Advanced Monitors (color) and optional Biolock
-    - gateLiaison: Advanced Computer (color, mouse) with 3 Advanced Monitors (color)
+    - DHD: Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch), optional Biolock
+    - gateLiaison: Advanced Computer (color, mouse), 3 Advanced Monitors (color)
 ]]--
 local function downloadFile(fileToken, fileName)
   local fileURL = http.get("http://pastebin.com/raw.php?i="..textutils.urlEncode( fileToken ))
@@ -31,32 +31,43 @@ local function drawHeader()
   term.setBackgroundColor(colors.purple)
   term.setTextColor(colors.white)
   term.setCursorPos(2,1)
-  term.write("                 ")
+  term.write("                   ")
   term.setCursorPos(2,2)
-  term.write("  DHD Installer  ")
+  term.write(" DHD Installer " .. iVer .. " ")
   term.setCursorPos(2,3)
-  term.write("                 ")
+  term.write("                   ")
 end
 
 local function drawCLI()
   term.setBackgroundColor(colors.black)
   term.setCursorPos(1,6)
   if fs.exists("DHD") then
-    term.setTextColor(colors.green)
+    term.setTextColor(colors.lime)
+    term.write(" [                 ] ")
+    term.setCursorPos(5,6)
+    term.setTextColor(colors.lightGray)
+    term.write("DHD Installed")
   else
     term.setTextColor(colors.white)
+    term.write(" [   Install DHD   ] ")
   end
-  term.write(" [  Install DHD  ] ")
   term.setCursorPos(1,8)
   if fs.exists("gateLiaison") then
-    term.setTextColor(colors.green)
+    term.setTextColor(colors.lime)
+    term.write(" [                 ] ")
+    term.setCursorPos(4,8)
+    term.setTextColor(colors.lightGray)
+    term.write("Gate  Installed")
   else
     term.setTextColor(colors.white)
+    term.write(" [  Install  Gate  ] ")
   end
-  term.write(" [  Install Gate ] ")
-  term.setTextColor(colors.white)
+  term.setTextColor(colors.red)
   term.setCursorPos(1,10)
-  term.write(" [     Quit      ] ")
+  term.write(" [                 ] ")
+  term.setTextColor(colors.white)
+  term.setCursorPos(10,10)
+  term.write("Quit")
 end
 
 drawHeader()
@@ -70,6 +81,9 @@ while true do
         fs.makeDir("data")
       end
       if fs.exists("startup") then
+        if fs.exists("DHD") then
+          fs.delete("DHD")
+        end
         downloadFile("vMtcSz2e","DHD")
       else
         downloadFile("vMtcSz2e","startup")
@@ -80,6 +94,9 @@ while true do
         fs.makeDir("logs")
       end
       if fs.exists("startup") then
+        if fs.exists("gateLiaison") then
+          fs.delete("gateLiaison")
+        end
         downloadFile("xSHHqL0h","gateLiaison")
       else
         downloadFile("xSHHqL0h","startup")
@@ -88,6 +105,7 @@ while true do
         shell.run("edit gateLiaison")
       else
         shell.run("edit startup")
+      end
       drawCLI()
     elseif userInput[4] == 10 then
       term.clear()
