@@ -1,12 +1,12 @@
 --[[    STARGATE       ]]--
 --[[      c c D H D    ]]--
---[[    ver. 0.6.90    ]]--
+--[[    ver. 0.6.91    ]]--
 --[[  core ver. 4.2.4  ]]--
 --[[   ui ver. 4.1.1   ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "0.6.90"
+local ccDHDVer = "0.6.91"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -22,8 +22,7 @@ Tested with/requires:
 --[[
 TO DO:
   - FIX Monitor detection (either detects none, or only one)
-  - add dhdSettings.bio.auth (minimum auth level for bioscan) to Settings
-  - Add connect timer ?
+  - Add connect/call timer ?
   - Get trim working so it's easy to remove gates - use table.remove(allGates,#)
     - While in trim mode, any selected entries will be textColor(gray) - COMMIT will delete them
   - Addressbook editting
@@ -95,9 +94,10 @@ local dhdSettings = { thisGate="GATEONE",
                       ["loc"]={["x"]=99999,["y"]=99999,["z"]=99999,["dim"]=0,},
                       ecShield="ON",
                       startShield="ON",
-                      logs="ON",
-                      cTimer="OFF",
                       callEnd="OFF",
+                      logs="ON",
+                      lastGate="/logs/DHDlast",
+                      gateHistory="/logs/DHDhistory",
                     }
 local allGates = { {addr="NEWGATE",rating="u",note="short note",["loc"]={["x"]=99999,["y"]=99999,["z"]=99999,["dim"]=1,},}, }
 local gateLiaison = dhdSettings.server
@@ -122,7 +122,7 @@ local gateChange = false
 local dialAddress
 local currentEdit
  -- Gate List
-local zPos = {}
+local zPos = { }
 local numPages = 1
 local pageNum = 1
 local numGates = 1
@@ -192,7 +192,7 @@ local function bioLogin()
   end
 end
 
-local function updateInfo(newInfo)    -- Update shield, gate, etc. status
+local function updateInfo(newInfo)    -- Update status
   if tostring(newInfo) ==  "000" then -- 1st bit = shield
     shieldStatus = "OFF"              -- 2nd trit = connection/dialing
     gateStatus = "Disconnected"       -- 3rd bit = fuel
@@ -330,7 +330,7 @@ local function ingestData(fileName,fileType)
     end
     if dhdSettings.rednet ~= "none" then
       rednet.open(dhdSettings.rednet)
-      --sidesList.side = "RedNet"
+      --sidesList.side = "redNet"
     end
     if dhdSettings.ccnet ~= "none" then
       modem = peripheral.wrap(dhdSettings.ccnet)
@@ -372,6 +372,22 @@ local function saveData(filename,filetype)
   dhdConfig.close()
 end
 
+local function recordSessionData()  -- Human readable log files (last gate & history)
+  local dateStamp = tostring(textutils.formatTime(os.time(),false) .. " / Day " .. os.day())
+  local lastCall = fs.open(dhdSettings.lastGate,"w")
+  lastCall.writeLine(dateStamp)
+  lastCall.writeLine(dialAddress)
+  lastCall.close()
+  if not fs.exists(dhdSettings.gateHistory) then
+    local tmpHist = fs.open(dhdSettings.gateHistory,"w")
+    tmpHist.close()
+  end
+  local gateArchive = fs.open(dhdSettings.gateHistory,"a")
+  gateArchive.writeLine(dateStamp)
+  gateArchive.writeLine(dialAddress)
+  gateArchive.close()
+end
+
 local function localInventory()
   dhdSettings.monA="none"
   dhdSettings.monB="none"
@@ -387,9 +403,10 @@ local function localInventory()
   dhdSettings.loc={["x"]=99999,["y"]=99999,["z"]=99999,["dim"]=0,}
   dhdSettings.ecShield="ON"
   dhdSettings.startShield="ON"
-  dhdSettings.logs="ON"
-  dhdSettings.cTimer="OFF"
   dhdSettings.callEnd="OFF"
+  dhdSettings.logs="ON"
+  dhdSettings.lastGate="/logs/DHDlast"
+  dhdSettings.gateHistory="/logs/DHDhistory"
   local side, perp
   for _,side in pairs(rs.getSides()) do
     if peripheral.isPresent(tostring(side)) then
@@ -929,6 +946,7 @@ local function drawSettingsUI()
   term.setCursorPos(45,2)
   term.setTextColor(red)
   term.write(" Close ")
+   -- Settings 1st Column
   term.setCursorPos(2,4)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
@@ -1047,7 +1065,7 @@ local function drawSettingsUI()
   term.setBackgroundColor(gray)
   term.setTextColor(black)
   term.write("#")
-  -- 2nd column
+  -- Settings 2nd column
   term.setCursorPos(28,4)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
@@ -1101,24 +1119,24 @@ local function drawSettingsUI()
   term.setCursorPos(28,10)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
-  term.write("Call Timer")               -- Call Timer Display (ON/OFF)
-  term.setCursorPos(45,10)
-  if dhdSettings.cTimer == "OFF" then
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
-  elseif dhdSettings.cTimer == "ON" then
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
-  end
+  term.write("Last")               -- Last Gate Dialed (log)
+  term.setCursorPos(33,10)
+  term.setBackgroundColor(black)
+  term.setTextColor(lgray)
+  term.write(dhdSettings.lastGate)
   term.setCursorPos(28,12)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
+  term.write("Hist")            -- Dialing History (log)
+  term.setCursorPos(33,12)
+  term.setBackgroundColor(black)
+  term.setTextColor(lgray)
+  term.write(dhdSettings.gateHistory)
+  term.setCursorPos(28,14)
+  term.setBackgroundColor(black)
+  term.setTextColor(gray)
   term.write("Initiator Only")           -- Only call initiator can end call (ON/OFF)
-  term.setCursorPos(45,12)
+  term.setCursorPos(45,14)
   if dhdSettings.callEnd == "OFF" then
     term.setBackgroundColor(gray)
     term.write("  ")
@@ -1279,6 +1297,50 @@ local function drawRatingList(gRating,currentGate)
   end
   term.write("Unknown")
 end
+
+local function drawAuthList(cAuth)
+  term.setBackgroundColor(gray)
+  for i = 4,14,1 do
+    term.setCursorPos(26,i)
+    term.write("   ")
+  end
+  term.setCursorPos(27,5)
+  if cAuth == 1 then
+    term.setTextColor(lime)
+  else
+    term.setTextColor(white)
+  end
+  term.write("1")
+  term.setCursorPos(27,7)
+  if cAuth == 2 then
+    term.setTextColor(lime)
+  else
+    term.setTextColor(white)
+  end
+  term.write("2")
+  term.setCursorPos(27,9)
+  if cAuth == 3 then
+    term.setTextColor(lime)
+  else
+    term.setTextColor(white)
+  end
+  term.write("3")
+  term.setCursorPos(27,11)
+  if cAuth == 4 then
+    term.setTextColor(lime)
+  else
+    term.setTextColor(white)
+  end
+  term.write("4")
+  term.setCursorPos(27,13)
+  if pSide == 5 then
+    term.setTextColor(lime)
+  else
+    term.setTextColor(white)
+  end
+  term.write("5")
+end
+
 
 local function drawMenu()
   menuState = true
@@ -1691,13 +1753,14 @@ local function mClick()
     local l = ((pageNum - 1) * 24)
     if mcY > 5 and mcY < 17 then
       for i = j,#allGates,1 do
-          -- Column 1
+          -- Addresses Column 1
         if mcX > 1 and mcX < 11 and mcY == 4 + ((i - l) * 2) and i <= numGates then
           if runState == "DHD" then
             if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
               dialAddress = allGates[i].addr
               updateInfo("Dialing")
               netSend(dialAddress)
+              if dhdSettings.logs == "ON" then recordSessionData() end   -- add dial & gate cmds received? (e.g. recordSessionData("dial"))
             elseif mButton == 2 then
               viewGateEntry(i)
               --return
@@ -1712,13 +1775,14 @@ local function mClick()
               return
             end
           end
-          -- Column 2
+          -- Addresses Column 2
         elseif mcX > 11 and mcX < 21 and mcY == 4 + ((i - l) * 2) and (i + 6) <= numGates then
           if runState == "DHD" then
             if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
               dialAddress = allGates[i + 6].addr
               updateInfo("Dialing")
               netSend(dialAddress)
+              if dhdSettings.logs == "ON" then recordSessionData() end
             elseif mButton == 2 then
               viewGateEntry(i + 6)
             end
@@ -1732,13 +1796,14 @@ local function mClick()
               return
             end
           end
-          -- Column 3
+          -- Addresses Column 3
         elseif mcX > 21 and mcX < 31 and mcY == 4 + ((i - l) * 2) and (i + 12) <= numGates then
           if runState == "DHD" then
             if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
               dialAddress = allGates[i + 12].addr
               updateInfo("Dialing")
               netSend(dialAddress)
+              if dhdSettings.logs == "ON" then recordSessionData() end
             elseif mButton == 2 then
               viewGateEntry(i + 12)
             end
@@ -1752,13 +1817,14 @@ local function mClick()
               return
             end
           end
-          -- Column 4
+          -- Addresses Column 4
         elseif mcX > 31 and mcX < 41 and mcY == 4 + ((i - l) * 2) and (i + 18) <= numGates then
           if runState == "DHD" then
             if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
               dialAddress = allGates[i + 18].addr
               updateInfo("Dialing")
               netSend(dialAddress)
+              if dhdSettings.logs == "ON" then recordSessionData() end
             elseif mButton == 2 then
               viewGateEntry(i + 18)
             end
@@ -2006,6 +2072,7 @@ local function mClick()
         term.clear()
         drawCLI()
       end
+        -- Settings Column 1
         -- Edit thisGate
       if mcY == 4 and mcX > 16 and mcX < 27 then
         term.setBackgroundColor(black)
@@ -2015,7 +2082,7 @@ local function mClick()
         term.setTextColor(cyan)
         term.setCursorPos(17,4)
         local newGate = tostring(read())
-        if newGate ~= "" and newGate ~= "nil" and newGate:len() > 6 and newGate:len() < 10 then
+        if newGate ~= "" and newGate ~= "nil" and newGate ~= dhdSettings.thisGate and newGate:len() > 6 and newGate:len() < 10 then
           configChange = true
           dhdSettings.thisGate = newGate
           longName = ""
@@ -2041,7 +2108,7 @@ local function mClick()
         term.setTextColor(orange)
         term.setCursorPos(17,6)
         local newPass = tostring(read())
-        if newPass ~= "" and newPass ~= "nil" then
+        if newPass ~= "" and newPass ~= "nil" and newPass ~= dhdSettings.password then
           configChange = true
           dhdSettings.password = newPass
           superSecretPassword = newPass
@@ -2060,38 +2127,23 @@ local function mClick()
         end
         drawSettingsUI()
       elseif mcY == 8 and mcX > 22 and mcX < 24 and dhdSettings.bio.lock ~= "none" then
-        drawSideList(dhdSettings.bio.side)
+        drawAuthList(dhdSettings.bio.auth)
         local bioSide = { os.pullEvent("mouse_click") }
-        if bioSide[3] > 26 and bioSide[2] < 35 then
+        if bioSide[3] > 26 and bioSide[2] < 31 then
           if bioSide[4] == 5 then
-            dhdSettings.bio.lock = "top"
-            --sidesList.top = "bio.side"
-            bio = peripheral.wrap("top")
+            dhdSettings.bio.auth = 1
             configChange = true
           elseif bioSide[4] == 7 then
-            dhdSettings.bio.lock = "bottom"
-            --sidesList.bottom = "bio.side"
-            bio = peripheral.wrap("bottom")
+            dhdSettings.bio.auth = 2
             configChange = true
           elseif bioSide[4] == 9 then
-            dhdSettings.bio.lock = "front"
-            --sidesList.front = "bio.side"
-            bio = peripheral.wrap("front")
+            dhdSettings.bio.auth = 3
             configChange = true
           elseif bioSide[4] == 11 then
-            dhdSettings.bio.lock = "back"
-            --sidesList.back = "bio.side"
-            bio = peripheral.wrap("back")
+            dhdSettings.bio.auth = 4
             configChange = true
           elseif bioSide[4] == 13 then
-            dhdSettings.bio.lock = "left"
-            --sidesList.left = "bio.side"
-            bio = peripheral.wrap("left")
-            configChange = true
-          elseif bioSide[4] == 15 then
-            dhdSettings.bio.lock = "right"
-            --sidesList.right = "bio.side"
-            bio = peripheral.wrap("right")
+            dhdSettings.bio.auth = 5
             configChange = true
           end
         end
@@ -2201,7 +2253,7 @@ local function mClick()
           term.setTextColor(green)
         end
         local newServer = tonumber(read())
-        if tostring(newServer) ~= "" and newServer ~= nil then
+        if tostring(newServer) ~= "" and newServer ~= nil and tonumber(newServer) ~= dhdSettings.server then
           configChange = true
           if dhdSettings.net == "R" then
             dhdSettings.server = newServer
@@ -2210,8 +2262,8 @@ local function mClick()
           end
           term.setCursorPos(17,12)
           term.write("     ")
-          drawSettingsUI()
         end
+        drawSettingsUI()
         -- Change ccNet Receive Channel
       elseif mcY == 12 and mcX > 22 and mcX < 26 then
         term.setBackgroundColor(black)
@@ -2220,16 +2272,16 @@ local function mClick()
         term.write(dhdSettings.channels.recv)
         term.setCursorPos(23,12)
         term.setTextColor(green)
-        local newServer = tonumber(read())
-        if tostring(newServer) ~= "" and newServer ~= nil then
-          dhdSettings.channels.recv = newServer
+        local newChannel = tonumber(read())
+        if tostring(newChannel) ~= "" and newChannel ~= nil and tonumber(newChannel) ~= dhdSettings.channels.recv then
+          dhdSettings.channels.recv = newChannel
           configChange = true
         end
         term.setCursorPos(23,12)
         term.write("     ")
         drawSettingsUI()
         -- Select Marque Side
-      elseif mcY == 14 then
+      elseif mcY == 14 and mcX < 24 then
         if mcX > 16 and mcX < 21  and dhdSettings.monB ~= "none" then
           --sidesList[dhdSettings.monB] = "none"
           dhdSettings.monB = "none"
@@ -2273,7 +2325,7 @@ local function mClick()
         end
         drawSettingsUI()
         -- Select List Monitor Side
-      elseif mcY == 16 then
+      elseif mcY == 16 and mcX < 24 then
         if mcX > 16 and mcX < 21  and dhdSettings.monA ~= "none" then
           --sidesList[dhdSettings.monA] = "none"
           dhdSettings.monA = "none"
@@ -2316,6 +2368,7 @@ local function mClick()
           end
         end
         drawSettingsUI()
+        -- Settings Column 2
         -- End Call Shield (ON/OFF)
       elseif mcY == 4 and mcX > 44 and mcX < 49 then
         if dhdSettings.ecShield == "ON" then
@@ -2346,18 +2399,37 @@ local function mClick()
           configChange = true
         end
         drawSettingsUI()
-        -- Call Timer (ON/OFF)
-      elseif mcY == 10 and mcX > 44 and mcX < 49 then
-        if dhdSettings.cTimer == "ON" then
-          dhdSettings.cTimer = "OFF"
+
+        -- Last Gate Dialed (log)
+      elseif mcY == 10 and mcX > 32 and mcX < 49 then
+        term.setBackgroundColor(black)
+        term.setCursorPos(33,10)
+        term.setTextColor(gray)
+        term.write(dhdSettings.lastGate)
+        term.setCursorPos(33,10)
+        term.setTextColor(lgray)
+        local newLast = tostring(read())
+        if newLast ~= "" and newLast ~= nil and newLast ~= dhdSettings.lastGate then
+          dhdSettings.lastGate = newLast
           configChange = true
-        elseif dhdSettings.cTimer == "OFF" then
-          dhdSettings.cTimer = "ON"
+        end
+        drawSettingsUI()
+        -- Gate Dial History (log)
+      elseif mcY == 12 and mcX > 32 and mcX < 49 then
+        term.setBackgroundColor(black)
+        term.setCursorPos(33,12)
+        term.setTextColor(gray)
+        term.write(dhdSettings.gateHistory)
+        term.setCursorPos(33,12)
+        term.setTextColor(lgray)
+        local newHist = tostring(read())
+        if newHist ~= "" and newHist ~= nil and newHist ~= dhdSettings.gateHistory then
+          dhdSettings.gateHistory = newHist
           configChange = true
         end
         drawSettingsUI()
         -- Call Initiator ONLY for endCall (ON/OFF)
-      elseif mcY == 12 and mcX > 44 and mcX < 49 then
+      elseif mcY == 14 and mcX > 44 and mcX < 49 then
         if dhdSettings.callEnd == "ON" then
           dhdSettings.callEnd = "OFF"
           configChange = true
