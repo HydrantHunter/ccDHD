@@ -1,10 +1,10 @@
 --[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[  version  0.6.25  ]]--
+--[[  version  0.6.27  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "0.6.25"
+local gVer = "0.6.27"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -68,10 +68,50 @@ local function displayMarque()
   end
 end
 
+local function displayStatus(select)
+  if select == "con" then
+    mon.clear()
+    mon.setTextScale(2)
+    mon.setCursorPos(1,1)
+    mon.setTextColor(colors.lightBlue)
+    if dialAddress ~= "none" then
+      mon.write("Connected to")
+      mon.setTextColor(colors.yellow)
+      mon.setCursorPos(1,2)
+      local dA = {}
+      for i = 1,#dialAddress do
+        dA[i] = dialAddress:sub(i,i)
+        mon.write(" " .. dA[i])
+      end
+    else
+      mon.write("Connected")
+    end
+  elseif select == "dial" then
+    mon.clear()
+    mon.setTextScale(2)
+    mon.setCursorPos(1,1)
+    mon.setTextColor(colors.lightBlue)
+    mon.write("Dialing")
+    mon.setTextColor(colors.yellow)
+    mon.setCursorPos(1,2)
+    local dA = {}
+    for i = 1,#dialAddress do
+      dA[i] = dialAddress:sub(i,i)
+      mon.write(" " .. dA[i])
+    end
+  elseif select == "" or select == nil then
+    displayMarque()
+  end
+end
+
 local function drawTermScreen()
   term.setBackgroundColor(colors.black)
   term.clear()
-  term.setBackgroundColor(colors.blue)
+  if mon == "none" then
+    term.setBackgroundColor(colors.red)
+  else
+    term.setBackgroundColor(colors.blue)
+  end
   term.setTextColor(colors.white)
   term.setCursorPos(2,2)
   term.write(" Gate Liaison   ver. " .. gVer .. " ")
@@ -183,39 +223,13 @@ local function updateStatus()
       pData = pData .. "1"
       gateStatus = "Connected"
       if mon ~= "none" then
-        mon.clear()
-        mon.setTextScale(2)
-        mon.setCursorPos(1,1)
-        mon.setTextColor(colors.lightBlue)
-        if dialAddress ~= "none" then
-          mon.write("Connected to")
-          mon.setTextColor(colors.yellow)
-          mon.setCursorPos(1,2)
-          local dA = {}
-          for i = 1,#dialAddress do
-            dA[i] = dialAddress:sub(i,i)
-            mon.write(" " .. dA[i])
-          end
-        else
-          mon.write("Connected")
-        end
+        displayStatus("con")
       end
     elseif tostring(connectStatus) == "false" then
       if gateStatus == "Dialing" or tostring(dialStatus) == "true" then
         pData = pData .. "2"
         if mon ~= "none" then
-          mon.clear()
-          mon.setTextScale(2)
-          mon.setCursorPos(1,1)
-          mon.setTextColor(colors.lightBlue)
-          mon.write("Dialing")
-          mon.setTextColor(colors.yellow)
-          mon.setCursorPos(1,2)
-          local dA = {}
-          for i = 1,#dialAddress do
-            dA[i] = dialAddress:sub(i,i)
-            mon.write(" " .. dA[i])
-          end
+          displayStatus("dial")
         end
       elseif gateStatus ~= "Dialing" or tostring(dialStatus) == "false" then
         gateStatus = "Disconnected"
@@ -277,16 +291,11 @@ local function dialOut(targetAddress)
   dialAddress = tostring(targetAddress)
   connectStatus = gate.isConnected()
   if dialAddress ~= thisGate and tostring(connectStatus) == "false" then -- Is the stargate connected to another stargate?  isConnected()
-    local dialNow = gate.dial(dialAddress)
-      updateStatus()
-    if tostring(dialNow) == "true" then
-      gateStatus = "Dialing"
-      recordSessionData()
-      updateStatus()
-      return true
-    elseif tostring(dialNow) == "false" then
-      return false
-    end
+    gate.dial(dialAddress)
+    gateStatus = "Dialing"
+    recordSessionData()
+    updateStatus()
+    return true
   else
     return false
   end
@@ -339,10 +348,12 @@ local function doCommand(thisCommand)
         if dialOut(thisCommand) == true then
           gateStatus = "Dialing"
           updateStatus()
+          return
         else
           gateStatus = "Disconnected"
           dialAddress = "none"
           updateStatus()
+          return
         end
       end
     end
@@ -425,7 +436,7 @@ local function initMe()
       elseif peripheral.call(tostring(v),"isWireless") == false then
         --local IO = peripheral.wrap("back")
         -- Monitor
-        mPerps = peripheral.call(tostring(v),"getNamesRemote")
+        local mPerps = peripheral.call(tostring(v),"getNamesRemote")
         for num,mPerp in pairs(mPerps) do
           if tostring(mPerp):sub(1,7) == "monitor" then
             mon = peripheral.wrap(mPerp)
