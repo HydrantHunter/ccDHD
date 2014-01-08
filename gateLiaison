@@ -1,10 +1,10 @@
 --[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[  version  0.6.27  ]]--
+--[[  version  0.6.28  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "0.6.27"
+local gVer = "0.6.28"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -252,10 +252,14 @@ end
 
 local function recordSessionData()  -- Human readable log files (last gate & history)
   local dateStamp = textutils.formatTime(os.time(),false) .. " / Day " .. os.day()
-  local lastGate = fs.open(lastGate,"w")
-  lastGate.writeLine(dateStamp)
-  lastGate.writeLine(dialAddress)
-  lastGate.close()
+  local lastCall = fs.open(lastGate,"w")
+  lastCall.writeLine(dateStamp)
+  lastCall.writeLine(dialAddress)
+  lastCall.close()
+  if not fs.exists(gateHistory) then
+    local tmpHist = fs.open(gateHistory,"w")
+    tmpHist.close()
+  end
   local gateArchive = fs.open(gateHistory,"a")
   gateArchive.writeLine(dateStamp)
   gateArchive.writeLine(dialAddress)
@@ -291,11 +295,17 @@ local function dialOut(targetAddress)
   dialAddress = tostring(targetAddress)
   connectStatus = gate.isConnected()
   if dialAddress ~= thisGate and tostring(connectStatus) == "false" then -- Is the stargate connected to another stargate?  isConnected()
-    gate.dial(dialAddress)
-    gateStatus = "Dialing"
-    recordSessionData()
-    updateStatus()
-    return true
+    --local dialGate = gate.dial(dialAddress)
+    --updateStatus()
+    --if tostring(dialGate) == "true" then
+      gate.dial(dialAddress)
+      gateStatus = "Dialing"
+      recordSessionData()
+      updateStatus()
+      return true
+    --elseif tostring(dialGate) == "false" then
+      --return false
+    --end
   else
     return false
   end
