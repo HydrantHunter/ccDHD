@@ -1,9 +1,9 @@
 --[[ DHD/Gate Installer ]]--
---[[    version 1.4     ]]--
+--[[    version 1.5     ]]--
 --[[  by HydrantHunter  ]]--
 --[[      aka Dog       ]]--
 --[[ pastebin  A6uxKyCy ]]--
-local iVer = 1.4
+local iVer = 1.5
 --[[
 Test with/Requires:
   - Minecraft 1.6.4
@@ -14,6 +14,13 @@ Test with/Requires:
     - DHD: Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch), optional Biolock
     - gateLiaison: Advanced Computer (color, mouse), 3 Advanced Monitors (color)
 ]]--
+local startup
+if fs.exists("startup") then
+  startup = 1
+else
+  startup = 0
+end
+
 local function downloadFile(fileToken, fileName)
   local fileURL = http.get("http://pastebin.com/raw.php?i="..textutils.urlEncode( fileToken ))
   if fileURL then
@@ -41,7 +48,7 @@ end
 local function drawCLI()
   term.setBackgroundColor(colors.black)
   term.setCursorPos(1,6)
-  if fs.exists("DHD") then
+  if fs.exists("DHD") or (startup == 2 and fs.exists("startup")) then
     term.setTextColor(colors.lime)
     term.write(" [                 ] ")
     term.setCursorPos(5,6)
@@ -52,7 +59,7 @@ local function drawCLI()
     term.write(" [   Install DHD   ] ")
   end
   term.setCursorPos(1,8)
-  if fs.exists("gateLiaison") then
+  if fs.exists("gateLiaison") or (startup == 3 and fs.exists("startup")) then
     term.setTextColor(colors.lime)
     term.write(" [                 ] ")
     term.setCursorPos(4,8)
@@ -85,8 +92,10 @@ while true do
           fs.delete("DHD")
         end
         downloadFile("vMtcSz2e","DHD")
+        startup = 1
       else
         downloadFile("vMtcSz2e","startup")
+        startup = 2
       end
       drawCLI()
     elseif userInput[4] == 8 then
@@ -98,8 +107,10 @@ while true do
           fs.delete("gateLiaison")
         end
         downloadFile("xSHHqL0h","gateLiaison")
+        startup = 1
       else
         downloadFile("xSHHqL0h","startup")
+        startup = 3
       end
       if fs.exists("gateLiaison") then
         shell.run("edit /gateLiaison")
