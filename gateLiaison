@@ -1,10 +1,10 @@
 --[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[  version  0.6.28  ]]--
+--[[  version  0.6.29  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "0.6.28"
+local gVer = "0.6.29"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -13,14 +13,11 @@ Tested with/requires:
     - HTTP API enabled
     - 1 Advanced Computer (color, mouse), 3 optional Advanced Monitors (color)
     - DHD running on an Advanced Computer with 4 optional Advanced Monitors
-
-  - DHD also supports GopherATL's BioLock ver. 2.1.3 (updated for 1.6.4 by gamax92)
+      - DHD also supports GopherATL's BioLock ver. 2.1.3 (updated for 1.6.4 by gamax92)
 ]]--
 
 --[[
     To Do:
-  -- High priority
-  -- Low priority
       - try modem wrap and experiment with chan.send & chan.recv
       - re-write with less spaghetti
 ]]--
@@ -108,11 +105,16 @@ local function drawTermScreen()
   term.setBackgroundColor(colors.black)
   term.clear()
   if mon == "none" then
-    term.setBackgroundColor(colors.red)
+    term.setBackgroundColor(colors.lightBlue)
+    term.setTextColor(colors.black)
   else
     term.setBackgroundColor(colors.blue)
+    term.setTextColor(colors.white)
   end
-  term.setTextColor(colors.white)
+  if fuelGuage == false then
+    term.setBackgroundColor(colors.red)
+    term.setTextColor(colors.white)
+  end
   term.setCursorPos(2,2)
   term.write(" Gate Liaison   ver. " .. gVer .. " ")
   term.setCursorPos(2,10)
@@ -428,7 +430,7 @@ local function initMe()
       dialStatus = gate.isDialing()
       connectStatus = gate.isConnected()
       fuelGuage = gate.hasFuel()
-      local tG = {}
+      local tG = { }
       longName = ""
       for i = 1,thisGate:len(),1 do
         tG[i] = thisGate:sub(i,i)
