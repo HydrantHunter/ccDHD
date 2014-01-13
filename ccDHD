@@ -1,12 +1,12 @@
 --[[    STARGATE       ]]--
 --[[      c c D H D    ]]--
---[[    ver. 0.6.91    ]]--
---[[  core ver. 4.2.4  ]]--
+--[[    ver. 0.6.94    ]]--
+--[[  core ver. 4.2.5  ]]--
 --[[   ui ver. 4.1.1   ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "0.6.91"
+local ccDHDVer = "0.6.94"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -22,16 +22,14 @@ Tested with/requires:
 --[[
 TO DO:
   - FIX Monitor detection (either detects none, or only one)
+  - change math.floor to math.ceil for pageNum calcs
   - Add connect/call timer ?
   - Get trim working so it's easy to remove gates - use table.remove(allGates,#)
     - While in trim mode, any selected entries will be textColor(gray) - COMMIT will delete them
   - Addressbook editting
     - use colored pips to the left of ratings instead of b/g colors (like the settings/quit menu) ?
   - Update 'view' to include 'edit' button?
-  - Make runState a table containing runState,secureStatus,etc.?
   - Reordering?
-    - Drag and drop reordering of addresses (drag mode)
-    - Not sure about 'drag mode' - may have to do 'move' or 'order' mode and use numbering
       - Easiest? - add gate number (from allGates) to properties edit screen and allow it to be edited
       - unless I can find an elegant way to handle dragging entries between pages
       - maybe have drag mode show a list of entries as just 'numbers' ([1] [2] etc.)
@@ -44,7 +42,6 @@ TO DO:
     - Notes displayed on overhead monitor when selected in term UI?  (And show selected gate on side monitor)
       - should this be selectable? ("Put it on the big screen")
       - Translate base rating codes to 'words' for edit dropdown and notes viewer
-  - moar?
   - Possibly way down the line...
     - re-write with significantly less spaghetti
     - Big screen to put up a map with a dot showing gate coords
@@ -65,16 +62,6 @@ local monB = "none"
 local termX,termY = term.getSize()
 local IO  -- Modem (for ccNet)
 
---[[
- -- Table for peripheral side reference
-local sidesList = { bottom="none",
-                    back="none",
-                    top="none",
-                    left="none",
-                    front="none",
-                    right="none",
-                  }
-]]--
 -- Configuration
  -- Default Settings
 local settingsData = "/data/DHDsettings"
@@ -95,11 +82,12 @@ local dhdSettings = { thisGate="GATEONE",
                       ecShield="ON",
                       startShield="ON",
                       callEnd="OFF",
-                      logs="ON",
+                      logs="OFF",
                       lastGate="/logs/DHDlast",
                       gateHistory="/logs/DHDhistory",
                     }
 local allGates = { {addr="NEWGATE",rating="u",note="short note",["loc"]={["x"]=99999,["y"]=99999,["z"]=99999,["dim"]=1,},}, }
+local markedGates = { }
 local gateLiaison = dhdSettings.server
 local longName
 local superSecretPassword
@@ -295,19 +283,26 @@ local function updateInfo(newInfo)    -- Update status
 end
 
 local function netSend(dataPack)
-  rednet.send(gateLiaison,dataPack,true)
+  if dhdSettings.server ~= 999 then
+    if dhdSettings.net == "R" then
+      rednet.send(gateLiaison,dataPack,true)
+    elseif dhdSettings.net == "C" then
+    end
+  end
 end
 
 local function netReceive()
   while true do
     if dhdSettings.server ~= 999 then
-      local netEvent = {rednet.receive()}
-      if tonumber(netEvent[1]) == gateLiaison then
-        if currentState ~= netEvent[2] then
-          updateInfo(netEvent[2])
+      if dhdSettings.net == "R" then
+        local netEvent = {rednet.receive()}
+        if tonumber(netEvent[1]) == gateLiaison then
+          if currentState ~= netEvent[2] then
+            updateInfo(netEvent[2])
+          end
         end
+      elseif dhdSettings.net == "C" then
       end
-      --if currentState ~= tostring(netEvent[2]) then updateInfo() end
     end
   end
 end
@@ -322,22 +317,17 @@ local function ingestData(fileName,fileType)
     superSecretPassword = dhdSettings.password
     if dhdSettings.monA ~= "none" then
       monA = peripheral.wrap(dhdSettings.monA)
-      --sidesList.side = "monA"
     end
     if dhdSettings.monB ~= "none" then
       monB = peripheral.wrap(dhdSettings.monB)
-      --sidesList.side = "monB"
     end
     if dhdSettings.rednet ~= "none" then
       rednet.open(dhdSettings.rednet)
-      --sidesList.side = "redNet"
     end
     if dhdSettings.ccnet ~= "none" then
       modem = peripheral.wrap(dhdSettings.ccnet)
-      --sidesList.side = "ccNet"
     end
     if dhdSettings.bio.lock ~= "none" then
-      --sidesList.side = "BioLock"
     end
     local tG = {}
     longName = ""
@@ -373,6 +363,7 @@ local function saveData(filename,filetype)
 end
 
 local function recordSessionData()  -- Human readable log files (last gate & history)
+  if not fs.exists("/logs") then fs.makeDir("logs") end
   local dateStamp = tostring(textutils.formatTime(os.time(),false) .. " / Day " .. os.day())
   local lastCall = fs.open(dhdSettings.lastGate,"w")
   lastCall.writeLine(dateStamp)
@@ -404,7 +395,7 @@ local function localInventory()
   dhdSettings.ecShield="ON"
   dhdSettings.startShield="ON"
   dhdSettings.callEnd="OFF"
-  dhdSettings.logs="ON"
+  dhdSettings.logs="OFF"
   dhdSettings.lastGate="/logs/DHDlast"
   dhdSettings.gateHistory="/logs/DHDhistory"
   local side, perp
@@ -785,6 +776,12 @@ local function drawTrimUI()
     if i > (pageNum * 24) or i > numGates then
       break
     else
+      for i,gNum in pairs(markedGates) do
+        if allGates[i] == gNum then
+          term.setBackgroundColor(gray)
+          term.setTextColor(lgray)
+        end
+      end
       term.write("/" .. allGates[i].addr .. "/")
     end
   end
@@ -835,18 +832,18 @@ local function viewEditHelp(pY)
   term.setCursorPos(2, pY + 3)
   term.write("             Right click for Trim Mode")
   term.setCursorPos(2, pY + 4)
-  term.write("- Trim Mode: Left click to mark entry")
+  term.write("- Trim Mode: Left click to delete")
   term.setCursorPos(2, pY + 5)
-  term.write("             for deletion")
+  term.write("             gate entry")
   term.setCursorPos(2, pY + 6)
-  term.write("  - COMMIT deletes selected entries")
+  term.write("  - 'COMMIT' saves new gate data")
   term.setCursorPos(2, pY + 7)
-  term.write("  - 'Undo Sel' cancels all selections")
+  term.write("  - 'Undo Sel' cancels all deletions")
 end
 
 local function drawHelpUI()
   local colorDefs = { blue, green, magenta, lblue, orange, lgray, brown, red }
-  local colorDesc = { "Base/Outpost/Hub", "Secured/Safe", "Special", "Home/Camp", "Caution", "Unknown", "Village", "Danger" }
+  local colorDesc = { "Base/Outpost/Hub", "Secured/Safe", "Misc./Special", "Home/Camp", "Caution", "Unknown", "Village", "Danger" }
   local colorCount = #colorDesc
   local xMod = 2
   local yMod = 4
@@ -897,7 +894,7 @@ local function drawHelpUI()
   term.setTextColor(lgray)
   term.setCursorPos(2,termY)
   term.write("ccDHD ver. " .. ccDHDVer)  -- Show ccDHD version in bottom pane
-  if runState == "DHDHelp" then     -- Show either DHD or Edit help, depending on runState
+  if runState == "DHDHelp" then          -- Show either DHD or Edit help, depending on runState
     viewDHDHelp(colorCount)
   elseif runState == "EditHelp" then
     viewEditHelp(colorCount)
@@ -1574,6 +1571,28 @@ function drawCLI()   -- Client Interface 'decider'
   end
 end
 
+local function markGate(markedGate)  -- TRIM mode: mark gate for deletion
+  if markedGate == "undo" then
+    markedGates = { }
+    runState = "Edit"
+    drawCLI()
+    --return
+  else
+    table.insert(markedGates,tostring(markedGate))
+    drawTrimUI()
+  end
+end
+
+local function deleteGates()
+  for i,gate in pairs(markedGates) do
+    table.remove(allGates,tonumber(gate))
+  end
+end
+
+local function deleteGate(tGate)
+  table.remove(allGates,tGate)
+end
+
 local function remoteCommand()
   local tempState = runState
   runState = "rCmd"
@@ -1712,6 +1731,7 @@ local function mClick()
             editGateEntry("new")
           elseif runState == "Trim" then
             runState = "Edit"
+            ingestData(gateData,"gate")
             drawCLI()
           end
           return
@@ -1723,6 +1743,10 @@ local function mClick()
             gateChange = false
             saveData(gateData,"gate")
             drawControlUI()
+          elseif runState == "Trim" then
+            runState = "Edit"
+            saveData(gateData,"gate")
+            drawCLI()
           end
           return
         elseif mcY == 15 then
@@ -1774,6 +1798,15 @@ local function mClick()
               drawCLI()
               return
             end
+          elseif runState == "Trim" then
+            if mButton == 1 then
+              table.remove(allGates,i)
+              numGates = numGates - 1
+              numPages = math.ceil(numGates/24)
+              term.clear()
+              drawCLI()
+              --markGate(i)
+            end
           end
           -- Addresses Column 2
         elseif mcX > 11 and mcX < 21 and mcY == 4 + ((i - l) * 2) and (i + 6) <= numGates then
@@ -1794,6 +1827,15 @@ local function mClick()
               runState = "Trim"
               drawCLI()
               return
+            end
+          elseif runState == "Trim" then
+            if mButton == 1 then
+              table.remove(allGates,i + 6)
+              numGates = numGates - 1
+              numPages = math.ceil(numGates/24)
+              term.clear()
+              drawCLI()
+              --markGate(i + 6)
             end
           end
           -- Addresses Column 3
@@ -1816,6 +1858,15 @@ local function mClick()
               drawCLI()
               return
             end
+          elseif runState == "Trim" then
+            if mButton == 1 then
+              table.remove(allGates,i + 12)
+              numGates = numGates - 1
+              numPages = math.ceil(numGates/24)
+              term.clear()
+              drawCLI()
+              --markGate(i + 12)
+            end
           end
           -- Addresses Column 4
         elseif mcX > 31 and mcX < 41 and mcY == 4 + ((i - l) * 2) and (i + 18) <= numGates then
@@ -1836,6 +1887,15 @@ local function mClick()
               runState = "Trim"
               drawCLI()
               return
+            end
+          elseif runState == "Trim" then
+            if mButton == 1 then
+              table.remove(allGates,i + 18)
+              numGates = numGates - 1
+              numPages = math.ceil(numGates/24)
+              term.clear()
+              drawCLI()
+              --markGate(i + 18)
             end
           end
         end
@@ -2166,32 +2226,26 @@ local function mClick()
           if netSide[3] > 26 and netSide[2] < 35 then
             if netSide[4] == 5 then
               dhdSettings.rednet = "top"
-              --sidesList.top = "wifi"
               rednet.open("top")
               configChange = true
             elseif netSide[4] == 7 then
               dhdSettings.rednet = "bottom"
-              --sidesList.bottom = "wifi"
               rednet.open("bottom")
               configChange = true
             elseif netSide[4] == 9 then
               dhdSettings.rednet = "front"
-              --sidesList.front = "wifi"
               rednet.open("front")
               configChange = true
             elseif netSide[4] == 11 then
               dhdSettings.rednet = "back"
-              --sidesList.back = "wifi"
               rednet.open("back")
               configChange = true
             elseif netSide[4] == 13 then
               dhdSettings.rednet = "left"
-              --sidesList.left = "wifi"
               rednet.open("left")
               configChange = true
             elseif netSide[4] == 15 then
               dhdSettings.rednet = "right"
-              --sidesList.right = "wifi"
               rednet.open("right")
               configChange = true
             end
@@ -2204,32 +2258,26 @@ local function mClick()
           if netSide[3] > 26 and netSide[2] < 35 then
             if netSide[4] == 5 then
               dhdSettings.ccnet = "top"
-              --sidesList.top = "lan"
               lan = peripheral.wrap("top")
               configChange = true
             elseif netSide[4] == 7 then
               dhdSettings.ccnet = "bottom"
-              --sidesList.bottom = "lan"
               lan = peripheral.wrap("bottom")
               configChange = true
             elseif netSide[4] == 9 then
               dhdSettings.ccnet = "front"
-              --sidesList.front = "lan"
               lan = peripheral.wrap("front")
               configChange = true
             elseif netSide[4] == 11 then
               dhdSettings.ccnet = "back"
-              --sidesList.back = "lan"
               lan = peripheral.wrap("back")
               configChange = true
             elseif netSide[4] == 13 then
               dhdSettings.ccnet = "left"
-              --sidesList.left = "lan"
               lan = peripheral.wrap("left")
               configChange = true
             elseif netSide[4] == 15 then
               dhdSettings.ccnet = "right"
-              --sidesList.right = "lan"
               lan = peripheral.wrap("right")
               configChange = true
             end
@@ -2283,7 +2331,6 @@ local function mClick()
         -- Select Marque Side
       elseif mcY == 14 and mcX < 24 then
         if mcX > 16 and mcX < 21  and dhdSettings.monB ~= "none" then
-          --sidesList[dhdSettings.monB] = "none"
           dhdSettings.monB = "none"
           configChange = true
         elseif mcX > 22 and mcX < 24 then
@@ -2292,32 +2339,26 @@ local function mClick()
           if monBSide[3] > 26 and monBSide[2] < 35 then
             if monBSide[4] == 5 then
               dhdSettings.monB = "top"
-              --sidesList.top = "monB"
               monB = peripheral.wrap("top")
               configChange = true
             elseif monBSide[4] == 7 then
               dhdSettings.monB = "bottom"
-              --sidesList.bottom = "monB"
               monB = peripheral.wrap("bottom")
               configChange = true
             elseif monBSide[4] == 9 then
               dhdSettings.monB = "front"
-              --sidesList.front = "monB"
               monB = peripheral.wrap("front")
               configChange = true
             elseif monBSide[4] == 11 then
               dhdSettings.monB = "back"
-              --sidesList.back = "monB"
               monB = peripheral.wrap("back")
               configChange = true
             elseif monBSide[4] == 13 then
               dhdSettings.monB = "left"
-              --sidesList.left = "monB"
               monB = peripheral.wrap("left")
               configChange = true
             elseif monBSide[4] == 15 then
               dhdSettings.monB = "right"
-              --sidesList.right = "monB"
               monB = peripheral.wrap("right")
               configChange = true
             end
@@ -2327,7 +2368,6 @@ local function mClick()
         -- Select List Monitor Side
       elseif mcY == 16 and mcX < 24 then
         if mcX > 16 and mcX < 21  and dhdSettings.monA ~= "none" then
-          --sidesList[dhdSettings.monA] = "none"
           dhdSettings.monA = "none"
           configChange = true
         elseif mcX > 22 and mcX < 24 then
@@ -2336,32 +2376,26 @@ local function mClick()
           if monASide[3] > 26 and monASide[2] < 35 then
             if monASide[4] == 5 then
               dhdSettings.monA = "top"
-              --sidesList.top = "monA"
               monA = peripheral.wrap("top")
               configChange = true
             elseif monASide[4] == 7 then
               dhdSettings.monA = "bottom"
-              --sidesList.bottom = "monA"
               monA = peripheral.wrap("bottom")
               configChange = true
             elseif monASide[4] == 9 then
               dhdSettings.monA = "front"
-              --sidesList.front = "monA"
               monA = peripheral.wrap("front")
               configChange = true
             elseif monASide[4] == 11 then
               dhdSettings.monA = "back"
-              --sidesList.back = "monA"
               monA = peripheral.wrap("back")
               configChange = true
             elseif monASide[4] == 13 then
               dhdSettings.monA = "left"
-              --sidesList.left = "monA"
               monA = peripheral.wrap("left")
               configChange = true
             elseif monASide[4] == 15 then
               dhdSettings.monA = "right"
-              --sidesList.right = "monA"
               monA = peripheral.wrap("right")
               configChange = true
             end
@@ -2575,6 +2609,14 @@ repeat
   dhdKernel()
   if runState == "exit" then kernelState = false end
   if kernelState == false then
+    if monA ~= "none" then
+       monA.setBackgroundColor(black)
+       monA.clear()
+    end
+    if monB ~= "none" then
+       monB.setBackgroundColor(black)
+       monB.clear()
+    end
     term.setBackgroundColor(black)
     term.setTextColor(white)
     term.clear()
