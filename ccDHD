@@ -1,12 +1,12 @@
 --[[    STARGATE       ]]--
 --[[      c c D H D    ]]--
---[[    ver. 0.6.94    ]]--
+--[[    ver. 0.6.96    ]]--
 --[[  core ver. 4.2.5  ]]--
 --[[   ui ver. 4.1.1   ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "0.6.94"
+local ccDHDVer = "0.6.96"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -16,7 +16,7 @@ Tested with/requires:
     - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
     - gateLiaison running on an Advanced Computer with 3 optional Advanced Monitors
 
-  - DHD also supports the FistPrint Scanner in GopherATL's BioLock ver. 2.1.3 (updated for 1.6.4 by gamax92)
+  - DHD also supports the FistPrint Scanner in GopherATL's Biolock MOD ver. 2.1.3 (updated for 1.6.4 by gamax92)
 ]]--
 
 if os.clock() < 1 then
@@ -43,7 +43,7 @@ local dhdSettings = { thisGate="GATEONE",
                       rednet="none",
                       server=999,
                       ccnet="none",
-                      ["channels"]={["send"]=241,["recv"]=242,},
+                      ["channels"]={["send"]=998,["recv"]=999,},
                       uptime="OFF",
                       gps="OFF",
                       ["loc"]={["x"]=99999,["y"]=99999,["z"]=99999,["dim"]=0,},
@@ -312,10 +312,7 @@ local function ingestData(fileName,fileType)
     dhdConfig.close()
     local iCount = 0
     numGates = #allGates
-    numPages = math.floor(numGates / 24)
-    if numPages < (numGates / 24) then
-      numPages = numPages + 1
-    end
+    numPages = math.ceil(numGates / 24)
   end
 end
 
@@ -356,7 +353,7 @@ local function localInventory()
   dhdSettings.rednet="none"
   dhdSettings.server=999
   dhdSettings.ccnet="none"
-  dhdSettings.channels={["send"]=241,["recv"]=242,}
+  dhdSettings.channels={["send"]=998,["recv"]=999,}
   dhdSettings.uptime="OFF"
   dhdSettings.gps="OFF"
   dhdSettings.loc={["x"]=99999,["y"]=99999,["z"]=99999,["dim"]=0,}
@@ -369,7 +366,7 @@ local function localInventory()
   local side, perp
   for _,side in pairs(rs.getSides()) do
     if peripheral.isPresent(tostring(side)) then
-      perp = peripheral.getType(tostring(side))
+      local perp = peripheral.getType(tostring(side))
       if tostring(perp) == "modem" then
         if peripheral.call(tostring(side),"isWireless") == true and dhdSettings.net == "R" then
           rednet.open(side)
@@ -381,10 +378,10 @@ local function localInventory()
       end
       if tostring(perp) == "monitor" then
         local tmX, tmY = peripheral.call(side,"getSize")
-        if tmX == 15 then
+        if tmX == 7 or tmX == 15 then
           dhdSettings.monA = side
           --monA = peripheral.wrap(side)
-        elseif tmX == 45 then -- or tmX == 14 then
+        elseif tmX == 14 or tmX == 45 then
           dhdSettings.monB = side
           --monB = peripheral.wrap(side)
         end
@@ -497,7 +494,11 @@ local function drawHeader()
     term.setCursorPos(i,1)
     term.write(" ")
   end
-  term.setCursorPos(((termX/2)-(#longName/2)),1)
+  if runState == "Cfg" then
+    term.setCursorPos(((termX/2)-(#longName/2))-9,1)  -- not used - done in drawSettingsUI() - why?
+  else
+    term.setCursorPos(((termX/2)-(#longName/2)),1)
+  end
   term.write(longName)
   term.setBackgroundColor(black)
   if runState ~= "viewing" and secureStatus ~= "lockdown" then
@@ -896,7 +897,7 @@ local function drawSettingsUI()
     term.write(" ")
   end
   term.setTextColor(white)
-  term.setCursorPos((termX/2)-((#dhdSettings.thisGate/2)+(9-#dhdSettings.thisGate)),1)
+  term.setCursorPos((termX/2)-((#dhdSettings.thisGate/2))-4,1)
   term.write(" " .. dhdSettings.thisGate .. " Settings ")
   for i = 1,termX,1 do
     term.setCursorPos(i,termY)
@@ -1405,6 +1406,8 @@ local function viewGateEntry(dataEntry)
     term.setCursorPos(2,i)
     term.write("                ")
   end
+  term.setCursorPos(13,12)
+  term.write("                                      ")
   term.setCursorPos(1,termY-1)
   for i = 1,termX,1 do
     term.write(" ")
@@ -1423,10 +1426,7 @@ local function editGateEntry(dataBlock)
     local newGate = { addr = "NEWGATE", rating = "u", note = "short note", loc = {x=99999,y=99999,z=99999,dim=1,}, }
     table.insert(allGates,gEntry,newGate)
     numGates = #allGates
-    numPages = math.floor(numGates / 24)   -- Re-paginate gates
-    if numPages < (numGates / 24) then
-      numPages = numPages + 1
-    end
+    numPages = math.ceil(numGates / 24)   -- Re-paginate gates
   end
   currentEdit = gEntry
   term.setBackgroundColor(black)
@@ -1644,7 +1644,7 @@ local function mClick()
         end
         drawCLI()
       end
-    elseif menuState == false then
+    elseif menuState == false and runState ~= "Cfg" then
       if mcY == 1 then
         if mcX > 1 and mcX < 9 then
           menuState = true
@@ -1972,9 +1972,11 @@ local function mClick()
           term.write(allGates[currentEdit].loc.dim)
           term.setCursorPos(13,12)
           term.setTextColor(lblue)
-          local newDim = tonumber(read())
-          if tostring(newDim) ~= "" and newDim ~= nil then
+          local newDim = tostring(read())
+          if newDim ~= "" and tostring(newDim) ~= "nil" then
             allGates[currentEdit].loc.dim = newDim
+            term.setCursorPos(13,12)
+            term.write("                                      ")
             gateChange = true
           end
           term.setCursorPos(13,12)
@@ -2065,6 +2067,8 @@ local function mClick()
           term.setCursorPos(2,i)
           term.write("                ")
         end
+        term.setCursorPos(13,12)
+        term.write("                                      ")
         term.setCursorPos((termX/2)-8,termY-1)
         term.write("                  ")
         drawCLI()
@@ -2573,6 +2577,7 @@ repeat
     term.setTextColor(white)
     term.clear()
     term.setCursorPos(1,1)
+    --if runState == "reboot" or runState == "reset" then os.reboot() end
     if runState == "reboot" or runState == "reset" then os.reboot() end
     return
   end
