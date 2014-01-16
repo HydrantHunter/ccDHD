@@ -1,14 +1,14 @@
 --[[    STARGATE       ]]--
 --[[      c c D H D    ]]--
 --[[    ver. 0.7.01    ]]--
---[[  core ver. 4.2.5  ]]--
+--[[  core ver. 4.2.6  ]]--
 --[[   ui ver. 4.1.2   ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[       beta        ]]--
 --[[ pastebin YmFixAZz ]]--
-local ccDHDVer = "0.7.00"
+local ccDHDVer = "0.7.01"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
