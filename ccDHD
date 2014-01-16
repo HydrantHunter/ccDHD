@@ -20,6 +20,33 @@ Tested with/requires:
 
   - DHD also supports the FistPrint Scanner in GopherATL's Biolock MOD ver. 2.1.3 (updated for 1.6.4 by gamax92)
 ]]--
+
+--[[
+TO DO:
+  - Break gate editing into subroutines/functions
+  - Add connect/call timer ?
+  - Update 'view' to include 'edit' button?
+  - Reordering?
+      - Easiest? - add gate number (from allGates) to properties edit screen and allow it to be edited
+      - unless I can find an elegant way to handle dragging entries between pages
+      - maybe have drag mode show a list of entries as just 'numbers' ([1] [2] etc.)
+        - this way more entries can be shown per page and inter-page drag-n-drop is less of an issue (but still an issue)
+  - List Monitor:
+      - show dialed address?
+      - page +/- buttons at bottom of list screen
+      - provide dial button when info from list displayed ?
+  - Term:
+    - Notes displayed on overhead monitor when selected in term UI?  (And show selected gate on side monitor)
+      - should this be selectable? ("Put it on the big screen")
+  - Possibly way down the line...
+    - re-write with significantly less spaghetti
+    - Big screen to put up a map with a dot showing gate coords
+      - this will probably be a separate machine, and may even take over marque duty from the dialer
+]]--
+
+local function itBegins()
+end
+
 if os.clock() < 1 then
   sleep(1)
 end
@@ -61,7 +88,7 @@ local longName
 local fuelGuage
 local fistAuth = false
  -- 'Static' Menu Options
-local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "END Call", "LOCKDOWN", "rCmd", "+ Entry", "Save", "Undo Sel", "-COMMIT-" }
+local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "END Call", "LOCKDOWN", "rCmd", "+ Entry", "Save", "- Undo -", "-COMMIT-" }
 local passSymbols = { "!", "@", "#", "$", "%", "*", "?", "x", "X" }
  -- Status Info
 local runState = "init"
@@ -438,7 +465,7 @@ local function drawHeader()
   term.setTextColor(white)
   zPos[1] = 1
   if secureStatus == "allclear" then
-    if runState == "DHD" or runState == "rCmd" or runState == "viewing" then
+    if runState == "Dial" or runState == "rCmd" or runState == "viewing" then
       term.setBackgroundColor(blue)
     elseif runState == "Edit" or runState == "GateEdit" then
       term.setBackgroundColor(brown)
@@ -521,7 +548,7 @@ local function drawControlUI()
   end
   term.setTextColor(white)
   term.setCursorPos(43,7)
-  if runState == "DHD" then
+  if runState == "Dial" then
     if fuelGuage == true then
       term.setBackgroundColor(green)
     elseif fuelGuage == false then
@@ -535,7 +562,7 @@ local function drawControlUI()
     term.setBackgroundColor(orange)
     term.write(dhdCommandOptions[3] .. "     ")
   end
-  if runState == "DHD" then
+  if runState == "Dial" then
     term.setCursorPos(43,9)
     term.setBackgroundColor(lblue)
     term.write(dhdCommandOptions[4] .. "   ")
@@ -752,17 +779,17 @@ local function viewEditHelp(pY)
   term.setBackgroundColor(black)
   term.setTextColor(white)
   term.setCursorPos(2, pY + 2)
-  term.write("- Edit Mode: Left click to edit entry")
+  term.write("- Edit Mode: Left click an address to edit")
   term.setCursorPos(2, pY + 3)
-  term.write("             Right click for Trim Mode")
-  term.setCursorPos(2, pY + 4)
-  term.write("- Trim Mode: Left click to delete")
+  term.write("             Right click an address for Trim Mode")
   term.setCursorPos(2, pY + 5)
-  term.write("             gate entry")
+  term.write("- Trim Mode: Left click an address to delete")
   term.setCursorPos(2, pY + 6)
-  term.write("  - 'COMMIT' saves new gate data")
+  term.write("  '-COMMIT-' saves new gate data")
   term.setCursorPos(2, pY + 7)
-  term.write("  - 'Undo Sel' cancels all deletions")
+  term.write("  '- Undo -' cancels all deletions and")
+  term.setCursorPos(2, pY + 8)
+  term.write("             exits Trim mode")
 end
 
 local function drawHelpUI()
@@ -775,7 +802,7 @@ local function drawHelpUI()
   term.setBackgroundColor(black)
   term.clear()
   term.setCursorPos(1,1)
-  if runState == "DHDHelp" then    -- Header
+  if runState == "DialHelp" then    -- Header
     term.setBackgroundColor(cyan)
   elseif runState == "EditHelp" then
     term.setBackgroundColor(brown)
@@ -818,7 +845,7 @@ local function drawHelpUI()
   term.setTextColor(lgray)
   term.setCursorPos(2,termY)
   term.write("ccDHD ver. " .. ccDHDVer)  -- Show ccDHD version in bottom pane
-  if runState == "DHDHelp" then          -- Show either DHD or Edit help, depending on runState
+  if runState == "DialHelp" then          -- Show either DHD or Edit help, depending on runState
     viewDHDHelp(colorCount)
   elseif runState == "EditHelp" then
     viewEditHelp(colorCount)
@@ -827,8 +854,8 @@ local function drawHelpUI()
   local waitForClick = { os.pullEvent("mouse_click") }
   term.setBackgroundColor(black)
   term.clear()
-  if runState == "DHDHelp" then
-    runState = "DHD"
+  if runState == "DialHelp" then
+    runState = "Dial"
   elseif runState == "EditHelp" then
     runState = "Edit"
   end
@@ -1344,7 +1371,7 @@ local function drawMenu()
   term.setBackgroundColor(lgray)
   term.setTextColor(gray)
   term.write("Settings")
-  if runState == "DHD" then
+  if runState == "Dial" then
     term.setBackgroundColor(cyan)
   elseif runState == "Edit" or runState == "Trim" then
     term.setBackgroundColor(brown)
@@ -1547,7 +1574,7 @@ function drawCLI()   -- Client Interface 'decider'
           displayGateData()
         end
       end
-      if runState == "DHD" or gateStatus == "Dialing" then
+      if runState == "Dial" or gateStatus == "Dialing" then
         drawDialUI()
         drawControlUI()
         drawNaviUI()
@@ -1561,7 +1588,7 @@ function drawCLI()   -- Client Interface 'decider'
         drawTrimUI()
         drawControlUI()
         drawNaviUI()
-      elseif runState == "DHDHelp" or runState == "EditHelp" then
+      elseif runState == "DialHelp" or runState == "EditHelp" then
         drawHelpUI()
       end
     end
@@ -1636,8 +1663,8 @@ local function mClick()
           runState = "Cfg"
           menuState = false
           drawSettingsUI()
-        elseif mcY == 5 and runState == "DHD" then
-          runState = "DHDHelp"
+        elseif mcY == 5 and runState == "Dial" then
+          runState = "DialHelp"
           menuState = false
           drawHelpUI()
         elseif mcY == 5 and runState == "Edit" then
@@ -1675,25 +1702,25 @@ local function mClick()
         end
       end
       -- Command Buttons (change modes, mode operation)
-      if mcX > 41 and mcX <= termX and (runState == "DHD" or runState == "Edit" or runState == "Trim") then
+      if mcX > 41 and mcX <= termX and (runState == "Dial" or runState == "Edit" or runState == "Trim") then
         if mcY == 7 then
-          if runState == "DHD" then
+          if runState == "Dial" then
             runState = "Edit"
             drawCLI()
           elseif runState == "Edit" then
-            runState = "DHD"
+            runState = "Dial"
             drawCLI()
           end
           return
         elseif mcY == 9 then
-          if runState == "DHD" and shieldStatus == "OFF" then
+          if runState == "Dial" and shieldStatus == "OFF" then
             netSend("sON")
-          elseif runState == "DHD" and shieldStatus == "ON" and secureStatus == "allclear" then
+          elseif runState == "Dial" and shieldStatus == "ON" and secureStatus == "allclear" then
             netSend("sOFF")
           end
           return
         elseif mcY == 11 then
-          if runState == "DHD" then
+          if runState == "Dial" then
             if dhdSettings.ecShield == "ON" then
               netSend("sON")
             end
@@ -1714,7 +1741,7 @@ local function mClick()
           end
           return
         elseif mcY == 13 then
-          if runState == "DHD" then
+          if runState == "Dial" then
             secureStatus = "lockdown"
             secKernel(secureStatus)
           elseif runState == "Edit" then
@@ -1729,7 +1756,7 @@ local function mClick()
           end
           return
         elseif mcY == 15 then
-          if runState == "DHD" then
+          if runState == "Dial" then
             remoteCommand()
           end
           if runState == "reboot" or runState == "reset" or runState == "exit" then break end
@@ -1758,7 +1785,7 @@ local function mClick()
       for i = j,#allGates,1 do
           -- Addresses Column 1
         if mcX > 1 and mcX < 11 and mcY == 4 + ((i - l) * 2) and i <= numGates then
-          if runState == "DHD" then
+          if runState == "Dial" then
             if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
               dialAddress = allGates[i].addr
               updateInfo("Dialing")
@@ -1788,7 +1815,7 @@ local function mClick()
           end
           -- Addresses Column 2
         elseif mcX > 11 and mcX < 21 and mcY == 4 + ((i - l) * 2) and (i + 6) <= numGates then
-          if runState == "DHD" then
+          if runState == "Dial" then
             if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
               dialAddress = allGates[i + 6].addr
               updateInfo("Dialing")
@@ -1817,7 +1844,7 @@ local function mClick()
           end
           -- Addresses Column 3
         elseif mcX > 21 and mcX < 31 and mcY == 4 + ((i - l) * 2) and (i + 12) <= numGates then
-          if runState == "DHD" then
+          if runState == "Dial" then
             if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
               dialAddress = allGates[i + 12].addr
               updateInfo("Dialing")
@@ -1846,7 +1873,7 @@ local function mClick()
           end
           -- Addresses Column 4
         elseif mcX > 31 and mcX < 41 and mcY == 4 + ((i - l) * 2) and (i + 18) <= numGates then
-          if runState == "DHD" then
+          if runState == "Dial" then
             if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
               dialAddress = allGates[i + 18].addr
               updateInfo("Dialing")
@@ -2106,7 +2133,7 @@ local function mClick()
         drawSettingsUI()
         -- Close Settings (no save)
       elseif mcY == 2 and mcX > 44 and mcX <= termX then
-        runState = "DHD"
+        runState = "Dial"
         term.setBackgroundColor(black)
         term.clear()
         drawCLI()
@@ -2676,7 +2703,7 @@ local function initMe()
   term.setBackgroundColor(black)
   term.clear()
   kernelState = true
-  runState = "DHD"
+  runState = "Dial"
   drawCLI()
 end
 
