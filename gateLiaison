@@ -1,10 +1,10 @@
 --[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[  version  0.6.29  ]]--
+--[[  version  0.6.32  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "0.6.29"
+local gVer = "0.6.32"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -13,28 +13,18 @@ Tested with/requires:
     - HTTP API enabled
     - 1 Advanced Computer (color, mouse), 3 optional Advanced Monitors (color)
     - DHD running on an Advanced Computer with 4 optional Advanced Monitors
-      - DHD also supports GopherATL's BioLock ver. 2.1.3 (updated for 1.6.4 by gamax92)
-]]--
-
---[[
-    To Do:
-      - try modem wrap and experiment with chan.send & chan.recv
-      - re-write with less spaghetti
+      - DHD also supports GopherATL's BioLock ver. 2.1.3 Fistprint scanner (updated for 1.6.4 by gamax92)
 ]]--
 --
 -- MANUAL CONFIGURATION
 --
-local gateControl = 1   -- DHD Computer
-local shield = "bottom" -- Side for redstone output
-local pollTime = 3      -- Seconds b/t status polls
---local chan = { send = 229, rec = 231 }
--- Logs
-local lastGate = "/logs/DHDlast"
-local gateHistory = "/logs/DHDhistory"
+local gateSettings = { shield = "bottom", DHD = 1, chan = { send = 2442, recv = 242 }, net = "R", pollTime = 3, history = "/logs/DHDhistory", last = "/logs/DHDlast", }
 --
 -- END MANUAL CONFIGURATION
 --
 -- AUTOMATIC/STATIC CONFIGURATION (Part 1)
+local modem
+local modemSide
 local gate
 local thisGate
 local dialStatus
@@ -51,6 +41,20 @@ local longName = ""
 local mon = "none"
 local shieldStatus
 -- END AUTOMATIC/STATIC CONFIGURATION (Part 1)
+
+local function ingestData()
+  local gateConfig = fs.open("/data/gateSettings","r") or error("Cannot open /data/gateSettings", 2)
+  local gateCfg = gateConfig.readAll()
+  gateSettings = textutils.unserialize(gateCfg)
+  gateConfig.close()
+end
+
+local function saveData()
+  if not fs.exists("/data") then fs.makeDir("/data") end
+  local gateConfig = fs.open("/data/gateSettings","w") or error("Cannot open /data/gateSettings", 2)
+  gateConfig.write(textutils.serialize(gateSettings))
+  gateConfig.close()
+end
 
 local function displayMarque()
   if mon ~= "none" then
@@ -116,13 +120,13 @@ local function drawTermScreen()
     term.setTextColor(colors.white)
   end
   term.setCursorPos(2,2)
-  term.write(" Gate Liaison   ver. " .. gVer .. " ")
+  term.write(" Gate Liaison          ver. " .. gVer .. " ")
   term.setCursorPos(2,10)
-  term.write("                            ")
+  term.write("                                   ")
   term.setCursorPos(2,10)
   term.write(" " .. os.getComputerLabel())
   local cID = tostring(math.floor(os.getComputerID()))
-  term.setCursorPos(30-(3+#cID),10)
+  term.setCursorPos(37-(3+#cID),10)
   term.write("# " .. cID)
   term.setBackgroundColor(colors.lightGray)
   term.setTextColor(colors.black)
@@ -145,7 +149,7 @@ local function drawTermScreen()
   term.setCursorPos(2,8)
   term.write(" Status:")
   term.setCursorPos(2,9)
-  term.write(" ccDHD:")
+  term.write(" Network:")
   term.setBackgroundColor(colors.black)
   term.setTextColor(colors.yellow)
   term.setCursorPos(17,3)
@@ -185,8 +189,25 @@ local function drawTermScreen()
   term.setTextColor(colors.lightBlue)
   term.write(pData)
   term.setCursorPos(17,9)
-  term.setTextColor(colors.lightGray)
-  term.write(gateControl)
+  if gateSettings.net == "R" then
+    term.setTextColor(colors.red)
+    term.write("RedNet / " .. gateSettings.DHD)
+  elseif gateSettings.net == "C" then
+    term.setTextColor(colors.green)
+    term.write("ccNet / " .. gateSettings.chan.send .. "-" .. gateSettings.chan.recv)
+  end
+end
+
+local function netSend(dataPack)
+  if gateSettings.net == "R" then
+    if gateSettings.DHD ~= 999 then
+      rednet.send(gateSettings.DHD,dataPack,true)
+    end
+  elseif gateSettings.net == "C" then
+    if gateSettings.chan.recv ~= 2 then
+      modem.transmit(gateSettings.chan.send,gateSettings.chan.recv,dataPack)
+    end
+  end
 end
 
 local function updateStatus()
@@ -194,7 +215,7 @@ local function updateStatus()
   connectStatus = gate.isConnected()
   dialStatus = gate.isDialing()
   fuelGuage = gate.hasFuel()
-  shieldStatus = rs.getOutput(shield)
+  shieldStatus = rs.getOutput(gateSettings.shield)
   if gateStatus == "allclear" then
     shieldState = false
     gateStatus = "Disconnected"
@@ -204,7 +225,7 @@ local function updateStatus()
     elseif fuelGuage == true then
       pData = "YY1"
     end
-    rednet.send(gateControl,pData,true)
+    netSend(pData)
     return
   elseif gateStatus == "lockdown" then
     if fuelGuage == false then
@@ -213,7 +234,7 @@ local function updateStatus()
       pData = "XX1"
     end
     dialAddress = "none"
-    rednet.send(gateControl,pData,true)
+    netSend(pData)
     return
   else
     if shieldStatus == true then
@@ -246,7 +267,7 @@ local function updateStatus()
     end
   end
   if gateStatus ~= "Dialing" and gateStatus ~= "Connected" and gateStatus ~= "lockdown" then displayMarque() end
-  rednet.send(gateControl,pData,true)
+  netSend(pData)
   if currentState ~= pData then
     drawTermScreen()
   end
@@ -254,15 +275,15 @@ end
 
 local function recordSessionData()  -- Human readable log files (last gate & history)
   local dateStamp = textutils.formatTime(os.time(),false) .. " / Day " .. os.day()
-  local lastCall = fs.open(lastGate,"w")
+  local lastCall = fs.open(gateSettings.last,"w")
   lastCall.writeLine(dateStamp)
   lastCall.writeLine(dialAddress)
   lastCall.close()
-  if not fs.exists(gateHistory) then
-    local tmpHist = fs.open(gateHistory,"w")
+  if not fs.exists(gateSettings.history) then
+    local tmpHist = fs.open(gateSettings.history,"w")
     tmpHist.close()
   end
-  local gateArchive = fs.open(gateHistory,"a")
+  local gateArchive = fs.open(gateSettings.history,"a")
   gateArchive.writeLine(dateStamp)
   gateArchive.writeLine(dialAddress)
   gateArchive.close()
@@ -270,11 +291,11 @@ end
 
 local function shieldControl(state)
   if state == "ON" then
-    rs.setOutput(shield,true)
+    rs.setOutput(gateSettings.shield,true)
   elseif state == "OFF" then
-    rs.setOutput(shield,false)
+    rs.setOutput(gateSettings.shield,false)
   else
-    rs.setOutput(shield,true)
+    rs.setOutput(gateSettings.shield,true)
   end
   return
 end
@@ -337,8 +358,24 @@ local function doCommand(thisCommand)
     updateStatus()
     return
   elseif thisCommand == "1stRun" then  -- When DHD signifies its first run, it is given the gate's address
-    rednet.send(gateControl,thisGate,true)
+    netSend(thisGate)
     return
+  elseif thisCommand == "redNet" then
+    if gateSettings.net == "C" then modem.close(gateSettings.chan.recv) end
+    modem = nil
+    gateSettings.net = "R"
+    rednet.open(modemSide)
+    saveData()
+    drawTermScreen()
+    --updateStatus()
+  elseif thisCommand == "ccNet" then
+    if gateSettings.net == "R" then rednet.close(modemSide) end
+    gateSettings.net = "C"
+    modem = peripheral.wrap(modemSide)
+    modem.open(gateSettings.chan.recv)
+    saveData()
+    drawTermScreen()
+    --updateStatus()
   end                                  -- replaced elseif with end/if - split these into two if/thens
   if gateStatus ~= "lockdown" then
     if thisCommand == "endCall" then
@@ -374,18 +411,20 @@ end
 
 local function netReceive()
   while true do
-    if not IO then
+    if gateSettings.net == "R" then
       eventNet = { rednet.receive() }
-      if tonumber(eventNet[1]) == gateControl then
+      if tonumber(eventNet[1]) == gateSettings.DHD then
         if eventNet[2] ~= nil and eventNet[2] ~= "" then
           doCommand(eventNet[2])
         end
       end
       return
-    else
+    elseif gateSettings.net == "C" then
       eventNet = { os.pullEvent("modem_message") }
-      if eventNet[2] == chan.recv and eventNet[3] == chan.send and tonumber(eventNet[4]) == gateControl then
-        doCommand(eventNet[5])
+      if eventNet[3] == gateSettings.chan.recv and eventNet[4] == gateSettings.chan.send then
+        if eventNet[5] ~= nil and eventNet[5] ~= "" then
+          doCommand(eventNet[5])
+        end
       end
     end
   end
@@ -404,7 +443,7 @@ end
 
 local function gateKernel()
   if timePoller == 0 then
-    pollTimer = os.startTimer(pollTime)
+    pollTimer = os.startTimer(gateSettings.pollTime)
     timerPoller = 1
   end
   parallel.waitForAny(netReceive,dataPoller)
@@ -412,15 +451,17 @@ end
 
 -- AUTOMATIC/STATIC CONFIGURATION (Part 2)
 local function initMe()
+  if not fs.exists("/data/gateSettings") then saveData() end
+  ingestData()
   if mon ~= "none" then
     mon.setTextScale(2)
     mon.setBackgroundColor(colors.black)
     mon.setTextColor(colors.cyan)
   end
   --local sCommandOptions = { "QRY", "sON", "sOFF", "lockdown", "allclear", "reboot", "reset", }
-  rs.setOutput(shield,false)
+  rs.setOutput(gateSettings.shield,false)
   sleep(0.5)
-  rs.setOutput(shield,true)
+  rs.setOutput(gateSettings.shield,true)
   shieldStatus = true
   for k,v in pairs(rs.getSides()) do
       -- Stargate
@@ -441,13 +482,20 @@ local function initMe()
         end
       end
     elseif peripheral.getType(v) == "modem" then
-        -- Modem
+        -- Modem/redNet
       if peripheral.call(tostring(v),"isWireless") == true then
-        rednet.open(v)
-        -- Network
+        if gateSettings.net == "R" then
+          modemSide = v
+          rednet.open(v)
+        elseif gateSettings.net == "C" then
+          modemSide = v
+          modem = peripheral.wrap(v)
+          modem.open(gateSettings.chan.recv)
+        end
+        -- Network/ccNet
       elseif peripheral.call(tostring(v),"isWireless") == false then
-        --local IO = peripheral.wrap("back")
-        -- Monitor
+      --end
+      -- Monitor
         local mPerps = peripheral.call(tostring(v),"getNamesRemote")
         for num,mPerp in pairs(mPerps) do
           if tostring(mPerp):sub(1,7) == "monitor" then
