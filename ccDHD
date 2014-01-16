@@ -1,6 +1,6 @@
 --[[    STARGATE       ]]--
 --[[      c c D H D    ]]--
---[[    ver. 0.7.00    ]]--
+--[[    ver. 0.7.01    ]]--
 --[[  core ver. 4.2.5  ]]--
 --[[   ui ver. 4.1.2   ]]--
 --[[ by HydrantHunter  ]]--
@@ -20,33 +20,6 @@ Tested with/requires:
 
   - DHD also supports the FistPrint Scanner in GopherATL's Biolock MOD ver. 2.1.3 (updated for 1.6.4 by gamax92)
 ]]--
-
---[[
-TO DO:
-  - Break gate editing into subroutines/functions
-  - Add connect/call timer ?
-  - Update 'view' to include 'edit' button?
-  - Reordering?
-      - Easiest? - add gate number (from allGates) to properties edit screen and allow it to be edited
-      - unless I can find an elegant way to handle dragging entries between pages
-      - maybe have drag mode show a list of entries as just 'numbers' ([1] [2] etc.)
-        - this way more entries can be shown per page and inter-page drag-n-drop is less of an issue (but still an issue)
-  - List Monitor:
-      - show dialed address?
-      - page +/- buttons at bottom of list screen
-      - provide dial button when info from list displayed ?
-  - Term:
-    - Notes displayed on overhead monitor when selected in term UI?  (And show selected gate on side monitor)
-      - should this be selectable? ("Put it on the big screen")
-  - Possibly way down the line...
-    - re-write with significantly less spaghetti
-    - Big screen to put up a map with a dot showing gate coords
-      - this will probably be a separate machine, and may even take over marque duty from the dialer
-]]--
-
-local function itBegins()
-end
-
 if os.clock() < 1 then
   sleep(1)
 end
@@ -1530,14 +1503,26 @@ local function secKernel(alertState) -- LOCKDOWN handler
       noneShallPass = false
       secureStatus = "allclear"
       netSend(secureStatus)
-      local senderID, message = rednet.receive(1)
-      if senderID == gateLiaison and (message == "YY0" or message == "YY1") then
-        term.setBackgroundColor(black)
-        term.setCursorPos(15,9)
-        term.write("                      ")
-        term.setCursorPos(15,15)
-        term.write("                      ")
-        drawCLI()
+      if dhdSettings.net == "R" then
+        local senderID, message = rednet.receive(1)
+        if senderID == gateLiaison and (message == "YY0" or message == "YY1") then
+          term.setBackgroundColor(black)
+          term.setCursorPos(15,9)
+          term.write("                      ")
+          term.setCursorPos(15,15)
+          term.write("                      ")
+          drawCLI()
+        end
+      elseif dhdSettings.net == "C" then
+        local netEvent = os.pullEvent("modem_message")
+        if netEvent[2] == dhdSettings.channels.recv and netEvent[3] == dhdSettings.channels.send and (netEvent[5] == "YY0" or netEvent[5] == "YY1") then
+          term.setBackgroundColor(black)
+          term.setCursorPos(15,9)
+          term.write("                      ")
+          term.setCursorPos(15,15)
+          term.write("                      ")
+          drawCLI()
+        end
       end
       break
     end
