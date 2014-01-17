@@ -1,10 +1,10 @@
 --[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[  version  0.6.32  ]]--
+--[[  version  0.7.03  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "0.6.32"
+local gVer = "0.7.03"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -15,13 +15,6 @@ Tested with/requires:
     - DHD running on an Advanced Computer with 4 optional Advanced Monitors
       - DHD also supports GopherATL's BioLock ver. 2.1.3 Fistprint scanner (updated for 1.6.4 by gamax92)
 ]]--
---
--- MANUAL CONFIGURATION
---
-local gateSettings = { shield = "bottom", DHD = 1, chan = { send = 2442, recv = 242 }, net = "R", pollTime = 3, history = "/logs/DHDhistory", last = "/logs/DHDlast", }
---
--- END MANUAL CONFIGURATION
---
 -- AUTOMATIC/STATIC CONFIGURATION (Part 1)
 local modem
 local modemSide
@@ -32,6 +25,7 @@ local connectStatus
 local fuelGuage
 local dialAddress = "none"
 local gateStatus = "QRY"
+local shieldStatus
 local pData
 local currentState = "ZZ"
 --local connectTimer = 0
@@ -39,7 +33,14 @@ local pollTimer = 0
 local timePoller = 0
 local longName = ""
 local mon = "none"
-local shieldStatus
+local gateSettings = { shield = "bottom",
+                       DHD = 1,
+                       chan = { send = 2442, recv = 242 },
+                       net = "R",
+                       pollTime = 3,
+                       history = "/logs/DHDhistory",
+                       last = "/logs/DHDlast",
+                     }
 -- END AUTOMATIC/STATIC CONFIGURATION (Part 1)
 
 local function ingestData()
@@ -79,7 +80,7 @@ local function displayStatus(select)
       mon.write("Connected to")
       mon.setTextColor(colors.yellow)
       mon.setCursorPos(1,2)
-      local dA = {}
+      local dA = { }
       for i = 1,#dialAddress do
         dA[i] = dialAddress:sub(i,i)
         mon.write(" " .. dA[i])
@@ -95,7 +96,7 @@ local function displayStatus(select)
     mon.write("Dialing")
     mon.setTextColor(colors.yellow)
     mon.setCursorPos(1,2)
-    local dA = {}
+    local dA = { }
     for i = 1,#dialAddress do
       dA[i] = dialAddress:sub(i,i)
       mon.write(" " .. dA[i])
@@ -210,7 +211,7 @@ local function netSend(dataPack)
   end
 end
 
-local function updateStatus()
+local function updateStatus(special)
   currentState = pData
   connectStatus = gate.isConnected()
   dialStatus = gate.isDialing()
@@ -225,8 +226,8 @@ local function updateStatus()
     elseif fuelGuage == true then
       pData = "YY1"
     end
-    netSend(pData)
-    return
+    --netSend(pData)
+    --return
   elseif gateStatus == "lockdown" then
     if fuelGuage == false then
       pData = "XX0"
@@ -234,8 +235,8 @@ local function updateStatus()
       pData = "XX1"
     end
     dialAddress = "none"
-    netSend(pData)
-    return
+    --netSend(pData)
+    --return
   else
     if shieldStatus == true then
       pData = "1"
@@ -249,12 +250,12 @@ local function updateStatus()
         displayStatus("con")
       end
     elseif tostring(connectStatus) == "false" then
-      if gateStatus == "Dialing" or tostring(dialStatus) == "true" then
+      if tostring(dialStatus) == "true" then
         pData = pData .. "2"
         if mon ~= "none" then
           displayStatus("dial")
         end
-      elseif gateStatus ~= "Dialing" or tostring(dialStatus) == "false" then
+      elseif tostring(dialStatus) == "false" then
         gateStatus = "Disconnected"
         dialAddress = "none"
         pData = pData .. "0"
@@ -267,8 +268,8 @@ local function updateStatus()
     end
   end
   if gateStatus ~= "Dialing" and gateStatus ~= "Connected" and gateStatus ~= "lockdown" then displayMarque() end
-  netSend(pData)
-  if currentState ~= pData then
+  if currentState ~= pData or tostring(special) == "QRY" then
+    netSend(pData)
     drawTermScreen()
   end
 end
@@ -318,10 +319,8 @@ local function dialOut(targetAddress)
   dialAddress = tostring(targetAddress)
   connectStatus = gate.isConnected()
   if dialAddress ~= thisGate and tostring(connectStatus) == "false" then -- Is the stargate connected to another stargate?  isConnected()
-    --local dialGate = gate.dial(dialAddress)
-    --updateStatus()
+    local dialGate = gate.dial(dialAddress)
     --if tostring(dialGate) == "true" then
-      gate.dial(dialAddress)
       gateStatus = "Dialing"
       recordSessionData()
       updateStatus()
@@ -346,8 +345,8 @@ end
 local function doCommand(thisCommand)
   if thisCommand == "lockdown" then
     lockDown()
-  end
-  if thisCommand == "allclear" then
+    --return -- ?
+  elseif thisCommand == "allclear" then
     displayMarque()
     shieldControl("OFF")
     gateStatus = "allclear"
@@ -355,10 +354,14 @@ local function doCommand(thisCommand)
     updateStatus()
     return -- ?
   elseif thisCommand == "QRY" then
-    updateStatus()
+    updateStatus("QRY")
     return
-  elseif thisCommand == "1stRun" then  -- When DHD signifies its first run, it is given the gate's address
+  elseif thisCommand == "1stRun" then  -- When DHD signifies its first run, it is given the gate's address & ccNet channels
     netSend(thisGate)
+    sleep(0.1)
+    netSend(gateSettings.chan.recv)
+    sleep(0.1)
+    netSend(gateSettings.chan.send)
     return
   elseif thisCommand == "redNet" then
     if gateSettings.net == "C" then modem.close(gateSettings.chan.recv) end
@@ -367,7 +370,6 @@ local function doCommand(thisCommand)
     rednet.open(modemSide)
     saveData()
     drawTermScreen()
-    --updateStatus()
   elseif thisCommand == "ccNet" then
     if gateSettings.net == "R" then rednet.close(modemSide) end
     gateSettings.net = "C"
@@ -375,7 +377,6 @@ local function doCommand(thisCommand)
     modem.open(gateSettings.chan.recv)
     saveData()
     drawTermScreen()
-    --updateStatus()
   end                                  -- replaced elseif with end/if - split these into two if/thens
   if gateStatus ~= "lockdown" then
     if thisCommand == "endCall" then
@@ -412,7 +413,7 @@ end
 local function netReceive()
   while true do
     if gateSettings.net == "R" then
-      eventNet = { rednet.receive() }
+      local eventNet = { rednet.receive() }
       if tonumber(eventNet[1]) == gateSettings.DHD then
         if eventNet[2] ~= nil and eventNet[2] ~= "" then
           doCommand(eventNet[2])
@@ -420,7 +421,7 @@ local function netReceive()
       end
       return
     elseif gateSettings.net == "C" then
-      eventNet = { os.pullEvent("modem_message") }
+      local eventNet = { os.pullEvent("modem_message") }
       if eventNet[3] == gateSettings.chan.recv and eventNet[4] == gateSettings.chan.send then
         if eventNet[5] ~= nil and eventNet[5] ~= "" then
           doCommand(eventNet[5])
@@ -449,16 +450,117 @@ local function gateKernel()
   parallel.waitForAny(netReceive,dataPoller)
 end
 
+local function firstRun()
+  -- Set DHD computer #
+  term.clear()
+  local ccLabel = os.getComputerLabel()
+  if ccLabel == nil or ccLabel == "" then
+    os.setComputerLabel("Gate Liaison")
+  end
+  term.setCursorPos(2,2)
+  term.setTextColor(colors.white)
+  term.write("I am " ..  os.getComputerLabel() .. " / cc# " .. os.getComputerID())
+  term.setCursorPos(2,6)
+  term.setTextColor(colors.lightBlue)
+  term.write("Please enter the number of the ccDHD computer")
+  term.setTextColor(colors.white)
+  term.setCursorPos(2,8)
+  while true do
+    local newDHD = tonumber(read())
+    if newDHD ~= "" and newDHD ~= nil and newDHD > 0 and newDHD < 999 then
+      gateSettings.DHD = newDHD
+      break
+    end
+  end
+  term.clear()
+  -- Select shield/redstone output side
+  term.setCursorPos(2,2)
+  term.setTextColor(colors.lightBlue)
+  term.write("Please select the shield/redstone output side")
+  -- Draw side list
+  term.setBackgroundColor(colors.gray)
+  for i = 4,16,1 do
+    term.setCursorPos(26,i)
+    term.write("        ")
+  end
+  term.setCursorPos(27,5)
+  term.setTextColor(colors.white)
+  term.write("Top")
+  term.setCursorPos(27,7)
+  term.write("Bottom")
+  term.setCursorPos(27,9)
+  term.write("Front")
+  term.setCursorPos(27,11)
+  term.write("Back")
+  term.setCursorPos(27,13)
+  term.write("Left")
+  term.setCursorPos(27,15)
+  term.write("Right")
+  while true do
+    local newSide = { os.pullEvent("mouse_click") }
+    if newSide[3] > 26 and newSide[3] < 34 then
+      if newSide[4] == 5 then
+        gateSettings.shield = "top"
+        break
+      elseif newSide[4] == 7 then
+        gateSettings.shield = "bottom"
+        break
+      elseif newSide[4] == 9 then
+        gateSettings.shield = "front"
+        break
+      elseif newSide[4] == 11 then
+        gateSettings.shield = "back"
+        break
+      elseif newSide[4] == 13 then
+        gateSettings.shield = "left"
+        break
+      elseif newSide[4] == 15 then
+        gateSettings.shield = "right"
+        break
+      end
+    end
+  end
+  -- Set ccNet transmit channel (DHD receive channel)
+  term.setBackgroundColor(colors.black)
+  term.clear()
+  term.setCursorPos(2,6)
+  term.setTextColor(colors.lightBlue)
+  term.write("Please enter the ccNet SEND channel (DHD receive)")
+  term.setTextColor(colors.white)
+  term.setCursorPos(2,8)
+  while true do
+    local newSend = tonumber(read())
+    if newSend ~= "" and newSend ~= nil and newSend > 0 and newSend < 65536 then
+      gateSettings.chan.send = newSend
+      break
+    end
+  end
+
+  -- Set ccNet receive channel (DHD send channel)
+  term.setCursorPos(2,11)
+  term.setTextColor(colors.lightBlue)
+  term.write("Please enter the ccNet RECEIVE channel (DHD send)")
+  term.setTextColor(colors.white)
+  term.setCursorPos(2,13)
+  while true do
+    local newRec = tonumber(read())
+    if newRec ~= "" and newRec ~= nil and newRec > 0 and newRec < 65536 then
+      gateSettings.chan.recv = newRec
+      break
+    end
+  end
+  saveData()
+end
+
 -- AUTOMATIC/STATIC CONFIGURATION (Part 2)
 local function initMe()
-  if not fs.exists("/data/gateSettings") then saveData() end
+  if not fs.exists("/data/gateSettings") then firstRun() end
   ingestData()
   if mon ~= "none" then
     mon.setTextScale(2)
     mon.setBackgroundColor(colors.black)
     mon.setTextColor(colors.cyan)
   end
-  --local sCommandOptions = { "QRY", "sON", "sOFF", "lockdown", "allclear", "reboot", "reset", }
   rs.setOutput(gateSettings.shield,false)
   sleep(0.5)
   rs.setOutput(gateSettings.shield,true)
