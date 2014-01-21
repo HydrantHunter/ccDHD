@@ -1,9 +1,9 @@
 --[[ DHD/Gate Installer ]]--
---[[    version 1.5     ]]--
+--[[    version 0.6    ]]--
 --[[  by HydrantHunter  ]]--
 --[[      aka Dog       ]]--
 --[[ pastebin  A6uxKyCy ]]--
-local iVer = 1.5
+local iVer = "0.6"
 --[[
 Test with/Requires:
   - Minecraft 1.6.4
@@ -22,7 +22,7 @@ else
 end
 
 local function downloadFile(fileToken, fileName)
-  local fileURL = http.get("http://pastebin.com/raw.php?i="..textutils.urlEncode( fileToken ))
+  local fileURL = http.get("http://pastebin.com/raw.php?i="..textutils.urlEncode(fileToken))
   if fileURL then
     local fileContents = fileURL.readAll()
     fileURL.close()
@@ -77,6 +77,16 @@ local function drawCLI()
   term.write("Quit")
 end
 
+local function cleanUp()
+  if fs.exists("/logs/DHDlast") then
+    fs.move("/logs/DHDlast","/data/DHDlast")
+  end
+  if fs.exists("/logs/DHDhistory") then
+    fs.move("/logs/DHDhistory","/data/DHDhistory")
+  end
+  if fs.exists("/logs") then fs.delete("logs") end
+end
+
 drawHeader()
 drawCLI()
 
@@ -84,9 +94,11 @@ while true do
   userInput = { os.pullEvent("mouse_click") }
   if userInput[3] > 1 and userInput[3] < 21 then
     if userInput[4] == 6 then
+      if fs.exists("/data/DHDsettings") then fs.delete("/data/DHDsettings") end
       if not fs.exists("data") then
         fs.makeDir("data")
       end
+      cleanUp()
       if fs.exists("startup") then
         if fs.exists("DHD") then
           fs.delete("DHD")
@@ -99,9 +111,11 @@ while true do
       end
       drawCLI()
     elseif userInput[4] == 8 then
-      if not fs.exists("logs") then
-        fs.makeDir("logs")
+      if fs.exists("/data/gateSettings") then fs.delete("/data/gateSettings") end
+      if not fs.exists("data") then
+        fs.makeDir("data")
       end
+      cleanUp()
       if fs.exists("startup") then
         if fs.exists("gateLiaison") then
           fs.delete("gateLiaison")
@@ -111,11 +125,6 @@ while true do
       else
         downloadFile("xSHHqL0h","startup")
         startup = 3
-      end
-      if fs.exists("gateLiaison") then
-        shell.run("edit /gateLiaison")
-      else
-        shell.run("edit /startup")
       end
       drawCLI()
     elseif userInput[4] == 10 then
