@@ -19,30 +19,6 @@ Tested with/requires:
   - DHD also supports the FistPrint Scanner in GopherATL's Biolock MOD ver. 2.1.3 (updated for 1.6.4 by gamax92)
 ]]--
 
---[[
-TO DO:
-  - Break gate editing into subroutines/functions
-  - Add connect/call timer ?
-  - Update 'view' to include 'edit' button?
-  - Reordering?
-      - Easiest? - add gate number (from allGates) to properties edit screen and allow it to be edited
-      - unless I can find an elegant way to handle dragging entries between pages
-      - maybe have drag mode show a list of entries as just 'numbers' ([1] [2] etc.)
-        - this way more entries can be shown per page and inter-page drag-n-drop is less of an issue (but still an issue)
-  - List Monitor:
-      - show dialed address?
-  - Term:
-    - Notes displayed on overhead monitor when selected in term UI?  (And show selected gate on side monitor)
-      - should this be selectable? ("Put it on the big screen")
-  - Possibly way down the line...
-    - re-write with significantly less spaghetti
-    - Big screen to put up a map with a dot showing gate coords
-      - this will probably be a separate machine, and may even take over marque duty from the dialer
-]]--
-
-local function itBegins()
-end
-
 if os.clock() < 1 then
   sleep(1)
 end
