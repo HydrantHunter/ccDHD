@@ -1,10 +1,10 @@
 --[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[  version  0.7.03  ]]--
+--[[  version  0.7.07  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "0.7.03"
+local gVer = "0.7.07"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -38,8 +38,8 @@ local gateSettings = { shield = "bottom",
                        chan = { send = 2442, recv = 242 },
                        net = "R",
                        pollTime = 3,
-                       history = "/logs/DHDhistory",
-                       last = "/logs/DHDlast",
+                       history = "/data/DHDhistory",
+                       last = "/data/DHDlast",
                      }
 -- END AUTOMATIC/STATIC CONFIGURATION (Part 1)
 
@@ -86,23 +86,41 @@ local function displayStatus(select)
         mon.write(" " .. dA[i])
       end
     else
-      mon.write("Connected")
+      mon.write("Incoming")
+      mon.setCursorPos(4,2)
+      mon.write("Connection")
     end
   elseif select == "dial" then
     mon.clear()
     mon.setTextScale(2)
     mon.setCursorPos(1,1)
     mon.setTextColor(colors.lightBlue)
-    mon.write("Dialing")
-    mon.setTextColor(colors.yellow)
-    mon.setCursorPos(1,2)
-    local dA = { }
-    for i = 1,#dialAddress do
-      dA[i] = dialAddress:sub(i,i)
-      mon.write(" " .. dA[i])
+    if dialAddress ~= "none" then
+      mon.write("Dialing")
+      mon.setTextColor(colors.yellow)
+      mon.setCursorPos(1,2)
+      local dA = { }
+      for i = 1,#dialAddress do
+        dA[i] = dialAddress:sub(i,i)
+        mon.write(" " .. dA[i])
+      end
+    else
+      mon.write("Incoming")
+      mon.setCursorPos(4,2)
+      mon.write("Connection")
     end
   elseif select == "" or select == nil then
-    displayMarque()
+    if gate.isDialing() == true and dialAddress == "" then
+      mon.clear()
+      mon.setTextScale(2)
+      mon.setTextColor(colors.lightBlue)
+      mon.setCursorPos(1,1)
+      mon.write("Incoming")
+      mon.setCursorPos(4,2)
+      mon.write("Connection")
+    else
+      displayMarque()
+    end
   end
 end
 
@@ -158,10 +176,16 @@ local function drawTermScreen()
   term.setCursorPos(17,4)
   if gateStatus == "Disconnected" then
     term.setTextColor(colors.green)
-  else
+  elseif gateStatus == "Connected" then
     term.setTextColor(colors.orange)
+  elseif gateStatus == "Dialing" then
+    term.setTextColor(colors.lightBlue)
   end
-  term.write(gateStatus)
+  if gateStatus == "Dialing" and dialAddress == "none" then
+    term.write("Incoming Connection")
+  else
+    term.write(gateStatus)
+  end
   term.setCursorPos(17,5)
   term.setTextColor(colors.brown)
   term.write(dialAddress)
@@ -226,7 +250,6 @@ local function updateStatus(special)
     elseif fuelGuage == true then
       pData = "YY1"
     end
-    --netSend(pData)
     --return
   elseif gateStatus == "lockdown" then
     if fuelGuage == false then
@@ -235,7 +258,6 @@ local function updateStatus(special)
       pData = "XX1"
     end
     dialAddress = "none"
-    --netSend(pData)
     --return
   else
     if shieldStatus == true then
@@ -243,19 +265,20 @@ local function updateStatus(special)
     else
       pData = "0"
     end
-    if tostring(connectStatus) == "true" then
+    if gate.isConnected() == true then
       pData = pData .. "1"
       gateStatus = "Connected"
       if mon ~= "none" then
         displayStatus("con")
       end
-    elseif tostring(connectStatus) == "false" then
-      if tostring(dialStatus) == "true" then
+    elseif gate.isConnected() == false then
+      if gate.isDialing() == true then
         pData = pData .. "2"
+        gateStatus = "Dialing"
         if mon ~= "none" then
           displayStatus("dial")
         end
-      elseif tostring(dialStatus) == "false" then
+      elseif gate.isDialing() == false then
         gateStatus = "Disconnected"
         dialAddress = "none"
         pData = pData .. "0"
@@ -320,7 +343,7 @@ local function dialOut(targetAddress)
   connectStatus = gate.isConnected()
   if dialAddress ~= thisGate and tostring(connectStatus) == "false" then -- Is the stargate connected to another stargate?  isConnected()
     local dialGate = gate.dial(dialAddress)
-    --if tostring(dialGate) == "true" then
+    --if dialGate == true then  -- if dialGate then ??
       gateStatus = "Dialing"
       recordSessionData()
       updateStatus()
@@ -530,7 +553,7 @@ local function firstRun()
   term.setCursorPos(2,8)
   while true do
     local newSend = tonumber(read())
-    if newSend ~= "" and newSend ~= nil and newSend > 0 and newSend < 65536 then
+    if newSend ~= "" and newSend ~= nil and newSend > 0 and newSend < 65534 then
       gateSettings.chan.send = newSend
       break
     end
@@ -544,7 +567,7 @@ local function firstRun()
   term.setCursorPos(2,13)
   while true do
     local newRec = tonumber(read())
-    if newRec ~= "" and newRec ~= nil and newRec > 0 and newRec < 65536 then
+    if newRec ~= "" and newRec ~= nil and newRec > 0 and newRec < 65534 then
       gateSettings.chan.recv = newRec
       break
     end
@@ -553,6 +576,23 @@ local function firstRun()
 end
 
 -- AUTOMATIC/STATIC CONFIGURATION (Part 2)
+local function initGate()
+  thisGate = gate.getAddress()
+  dialStatus = gate.isDialing()
+  connectStatus = gate.isConnected()
+  fuelGuage = gate.hasFuel()
+  local tG = { }
+  longName = ""
+  for i = 1,thisGate:len(),1 do
+    tG[i] = thisGate:sub(i,i)
+    if i < thisGate:len() then
+      longName = longName .. tG[i] .. " "
+    else
+      longName = longName .. tG[i]
+    end
+  end
+end
+
 local function initMe()
   if not fs.exists("/data/gateSettings") then firstRun() end
   ingestData()
@@ -561,28 +601,12 @@ local function initMe()
     mon.setBackgroundColor(colors.black)
     mon.setTextColor(colors.cyan)
   end
-  rs.setOutput(gateSettings.shield,false)
-  sleep(0.5)
-  rs.setOutput(gateSettings.shield,true)
-  shieldStatus = true
+  shieldStatus = rs.getOutput(gateSettings.shield)
   for k,v in pairs(rs.getSides()) do
       -- Stargate
     if peripheral.getType(v) == "stargate" then
       gate = peripheral.wrap(tostring(v))
-      thisGate = gate.getAddress()
-      dialStatus = gate.isDialing()
-      connectStatus = gate.isConnected()
-      fuelGuage = gate.hasFuel()
-      local tG = { }
-      longName = ""
-      for i = 1,thisGate:len(),1 do
-        tG[i] = thisGate:sub(i,i)
-        if i < thisGate:len() then
-          longName = longName .. tG[i] .. " "
-        else
-          longName = longName .. tG[i]
-        end
-      end
+      initGate()
     elseif peripheral.getType(v) == "modem" then
         -- Modem/redNet
       if peripheral.call(tostring(v),"isWireless") == true then
@@ -596,12 +620,14 @@ local function initMe()
         end
         -- Network/ccNet
       elseif peripheral.call(tostring(v),"isWireless") == false then
-      --end
       -- Monitor
         local mPerps = peripheral.call(tostring(v),"getNamesRemote")
         for num,mPerp in pairs(mPerps) do
           if tostring(mPerp):sub(1,7) == "monitor" then
             mon = peripheral.wrap(mPerp)
+          elseif tostring(mPerp):sub(1,8) == "stargate" then
+            gate = peripheral.wrap(mPerp)
+            initGate()
           end
         end
       end
