@@ -1,9 +1,9 @@
 --[[ DHD/Gate Installer ]]--
---[[    version 0.6    ]]--
+--[[    version 0.7    ]]--
 --[[  by HydrantHunter  ]]--
 --[[      aka Dog       ]]--
 --[[ pastebin  A6uxKyCy ]]--
-local iVer = "0.6"
+local iVer = "0.7"
 --[[
 Test with/Requires:
   - Minecraft 1.6.4
