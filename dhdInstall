@@ -1,9 +1,9 @@
 --[[ DHD/Gate Installer ]]--
---[[    version 0.7    ]]--
+--[[   version 1.0.00   ]]--
 --[[  by HydrantHunter  ]]--
 --[[      aka Dog       ]]--
 --[[ pastebin  A6uxKyCy ]]--
-local iVer = "0.7"
+local iVer = "1.0"
 --[[
 Test with/Requires:
   - Minecraft 1.6.4
@@ -15,11 +15,6 @@ Test with/Requires:
     - gateLiaison: Advanced Computer (color, mouse), 3 Advanced Monitors (color)
 ]]--
 local startup
-if fs.exists("startup") then
-  startup = 1
-else
-  startup = 0
-end
 
 local function downloadFile(fileToken, fileName)
   local fileURL = http.get("http://pastebin.com/raw.php?i="..textutils.urlEncode(fileToken))
@@ -35,8 +30,8 @@ end
 local function drawHeader()
   term.setBackgroundColor(colors.black)
   term.clear()
-  term.setBackgroundColor(colors.purple)
-  term.setTextColor(colors.white)
+  term.setBackgroundColor(colors.lightBlue)
+  term.setTextColor(colors.black)
   term.setCursorPos(2,1)
   term.write("                   ")
   term.setCursorPos(2,2)
