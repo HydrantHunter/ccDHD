@@ -1,12 +1,12 @@
 --[[    STARGATE       ]]--
 --[[      c c D H D    ]]--
---[[    ver. 0.7.17    ]]--
---[[  core ver. 4.3.1  ]]--
+--[[    ver. 1.0.00    ]]--
+--[[  core ver. 4.3.2  ]]--
 --[[   ui ver. 4.1.4   ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "0.7.17"
+local ccDHDVer = "1.0.00"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -283,6 +283,7 @@ end
 
 local function saveData(filename,filetype)
   menuState = false
+  if not fs.exists("/data") then fs.makeDir("/data") end
   local dhdConfig = fs.open(tostring(filename),"w") or error("Cannot open " .. filename, 2)
   if filetype == "cfg" then
     dhdConfig.write(textutils.serialize(dhdSettings))
@@ -293,7 +294,7 @@ local function saveData(filename,filetype)
 end
 
 local function recordSessionData()  -- Human readable log files (last gate & history)
-  --if not fs.exists("/logs") then fs.makeDir("logs") end
+  if not fs.exists("/data") then fs.makeDir("/data") end
   local dateStamp = tostring(textutils.formatTime(os.time(),false) .. " / Day " .. os.day())
   local lastCall = fs.open(dhdSettings.lastGate,"w")
   lastCall.writeLine(dateStamp)
@@ -1696,14 +1697,12 @@ local function mClick()
     elseif menuState == false and runState == "DialHelp" then
       term.setBackgroundColor(black)
       term.clear()
-      --clickEvent = nil
       runState = "Dial"
       drawCLI()
       return
     elseif menuState == false and runState == "EditHelp" then
       term.setBackgroundColor(black)
       term.clear()
-      --clickEvent = nil
       runState = "Edit"
       drawCLI()
       return
@@ -2680,12 +2679,17 @@ local function firstRun()
   term.write("I am " ..  os.getComputerLabel() .. " / cc# " .. os.getComputerID())
   term.setCursorPos(2,6)
   term.setTextColor(lblue)
-  term.write("Please enter the number of the Gate/Shield Liaison")
+  term.write("Please enter the number of the Gate Liaison")
   term.setTextColor(white)
-  term.setCursorPos(2,8)
-  local newServer = tonumber(read())
-  if newServer ~= "" and newServer ~= nil and newServer > 0 and newServer < 999 then
-    dhdSettings.server = newServer
+  while true do
+    term.setCursorPos(2,8)
+    term.write("       ")
+    term.setCursorPos(2,8)
+    local newServer = tonumber(read())
+    if newServer ~= "" and newServer ~= nil and newServer > 0 and newServer < 999 then
+      dhdSettings.server = newServer
+      break
+    end
   end
   rednet.send(dhdSettings.server,"1stRun",true)
   local myGate = { rednet.receive(2) }
