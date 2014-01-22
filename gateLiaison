@@ -1,16 +1,16 @@
 --[[ Stargate/Shield   ]]--
 --[[     Liaison       ]]--
---[[  version  0.7.07  ]]--
+--[[  version  1.0.00  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "0.7.07"
+local gVer = "1.0.00"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
   - Latest DeltaSG-Craft or LanteaCraft (snapshot 82)
   - ComputerCraft ver. 1.57+ for MC 1.6.4
-    - HTTP API enabled
+    - HTTP API enabled (for installer/pastebin)
     - 1 Advanced Computer (color, mouse), 3 optional Advanced Monitors (color)
     - DHD running on an Advanced Computer with 4 optional Advanced Monitors
       - DHD also supports GopherATL's BioLock ver. 2.1.3 Fistprint scanner (updated for 1.6.4 by gamax92)
@@ -20,8 +20,6 @@ local modem
 local modemSide
 local gate
 local thisGate
-local dialStatus
-local connectStatus
 local fuelGuage
 local dialAddress = "none"
 local gateStatus = "QRY"
@@ -35,7 +33,7 @@ local longName = ""
 local mon = "none"
 local gateSettings = { shield = "bottom",
                        DHD = 1,
-                       chan = { send = 2442, recv = 242 },
+                       chan = { send = 65535, recv = 65534 },
                        net = "R",
                        pollTime = 3,
                        history = "/data/DHDhistory",
@@ -59,6 +57,7 @@ end
 
 local function displayMarque()
   if mon ~= "none" then
+    mon.setBackgroundColor(colors.black)
     mon.clear()
     mon.setTextScale(2)
     mon.setCursorPos(1,1)
@@ -86,7 +85,7 @@ local function displayStatus(select)
         mon.write(" " .. dA[i])
       end
     else
-      mon.write("Incoming")
+      mon.write(" Incoming")
       mon.setCursorPos(4,2)
       mon.write("Connection")
     end
@@ -105,7 +104,7 @@ local function displayStatus(select)
         mon.write(" " .. dA[i])
       end
     else
-      mon.write("Incoming")
+      mon.write(" Incoming")
       mon.setCursorPos(4,2)
       mon.write("Connection")
     end
@@ -115,7 +114,7 @@ local function displayStatus(select)
       mon.setTextScale(2)
       mon.setTextColor(colors.lightBlue)
       mon.setCursorPos(1,1)
-      mon.write("Incoming")
+      mon.write(" Incoming")
       mon.setCursorPos(4,2)
       mon.write("Connection")
     else
@@ -237,8 +236,6 @@ end
 
 local function updateStatus(special)
   currentState = pData
-  connectStatus = gate.isConnected()
-  dialStatus = gate.isDialing()
   fuelGuage = gate.hasFuel()
   shieldStatus = rs.getOutput(gateSettings.shield)
   if gateStatus == "allclear" then
@@ -250,7 +247,6 @@ local function updateStatus(special)
     elseif fuelGuage == true then
       pData = "YY1"
     end
-    --return
   elseif gateStatus == "lockdown" then
     if fuelGuage == false then
       pData = "XX0"
@@ -258,7 +254,6 @@ local function updateStatus(special)
       pData = "XX1"
     end
     dialAddress = "none"
-    --return
   else
     if shieldStatus == true then
       pData = "1"
@@ -298,6 +293,7 @@ local function updateStatus(special)
 end
 
 local function recordSessionData()  -- Human readable log files (last gate & history)
+  if not fs.exists("/data") then fs.makeDir("/data") end
   local dateStamp = textutils.formatTime(os.time(),false) .. " / Day " .. os.day()
   local lastCall = fs.open(gateSettings.last,"w")
   lastCall.writeLine(dateStamp)
@@ -340,8 +336,7 @@ end
 
 local function dialOut(targetAddress)
   dialAddress = tostring(targetAddress)
-  connectStatus = gate.isConnected()
-  if dialAddress ~= thisGate and tostring(connectStatus) == "false" then -- Is the stargate connected to another stargate?  isConnected()
+  if dialAddress ~= thisGate and tostring(gate.isConnected()) == "false" then -- Is the stargate connected to another stargate?  isConnected()
     local dialGate = gate.dial(dialAddress)
     --if dialGate == true then  -- if dialGate then ??
       gateStatus = "Dialing"
@@ -368,7 +363,6 @@ end
 local function doCommand(thisCommand)
   if thisCommand == "lockdown" then
     lockDown()
-    --return -- ?
   elseif thisCommand == "allclear" then
     displayMarque()
     shieldControl("OFF")
@@ -487,8 +481,10 @@ local function firstRun()
   term.setTextColor(colors.lightBlue)
   term.write("Please enter the number of the ccDHD computer")
   term.setTextColor(colors.white)
-  term.setCursorPos(2,8)
   while true do
+    term.setCursorPos(2,8)
+    term.write("       ")
+    term.setCursorPos(2,8)
     local newDHD = tonumber(read())
     if newDHD ~= "" and newDHD ~= nil and newDHD > 0 and newDHD < 999 then
       gateSettings.DHD = newDHD
@@ -550,22 +546,25 @@ local function firstRun()
   term.setTextColor(colors.lightBlue)
   term.write("Please enter the ccNet SEND channel (DHD receive)")
   term.setTextColor(colors.white)
-  term.setCursorPos(2,8)
   while true do
+    term.setCursorPos(2,8)
+    term.write("       ")
+    term.setCursorPos(2,8)
     local newSend = tonumber(read())
     if newSend ~= "" and newSend ~= nil and newSend > 0 and newSend < 65534 then
       gateSettings.chan.send = newSend
       break
     end
   end
-
   -- Set ccNet receive channel (DHD send channel)
   term.setCursorPos(2,11)
   term.setTextColor(colors.lightBlue)
   term.write("Please enter the ccNet RECEIVE channel (DHD send)")
   term.setTextColor(colors.white)
-  term.setCursorPos(2,13)
   while true do
+    term.setCursorPos(2,13)
+    term.write("       ")
+    term.setCursorPos(2,13)
     local newRec = tonumber(read())
     if newRec ~= "" and newRec ~= nil and newRec > 0 and newRec < 65534 then
       gateSettings.chan.recv = newRec
@@ -578,8 +577,6 @@ end
 -- AUTOMATIC/STATIC CONFIGURATION (Part 2)
 local function initGate()
   thisGate = gate.getAddress()
-  dialStatus = gate.isDialing()
-  connectStatus = gate.isConnected()
   fuelGuage = gate.hasFuel()
   local tG = { }
   longName = ""
@@ -596,14 +593,9 @@ end
 local function initMe()
   if not fs.exists("/data/gateSettings") then firstRun() end
   ingestData()
-  if mon ~= "none" then
-    mon.setTextScale(2)
-    mon.setBackgroundColor(colors.black)
-    mon.setTextColor(colors.cyan)
-  end
   shieldStatus = rs.getOutput(gateSettings.shield)
   for k,v in pairs(rs.getSides()) do
-      -- Stargate
+        -- Stargate
     if peripheral.getType(v) == "stargate" then
       gate = peripheral.wrap(tostring(v))
       initGate()
@@ -620,7 +612,7 @@ local function initMe()
         end
         -- Network/ccNet
       elseif peripheral.call(tostring(v),"isWireless") == false then
-      -- Monitor
+        -- Monitor
         local mPerps = peripheral.call(tostring(v),"getNamesRemote")
         for num,mPerp in pairs(mPerps) do
           if tostring(mPerp):sub(1,7) == "monitor" then
@@ -633,12 +625,14 @@ local function initMe()
       end
     end
   end
+  if mon ~= "none" then
+    displayMarque()
+  end
+  updateStatus()
 end
 -- END AUTOMATIC/STATIC CONFIGURATION (Part 2)
 
 initMe()
-displayMarque()
-updateStatus()
 
 while true do
   gateKernel()
