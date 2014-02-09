@@ -1,10 +1,10 @@
---[[ Stargate/Shield   ]]--
---[[     Liaison       ]]--
---[[  version  1.0.00  ]]--
+--[[  LanteaCraft      ]]--
+--[[    Gate Liaison   ]]--
+--[[  version  1.0.05  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "1.0.00"
+local gVer = "1.0.05"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -18,24 +18,24 @@ Tested with/requires:
 -- AUTOMATIC/STATIC CONFIGURATION (Part 1)
 local modem
 local modemSide
-local gate
 local thisGate
-local fuelGuage
-local dialAddress = "none"
-local gateStatus = "QRY"
-local shieldStatus
+local gate
 local pData
+local fuelGuage
+local shieldStatus
+local gateStatus = "QRY"
+local dialAddress = "none"
 local currentState = "ZZ"
 --local connectTimer = 0
 local pollTimer = 0
 local timePoller = 0
 local longName = ""
 local mon = "none"
-local gateSettings = { shield = "bottom",
+local gateSettings = { shield = "front",
                        DHD = 1,
-                       chan = { send = 65535, recv = 65534 },
+                       chan = { send = 1787, recv = 1776 },
                        net = "R",
-                       pollTime = 3,
+                       pollTime = 2,
                        history = "/data/DHDhistory",
                        last = "/data/DHDlast",
                      }
@@ -74,8 +74,8 @@ local function displayStatus(select)
     mon.clear()
     mon.setTextScale(2)
     mon.setCursorPos(1,1)
-    mon.setTextColor(colors.lightBlue)
     if dialAddress ~= "none" then
+      mon.setTextColor(colors.lightBlue)
       mon.write("Connected to")
       mon.setTextColor(colors.yellow)
       mon.setCursorPos(1,2)
@@ -85,6 +85,7 @@ local function displayStatus(select)
         mon.write(" " .. dA[i])
       end
     else
+      mon.setTextColor(colors.yellow)
       mon.write(" Incoming")
       mon.setCursorPos(4,2)
       mon.write("Connection")
@@ -93,8 +94,8 @@ local function displayStatus(select)
     mon.clear()
     mon.setTextScale(2)
     mon.setCursorPos(1,1)
-    mon.setTextColor(colors.lightBlue)
     if dialAddress ~= "none" then
+      mon.setTextColor(colors.lightBlue)
       mon.write("Dialing")
       mon.setTextColor(colors.yellow)
       mon.setCursorPos(1,2)
@@ -104,6 +105,7 @@ local function displayStatus(select)
         mon.write(" " .. dA[i])
       end
     else
+      mon.setTextColor(colors.yellow)
       mon.write(" Incoming")
       mon.setCursorPos(4,2)
       mon.write("Connection")
@@ -112,7 +114,7 @@ local function displayStatus(select)
     if gate.isDialing() == true and dialAddress == "" then
       mon.clear()
       mon.setTextScale(2)
-      mon.setTextColor(colors.lightBlue)
+      mon.setTextColor(colors.yellow)
       mon.setCursorPos(1,1)
       mon.write(" Incoming")
       mon.setCursorPos(4,2)
@@ -140,7 +142,7 @@ local function drawTermScreen()
   term.setCursorPos(2,2)
   term.write(" Gate Liaison          ver. " .. gVer .. " ")
   term.setCursorPos(2,10)
-  term.write("                                   ")
+  term.write(string.rep(" ",35))
   term.setCursorPos(2,10)
   term.write(" " .. os.getComputerLabel())
   local cID = tostring(math.floor(os.getComputerID()))
@@ -215,7 +217,7 @@ local function drawTermScreen()
   term.setCursorPos(17,9)
   if gateSettings.net == "R" then
     term.setTextColor(colors.red)
-    term.write("RedNet / " .. gateSettings.DHD)
+    term.write("redNet / " .. gateSettings.DHD)
   elseif gateSettings.net == "C" then
     term.setTextColor(colors.green)
     term.write("ccNet / " .. gateSettings.chan.send .. "-" .. gateSettings.chan.recv)
@@ -375,9 +377,9 @@ local function doCommand(thisCommand)
     return
   elseif thisCommand == "1stRun" then  -- When DHD signifies its first run, it is given the gate's address & ccNet channels
     netSend(thisGate)
-    sleep(0.1)
+    sleep(0.2)                         -- long waits to ensure ccDHD is ready to receive the data
     netSend(gateSettings.chan.recv)
-    sleep(0.1)
+    sleep(0.2)
     netSend(gateSettings.chan.send)
     return
   elseif thisCommand == "redNet" then
@@ -393,6 +395,30 @@ local function doCommand(thisCommand)
     modem = peripheral.wrap(modemSide)
     modem.open(gateSettings.chan.recv)
     saveData()
+    drawTermScreen()
+  elseif thisCommand == "CS" then
+    local newCR
+    if gateSettings.net == "R" then
+      _,newCR = rednet.receive(2)
+      gateSettings.chan.recv = newCR
+    elseif gateSettings.net == "C" then
+      newCR = { os.pullEvent("modem_message") }
+      modem.close(gateSettings.chan.recv)
+      gateSettings.chan.recv = newCR[5]
+      modem.open(gateSettings.chan.recv)
+      saveData()
+    end
+    drawTermScreen()
+  elseif thisCommand == "CR" then
+    local newCS
+    if gateSettings.net == "R" then
+      _,newCS = rednet.receive(1)
+      gateSettings.chan.send = newCS
+    elseif gateSettings.net == "C" then
+      newCS = { os.pullEvent("modem_message") }
+      gateSettings.chan.send = newCS[5]
+      saveData()
+    end
     drawTermScreen()
   end                                  -- replaced elseif with end/if - split these into two if/thens
   if gateStatus ~= "lockdown" then
@@ -472,7 +498,7 @@ local function firstRun()
   term.clear()
   local ccLabel = os.getComputerLabel()
   if ccLabel == nil or ccLabel == "" then
-    os.setComputerLabel("Gate Liaison")
+    os.setComputerLabel("Gate Liaison - cc# " .. os.getComputerID())
   end
   term.setCursorPos(2,2)
   term.setTextColor(colors.white)
@@ -539,38 +565,8 @@ local function firstRun()
       end
     end
   end
-  -- Set ccNet transmit channel (DHD receive channel)
   term.setBackgroundColor(colors.black)
   term.clear()
-  term.setCursorPos(2,6)
-  term.setTextColor(colors.lightBlue)
-  term.write("Please enter the ccNet SEND channel (DHD receive)")
-  term.setTextColor(colors.white)
-  while true do
-    term.setCursorPos(2,8)
-    term.write("       ")
-    term.setCursorPos(2,8)
-    local newSend = tonumber(read())
-    if newSend ~= "" and newSend ~= nil and newSend > 0 and newSend < 65534 then
-      gateSettings.chan.send = newSend
-      break
-    end
-  end
-  -- Set ccNet receive channel (DHD send channel)
-  term.setCursorPos(2,11)
-  term.setTextColor(colors.lightBlue)
-  term.write("Please enter the ccNet RECEIVE channel (DHD send)")
-  term.setTextColor(colors.white)
-  while true do
-    term.setCursorPos(2,13)
-    term.write("       ")
-    term.setCursorPos(2,13)
-    local newRec = tonumber(read())
-    if newRec ~= "" and newRec ~= nil and newRec > 0 and newRec < 65534 then
-      gateSettings.chan.recv = newRec
-      break
-    end
-  end
   saveData()
 end
 
