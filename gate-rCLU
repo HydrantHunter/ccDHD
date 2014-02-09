@@ -1,0 +1,100 @@
+--[[ gate CLU ]]--
+--[[ ver. 0.5 ]]--
+--[[  by Dog  ]]--
+--[[ pastebin ]]--
+--[[ Z9aYt8jV ]]--
+-- Manual Configuration
+local rnsInterval = 5
+local settingsFile = "/data/DHDsettings"
+-- END Manual Configuration
+local tArgs = { ... }
+local pingB
+local pingC
+--local modem
+local dhdConfig = fs.open(settingsFile,"r") or error("Cannot open " .. settingsFile, 2)
+local dhdCfg = dhdConfig.readAll()
+local dhdSettings = textutils.unserialize(dhdCfg)
+dhdConfig.close()
+local pingZERO = os.time()
+if dhdSettings.net == "R" and dhdSettings.rednet ~= "none" then
+  local gateLiaison = dhdSettings.server
+  rednet.open(dhdSettings.rednet)
+  rednet.send(dhdSettings.server,tArgs[1],true)
+elseif dhdSettings.net == "C" and dhdSettings.ccnet ~= "none" then
+  local modem = peripheral.wrap(dhdSettings.ccnet)
+  modem.open(dhdSettings.channels.recv)
+  modem.transmit(dhdSettings.channels.send,dhdSettings.channels.recv,tArgs[1])
+end
+term.setBackgroundColor(colors.black)
+print("")
+term.setTextColor(colors.cyan)
+print("gateLiaison rCLU")
+term.setTextColor(colors.gray)
+-- redNet
+if dhdSettings.net == "R" and dhdSettings.rednet ~= "none" then
+  print(" cc    data    interval")
+  if tArgs[1] == "ccNet" then return end
+  local first = { rednet.receive(rnsInterval) }
+  local pingA = os.time()
+  term.setTextColor(colors.red)
+  if first[1] ~= nil then
+    term.write(tostring(" " .. first[1]) .. string.rep(" ",math.floor(6-#tostring(first[1]))))
+    print(tostring(first[2]) .. string.rep(" ",math.floor(8-#tostring(first[2]))) .. tostring(pingA-pingZERO))
+  end
+  if tArgs[1] == "1stRun" then
+    local second = { rednet.receive(rnsInterval) }
+    pingB = os.time()
+    if second[1] ~= nil then
+      term.write(tostring(" " .. second[1]) .. string.rep(" ",math.floor(6-#tostring(second[1]))))
+      print(tostring(second[2]) .. string.rep(" ",math.floor(8-#tostring(second[2]))) .. tostring(pingB-pingA))
+    end
+    local third = { rednet.receive(rnsInterval) }
+    pingC = os.time()
+    if third[1] ~= nil then
+      term.write(tostring(" " .. third[1]) .. string.rep(" ",math.floor(6-#tostring(third[1]))))
+      print(tostring(third[2]) .. string.rep(" ",math.floor(8-#tostring(third[2]))) .. tostring(pingC-pingB))
+    end
+  end
+  term.setTextColor(colors.gray)
+  term.write("Total transit & interval time: ")
+  term.setTextColor(colors.lightBlue)
+  if tArgs[1] == "1stRun" then
+    print(tostring(pingC-pingZERO))
+  else
+    print(tostring(pingA-pingZERO))
+  end
+-- ccNet
+elseif dhdSettings.net == "C" and dhdSettings.ccnet ~= "none" then
+  print(" chan   data    interval")
+  if tArgs[1] == "redNet" then return end
+  local first = { os.pullEvent("modem_message") }
+  local pingA = os.time()
+  term.setTextColor(colors.green)
+  if first[1] ~= nil then
+    term.write(tostring(" " .. first[3]) .. string.rep(" ",math.floor(7-#tostring(first[3]))))
+    print(tostring(first[5]) .. string.rep(" ",math.floor(8-#tostring(first[5]))) .. tostring(pingA-pingZERO))
+  end
+  if tArgs[1] == "1stRun" then
+    local second = { os.pullEvent("modem_message") }
+    pingB = os.time()
+    if second[1] ~= nil then
+      term.write(tostring(" " .. second[3]) .. string.rep(" ",math.floor(7-#tostring(second[3]))))
+      print(tostring(second[5]) .. string.rep(" ",math.floor(8-#tostring(second[5]))) .. tostring(pingB-pingA))
+    end
+    local third = { os.pullEvent("modem_message") }
+    pingC = os.time()
+    if third[1] ~= nil then
+      term.write(tostring(" " .. third[3]) .. string.rep(" ",math.floor(7-#tostring(third[3]))))
+      print(tostring(third[5]) .. string.rep(" ",math.floor(8-#tostring(third[5]))) .. tostring(pingC-pingB))
+    end
+  end
+  term.setTextColor(colors.gray)
+  term.write("Total transit & interval time: ")
+  term.setTextColor(colors.lightBlue)
+  if tArgs[1] == "1stRun" then
+    print(tostring(pingC-pingZERO))
+  else
+    print(tostring(pingA-pingZERO))
+  end
+end
+print("")
