@@ -547,10 +547,9 @@ local function drawHeader()
     term.setTextColor(lgray)
     term.write(" Last Call: ")
     term.setTextColor(white)
-    term.write(lastCall[1] .. " [" .. lastCall[2] .. "]" .. string.rep(" ",termX))
+    term.write(lastCall[1] .. " ." .. lastCall[2] .. "." .. string.rep(" ",termX))
     term.setCursorPos(termX - 6,2)
     term.setBackgroundColor(lgray)
-    --term.setTextColor(lgray)
     term.write(" Close ")
     return
   end
