@@ -847,9 +847,11 @@ local function drawTrimUI()
 end
 
 local function viewLogs()
-  term.setBackgroundColor(black)
-  term.clear()
-  drawHeader()
+  if histPage == histPages then
+    term.setBackgroundColor(black)
+    term.clear()
+    drawHeader()
+  end
   term.setCursorPos(1,termY)
   term.setBackgroundColor(gray)
   term.write(string.rep(" ",termX))
@@ -869,7 +871,7 @@ local function viewLogs()
     term.setTextColor(gray)                                      --
     term.write(callHistory[i]:sub(1,#callHistory[i]-9))          -- time/day - broken apart from gate, so gate can be highlighted
     term.setTextColor(lblue)                                     --
-    print(callHistory[i]:sub(#callHistory[i]-8,#callHistory[i])) -- gate
+    print(callHistory[i]:sub(#callHistory[i]-8,#callHistory[i]) .. "  ") -- gate
     if i > currentEntry + 9 or i > #callHistory then break end   -- if we've 'filled' the page or reached the end of the log then stop the loop
   end
 end
@@ -2046,6 +2048,9 @@ local function mClick()
           flashChoice("logs")
           menuState = false
           ingestLogData()
+          term.setBackgroundColor(black)
+          term.clear()
+          drawHeader()
           viewLogs()
           return
         elseif mcY == 7 and runState == "Dial" then
