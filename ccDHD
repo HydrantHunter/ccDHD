@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.38    ]]--
+--[[    ver. 1.0.39    ]]--
 --[[  core ver. 4.3.7  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.38"
+local ccDHDVer = "1.0.39"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -99,7 +99,7 @@ local lime = colors.lime
 local green = colors.green
 -- End Configuration
 
-local function updateInfo(newInfo)    -- Update status
+local function updateStatus(newInfo)  -- Update status info
   if tostring(newInfo) ==  "000" then -- bit/trit/bit
     shieldStatus = "OFF"              -- 1st/bit = shield
     gateStatus = "Disconnected"       -- 2nd/trit = connection/dialing
@@ -220,7 +220,7 @@ local function netReceive()
         local netEvent = { rednet.receive() }
         if tonumber(netEvent[1]) == gateLiaison then
           if currentState ~= netEvent[2] then
-            updateInfo(netEvent[2])
+            updateStatus(netEvent[2])
           end
         end
       end
@@ -229,7 +229,7 @@ local function netReceive()
         local netEvent = { os.pullEvent("modem_message") }
         if netEvent[3] == dhdSettings.channels.recv and netEvent[4] == dhdSettings.channels.send then
           if currentState ~= netEvent[5] then
-            updateInfo(netEvent[5])
+            updateStatus(netEvent[5])
           end
         end
       end
@@ -1869,7 +1869,7 @@ function drawCLI()   -- Client Interface 'decider'
   end
   if runState == "viewing" then return end
   if secureStatus == "lockdown" then
-    netSend(secureStatus)
+    secKernel()
     return
   else
     if menuState == false then
@@ -1941,6 +1941,9 @@ local function remoteCommand()
     kernelState = false
     netSend(commandLine)
     return
+  elseif commandLine == "lockdown" then
+    secureStatus = "lockdown"
+    netSend(secureStatus)
   elseif commandLine == "restart" then
     netSend(commandLine)
   elseif commandLine == "sON" then
@@ -3100,10 +3103,10 @@ local function bioLogin()
 end
 
 local function dhdKernel()
-  if kernelState == true and secureStatus == "allclear" and runState ~= "rCmd" and runState ~= "page" then
-    parallel.waitForAny(mClick,mScroll,bioScan,monTouch,netReceive)  --,keyClick
-  elseif kernelState == true and secureStatus == "lockdown" then
+  if kernelState == true and secureStatus == "lockdown" then
     parallel.waitForAny(secKernel) --,netReceive,bioScan
+  elseif kernelState == true and secureStatus == "allclear" and runState ~= "rCmd" and runState ~= "page" then
+    parallel.waitForAny(mClick,mScroll,bioScan,monTouch,netReceive)  --,keyClick
   else
     return kernelState
   end
@@ -3206,12 +3209,12 @@ local function initMe()
   if dhdSettings.net == "R" then
     local senderID, message = rednet.receive(1)
     if senderID == gateLiaison then
-      updateInfo(message)
+      updateStatus(message)
     end
   elseif dhdSettings.net == "C" then
     local netEvent = { os.pullEvent("modem_message") }
     if netEvent[3] == dhdSettings.channels.recv and netEvent[4] == dhdSettings.channels.send then
-        updateInfo(netEvent[5])
+        updateStatus(netEvent[5])
     end
   end
   term.setCursorPos(2,10)
