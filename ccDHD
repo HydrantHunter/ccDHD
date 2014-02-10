@@ -1543,7 +1543,7 @@ local function drawMenu()
   term.setBackgroundColor(lgray)
   for i = 2,10,1 do
     term.setCursorPos(3,i)
-    term.write("         ")
+    term.write(string.rep(" ",9))
   end
   term.setBackgroundColor(lblue)
   term.setCursorPos(2,3)
@@ -1951,7 +1951,7 @@ local function goToPage()
   term.write(" ")
   term.setBackgroundColor(black)     --
   term.setCursorPos(((termX/2)-10),9) -- These three lines kept in case ccDHD bg is changed
-  term.write("             ")        --
+  term.write(string.rep(" ",15))        --
   term.setCursorPos(((termX/2)+3),9)
   term.setBackgroundColor(gray)
   term.write(" ")
@@ -2212,16 +2212,16 @@ local function mClick()
     -- Page Navigation via click
     if mcY == termY then
       if runState == "Dial" or runState == "Edit" or runState == "Trim" then
-        if mcX > 0 and mcX < 20 then  -- Bottom row of screen - Back
+        if mcX < 20 and mcY == termY then  -- Bottom row of screen - Back
           if pageNum > 1 then
             pageNum = pageNum - 1
             term.clear()
             drawCLI()
             return
           end
-        elseif mcX > 19 and mcX < 23 and mcX <= termX then  -- Bottom row of screen - Page Numbers
+        elseif mcX > 19 and mcX < 23 and mcY == termY then  -- Bottom row of screen - Page Numbers (Go To Page dialogue)
           goToPage()
-        elseif mcX > 22 and mcX <= termX then  -- Bottom row of screen - Forward
+        elseif mcX > 22 and mcY == termY then  -- Bottom row of screen - Forward
           if pageNum < numPages then
             pageNum = pageNum + 1
             term.clear()
