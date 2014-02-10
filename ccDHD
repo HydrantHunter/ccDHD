@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.34    ]]--
+--[[    ver. 1.0.35    ]]--
 --[[  core ver. 4.3.7  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.34"
+local ccDHDVer = "1.0.35"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -246,7 +246,7 @@ local function ingestLogData()
     local tTime = timeDate:sub(1,string.find(timeDate," / "))
     local dDate = timeDate:sub(#tTime+3)
     dDate = dDate:sub(5)
-    table.insert(callHistory,1,tTime .. string.rep(" ",termX-40-#tTime) .. dDate .. string.rep(" ",termX-42-#dDate) .. "." .. gateAddr .. ".")
+    table.insert(callHistory,1,tTime .. string.rep(" ",termX-40-#tTime) .. dDate .. string.rep(" ",termX-41-#dDate) .. gateAddr)
   end
   dhdHist.close()
   histPages = math.ceil(#callHistory/10)
@@ -541,7 +541,7 @@ local function drawHeader()
   term.write(string.rep(" ",termX))               -- Draw top/menu 'bar'
   term.setCursorPos(((termX/2)-(#longName/2)),1)
   term.write(longName)                            -- Write gate name
-  if runState == "logs" then
+  if runState == "logs" then                      -- If we're viewing the logs, show the last call info instead of connect/shield info
     term.setCursorPos(1,2)
     term.setBackgroundColor(gray)
     term.setTextColor(lgray)
@@ -833,7 +833,7 @@ local function drawTrimUI()
   end
 end
 
-local function viewHistory()
+local function viewLogs()
   term.setBackgroundColor(black)
   term.clear()
   drawHeader()
@@ -853,12 +853,14 @@ local function viewHistory()
   term.setTextColor(lgray)
   term.write("Time       Day       Gate")
   term.setBackgroundColor(black)
-  term.setTextColor(white)
-  local currentEntry = ((histPage - 1) * 10) + 1
-  for i = currentEntry,#callHistory,1 do
-    term.setCursorPos(2, i - ((histPage - 1) * 10) + 5)
-    print(callHistory[i] .. "          ")
-    if i > currentEntry + 9 or i > #callHistory then break end
+  local currentEntry = ((histPage - 1) * 10) + 1                 -- Set the first entry to show (based on page number)
+  for i = currentEntry,#callHistory,1 do                         -- Display logs
+    term.setCursorPos(2, i - ((histPage - 1) * 10) + 5)          -- position entry
+    term.setTextColor(gray)                                      --
+    term.write(callHistory[i]:sub(1,#callHistory[i]-9))          -- time/day - broken apart from gate, so gate can be highlighted
+    term.setTextColor(lblue)                                     --
+    print(callHistory[i]:sub(#callHistory[i]-8,#callHistory[i])) -- gate
+    if i > currentEntry + 9 or i > #callHistory then break end   -- if we've 'filled' the page or reached the end of the log then stop the listing
   end
 end
 
@@ -2029,11 +2031,12 @@ local function mClick()
           drawSettingsUI()
           return
         elseif mcY == 5 and (runState == "Dial" or runState == "Edit") then
+          tempState = runState
           runState = "logs"
           flashChoice("logs")
           menuState = false
           ingestLogData()
-          viewHistory()
+          viewLogs()
           return
         elseif mcY == 7 and runState == "Dial" then
           runState = "DialHelp"
@@ -2097,7 +2100,7 @@ local function mClick()
         term.setBackgroundColor(black)
         term.clear()
         callHistory = { }
-        runState = "Dial"
+        runState = tempState
         drawCLI()
         return
       end
@@ -2933,9 +2936,9 @@ local function mScroll()
       drawCLI()
     elseif runState == "logs" then
       if scrollEvent[2] == 1 then
-        if histPage < histPages then histPage = histPage + 1 viewHistory() end
+        if histPage < histPages then histPage = histPage + 1 viewLogs() end
       elseif scrollEvent[2] == -1 then
-        if histPage > 1 then histPage = histPage - 1 viewHistory() end
+        if histPage > 1 then histPage = histPage - 1 viewLogs() end
       end
     end
   end
@@ -3003,11 +3006,13 @@ end
 local function bioScan()
   while true do
     local fistPrint = {os.pullEvent("biolock")}
-    if fistPrint[5] >= dhdSettings.bio.auth then
-      fistAuth = true
-      if runState == "init" then
-        return fistAuth
-      else
+    if runState == "init" then
+      if fistPrint[5] >= dhdSettings.bio.auth then
+        fistAuth = true
+      end
+      return fistAuth
+    else
+      --if fistPrint[5] >= dhdSettings.bio.auth - 1 then
         if dhdSettings.bio.func == "shield" then
           if shieldStatus == "OFF" then
             netSend("sON")
@@ -3023,7 +3028,7 @@ local function bioScan()
             return
           end
         end
-      end
+      --end
     end
   end
 end
@@ -3050,6 +3055,7 @@ local function bioLogin()
   while fistAuth == false do
     local fistPrint = parallel.waitForAny(bioScan,bioAnimation)
     if fistAuth == true then
+      bio = nil
       return fistAuth
     end
   end
@@ -3057,7 +3063,7 @@ end
 
 local function dhdKernel()
   if kernelState == true and secureStatus == "allclear" and runState ~= "rCmd" and runState ~= "page" then
-    parallel.waitForAny(mClick,mScroll,bioScan,monTouch,netReceive)  --,keyClick,fancyLongName,fancyMarque
+    parallel.waitForAny(mClick,mScroll,bioScan,monTouch,netReceive)  --,keyClick
   elseif kernelState == true and secureStatus == "lockdown" then
     parallel.waitForAny(secKernel) --,netReceive,bioScan
   else
@@ -3075,7 +3081,6 @@ end
 
 local function firstRun()
   localInventory()
-  --networkInventory()
   local ccLabel = os.getComputerLabel()
   if tostring(ccLabel) == "nil" or ccLabel == "" then
     os.setComputerLabel("ccDHD  cc# " .. os.getComputerID())
