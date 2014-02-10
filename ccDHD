@@ -542,15 +542,28 @@ local function drawHeader()
   term.setCursorPos(((termX/2)-(#longName/2)),1)
   term.write(longName)                            -- Write gate name
   if runState == "logs" then                      -- If we're viewing the logs, show the last call info instead of connect/shield info
-    term.setCursorPos(1,2)
     term.setBackgroundColor(gray)
     term.setTextColor(lgray)
-    term.write(" Last Call: ")
-    term.setTextColor(white)
-    term.write(lastCall[1] .. " ." .. lastCall[2] .. "." .. string.rep(" ",termX))
+    for i = 2,4,1 do
+      term.setCursorPos(1,i)
+      term.write(string.rep(" ",termX))
+    end
+    term.setCursorPos(2,2)
+    term.setTextColor(yellow)
+    term.write("D I A L   H I S T O R Y")
     term.setCursorPos(termX - 6,2)
     term.setBackgroundColor(lgray)
+    term.setTextColor(gray)
     term.write(" Close ")
+    term.setCursorPos(2,3)
+    term.setBackgroundColor(gray)
+    term.setTextColor(lgray)
+    term.write("Last Call: ")
+    term.setTextColor(white)
+    term.write(lastCall[1] .. " ." .. lastCall[2] .. ".")
+    term.setCursorPos(2,4)
+    term.setTextColor(black)
+    term.write("Time       Day       Gate")
     return
   end
   if (runState == "Dial" or runState == "Edit") and secureStatus == "allclear" then
@@ -837,21 +850,18 @@ local function viewLogs()
   term.setBackgroundColor(black)
   term.clear()
   drawHeader()
-  term.setCursorPos(2,3)
-  term.setBackgroundColor(black)
-  term.setTextColor(gray)
-  term.write("History : page # ")
-  term.setTextColor(white)
-  term.write(histPage)
-  term.setTextColor(gray)
-  term.write(" of ")
-  term.setTextColor(white)
-  print(histPages)
+  term.setCursorPos(1,termY)
   term.setBackgroundColor(gray)
   term.write(string.rep(" ",termX))
-  term.setCursorPos(2,4)
-  term.setTextColor(lgray)
-  term.write("Time       Day       Gate")
+  term.setCursorPos(5,termY)
+  term.setTextColor(black)
+  term.write("page # ")
+  term.setTextColor(white)
+  term.write(histPage)
+  term.setTextColor(black)
+  term.write(" of ")
+  term.setTextColor(white)
+  term.write(histPages)
   term.setBackgroundColor(black)
   local currentEntry = ((histPage - 1) * 10) + 1                 -- Set the first entry to show (based on page number)
   for i = currentEntry,#callHistory,1 do                         -- Display logs
@@ -860,7 +870,7 @@ local function viewLogs()
     term.write(callHistory[i]:sub(1,#callHistory[i]-9))          -- time/day - broken apart from gate, so gate can be highlighted
     term.setTextColor(lblue)                                     --
     print(callHistory[i]:sub(#callHistory[i]-8,#callHistory[i])) -- gate
-    if i > currentEntry + 9 or i > #callHistory then break end   -- if we've 'filled' the page or reached the end of the log then stop the listing
+    if i > currentEntry + 9 or i > #callHistory then break end   -- if we've 'filled' the page or reached the end of the log then stop the loop
   end
 end
 
