@@ -1,5 +1,5 @@
 --[[ DHD/Gate Installer ]]--
---[[   version 1.0.01   ]]--
+--[[   version 1.0.02   ]]--
 --[[  by HydrantHunter  ]]--
 --[[      aka Dog       ]]--
 --[[ pastebin  A6uxKyCy ]]--
@@ -7,12 +7,11 @@ local iVer = "1.0"
 --[[
 Test with/Requires:
   - Minecraft 1.6.4
-  - Latest DeltaSG-Craft or LanteaCraft (snapshot 82)
+  - HTTP API enabled (for this installer only)
+  - LanteaCraft (snapshot 82)
   - ComputerCraft 1.57+ for MC 1.6.4
-    - HTTP API enabled
-  - Installer for Dog's DHD & Gate Liaison
-    - DHD: Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch), optional Biolock
-    - gateLiaison: Advanced Computer (color, mouse), 3 Advanced Monitors (color)
+    - ccDHD: Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch), optional Biolock
+    - gateLiaison: Advanced Computer (color, mouse), 3 optional Advanced Monitors (color)
 ]]--
 local startup
 
@@ -64,11 +63,17 @@ local function drawCLI()
     term.setTextColor(colors.white)
     term.write(" [  Install  Gate  ] ")
   end
-  term.setTextColor(colors.red)
+  term.setTextColor(colors.orange)
   term.setCursorPos(1,10)
   term.write(" [                 ] ")
   term.setTextColor(colors.white)
-  term.setCursorPos(10,10)
+  term.setCursorPos(9,10)
+  term.write("Reboot")
+  term.setTextColor(colors.red)
+  term.setCursorPos(1,12)
+  term.write(" [                 ] ")
+  term.setTextColor(colors.white)
+  term.setCursorPos(10,12)
   term.write("Quit")
 end
 
@@ -136,6 +141,8 @@ while true do
       end
       drawCLI()
     elseif userInput[4] == 10 then
+      os.reboot()
+    elseif userInput[4] == 12 then
       term.clear()
       term.setCursorPos(1,1)
       break
