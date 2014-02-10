@@ -21,8 +21,6 @@ Tested with/requires:
   - ccDHD also supports the Biometric Lock (Fistprint Scanner) in GopherATL's Biolock MOD ver. 2.1.3 (updated for 1.6.4 by gamax92)
 ]]--
 
--- Add connect/call timer ?
-
 if os.clock() < 5 then
   sleep(2)
 end
@@ -574,7 +572,10 @@ local function drawHeader()
     if lastCall[1] == nil and lastCall[2] == nil then
       lastCall[1], lastCall[2] = "none" .. string.rep(" ",13),"nogate"
     end
-    term.write(lastCall[1] .. " ." .. lastCall[2] .. ".")
+    --term.write(lastCall[1] .. " ." .. lastCall[2] .. ".")
+    term.write(lastCall[1] .. "  ")
+    term.setTextColor(lblue)
+    term.write(lastCall[2])
     term.setCursorPos(2,4)
     term.setTextColor(black)
     term.write("Time       Day       Gate")
