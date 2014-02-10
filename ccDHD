@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.37    ]]--
+--[[    ver. 1.0.38    ]]--
 --[[  core ver. 4.3.7  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.37"
+local ccDHDVer = "1.0.38"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -110,8 +110,8 @@ local function updateInfo(newInfo)    -- Update status
     shieldStatus = "OFF"
     gateStatus = "Disconnected"
     secureStatus = "allclear"
-    fuelGuage = true
     dialAddress = ""
+    fuelGuage = true
   elseif tostring(newInfo) ==  "010" then
     shieldStatus = "OFF"
     gateStatus = "Connected"
@@ -611,7 +611,6 @@ local function drawHeader()
     tColor = orange
   elseif gateStatus == "Disconnected" then
     tColor = lime
-    dialAddress = ""
   elseif gateStatus == "Dialing" then
     tColor = cyan
   else
@@ -624,15 +623,17 @@ local function drawHeader()
   elseif gateStatus == "Dialing" and dialAddress == "" then
     term.write("Incoming Connection")
   else
-  if gateStatus == "Connected" and dialAddress ~= "" and dialAddress ~= nil then
+    if gateStatus == "Connected" and dialAddress ~= "" and dialAddress ~= nil then
       term.write(gateStatus .. " to          ")
       term.setCursorPos(39,3)
     else
       term.write(gateStatus .. "             ")
       term.setCursorPos(34,3)
     end
-    term.setTextColor(yellow)
-    term.write(dialAddress)
+    if gateStatus ~= "Disconnected" then
+      term.setTextColor(yellow)
+      term.write(dialAddress)
+    end
   end
   if runState == "rCmd" or runState == "page" then
     term.setCursorPos(((termX/2)-10),9) -- this repositions the cursor for the rCmd & Go to Page boxes after an update is received
@@ -1940,13 +1941,21 @@ local function remoteCommand()
     kernelState = false
     netSend(commandLine)
     return
+  elseif commandLine == "restart" then
+    netSend(commandLine)
   elseif commandLine == "sON" then
     netSend(commandLine)
   elseif commandLine == "sOFF" then
     netSend(commandLine)
+  elseif commandLine == "endCall" then
+    netSend(commandLine)
   else
     if commandLine ~= "" and commandLine:len() > 6 and commandLine:len() < 10 then
-      netSend(commandLine)
+      if gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
+        dialAddress = string.upper(commandLine)
+        netSend(dialAddress)
+        if dhdSettings.logs == "ON" then recordSessionData() end -- add dial & gate cmds received? (e.g. recordSessionData("dial"))
+      end
     end
   end
   runState = tempState
