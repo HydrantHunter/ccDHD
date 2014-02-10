@@ -45,12 +45,12 @@ local function drawCLI()
   if fs.exists("DHD") or (startup == 2 and fs.exists("startup")) then
     term.setTextColor(colors.lime)
     term.write(" [                 ] ")
-    term.setCursorPos(5,6)
+    term.setCursorPos(4,6)
     term.setTextColor(colors.lightGray)
-    term.write("DHD Installed")
+    term.write("ccDHD Installed")
   else
     term.setTextColor(colors.white)
-    term.write(" [   Install DHD   ] ")
+    term.write(" [  Install ccDHD  ] ")
   end
   term.setCursorPos(1,8)
   if fs.exists("gateLiaison") or (startup == 3 and fs.exists("startup")) then
