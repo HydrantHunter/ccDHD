@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.35    ]]--
+--[[    ver. 1.0.37    ]]--
 --[[  core ver. 4.3.7  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.35"
+local ccDHDVer = "1.0.37"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -238,6 +238,10 @@ local function netReceive()
 end
 
 local function ingestLogData()
+  if not fs.exists("/data/DHDhistory") then
+    local tmpHist = fs.open("/data/DHDhistory","w")
+    tmpHist.close()
+  end
   local dhdHist = fs.open("/data/DHDhistory","r") or error("Cannot open /data/DHDhistory", 2)
   while true do
     local timeDate = dhdHist.readLine()
@@ -250,6 +254,11 @@ local function ingestLogData()
   end
   dhdHist.close()
   histPages = math.ceil(#callHistory/10)
+  if histPages < 1 then histPages = 1 end
+  if not fs.exists("/data/DHDlast") then
+    local tmpLast = fs.open("/data/DHDlast","w")
+    tmpLast.close()
+  end
   local dhdLast = fs.open("/data/DHDlast","r") or error("Cannot open /data/DHDlast", 2)
   for i = 1,2,1 do
     local lastInfo = dhdLast.readLine()
@@ -560,6 +569,9 @@ local function drawHeader()
     term.setTextColor(lgray)
     term.write("Last Call: ")
     term.setTextColor(white)
+    if lastCall[1] == nil and lastCall[2] == nil then
+      lastCall[1], lastCall[2] = "none" .. string.rep(" ",13),"nogate"
+    end
     term.write(lastCall[1] .. " ." .. lastCall[2] .. ".")
     term.setCursorPos(2,4)
     term.setTextColor(black)
@@ -866,6 +878,7 @@ local function viewLogs()
   term.write(histPages)
   term.setBackgroundColor(black)
   local currentEntry = ((histPage - 1) * 10) + 1                 -- Set the first entry to show (based on page number)
+  if callHistory[1] == "" or callHistory[1] == nil then callHistory[1] = "No Logs" .. string.rep(" ",13) end
   for i = currentEntry,#callHistory,1 do                         -- Display logs
     term.setCursorPos(2, i - ((histPage - 1) * 10) + 5)          -- position entry
     term.setTextColor(gray)                                      --
@@ -2115,6 +2128,7 @@ local function mClick()
         term.setBackgroundColor(black)
         term.clear()
         callHistory = { }
+        lastCall = { }
         runState = tempState
         drawCLI()
         return
