@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.40    ]]--
+--[[    ver. 1.0.41    ]]--
 --[[  core ver. 4.3.7  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.40"
+local ccDHDVer = "1.0.41"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -146,7 +146,6 @@ local function updateStatus(newInfo)  -- Update status info
     gateStatus = "Dialing"
     secureStatus = "allclear"
     fuelGuage = false
-    --if dhdSettings.logs == "ON" and dialAddress ~= "" then recordSessionData() end
     if dhdSettings.logs == "ON" then
       if dialAddress == "" then
         dialAddress = "<Inbound>"
@@ -161,7 +160,6 @@ local function updateStatus(newInfo)  -- Update status info
     gateStatus = "Dialing"
     secureStatus = "allclear"
     fuelGuage = true
-    --if dhdSettings.logs == "ON" and dialAddress ~= "" then recordSessionData() end
     if dhdSettings.logs == "ON" then
       if dialAddress == "" then
         dialAddress = "<Inbound>"
@@ -198,7 +196,6 @@ local function updateStatus(newInfo)  -- Update status info
     gateStatus = "Dialing"
     secureStatus = "allclear"
     fuelGuage = false
-    --if dhdSettings.logs == "ON" and dialAddress ~= "" then recordSessionData() end
     if dhdSettings.logs == "ON" then
       if dialAddress == "" then
         dialAddress = "<Inbound>"
@@ -213,7 +210,6 @@ local function updateStatus(newInfo)  -- Update status info
     gateStatus = "Dialing"
     secureStatus = "allclear"
     fuelGuage = true
-    --if dhdSettings.logs == "ON" and dialAddress ~= "" then recordSessionData() end
     if dhdSettings.logs == "ON" then
       if dialAddress == "" then
         dialAddress = "<Inbound>"
@@ -226,7 +222,6 @@ local function updateStatus(newInfo)  -- Update status info
   elseif tostring(newInfo) ==  "Dialing" then
     gateStatus = "Dialing"
     secureStatus = "allclear"
-    --if dhdSettings.logs == "ON" and dialAddress ~= "" then recordSessionData() end
     if dhdSettings.logs == "ON" then
       if dialAddress == "" then
         dialAddress = "<Inbound>"
@@ -1943,7 +1938,7 @@ local function remoteCommand()
   term.write(" ")
   term.setBackgroundColor(black)     --
   term.setCursorPos(((termX/2)-10),9) -- These three lines kept in case ccDHD bg is changed
-  term.write(string.rep(" ",15))
+  term.write(string.rep(" ",15))     --
   term.setCursorPos(((termX/2)+3),9)
   term.setBackgroundColor(gray)
   term.write(" ")
@@ -2004,7 +1999,7 @@ local function goToPage()
   term.write(" ")
   term.setBackgroundColor(black)     --
   term.setCursorPos(((termX/2)-10),9) -- These three lines kept in case ccDHD bg is changed
-  term.write(string.rep(" ",15))        --
+  term.write(string.rep(" ",15))     --
   term.setCursorPos(((termX/2)+3),9)
   term.setBackgroundColor(gray)
   term.write(" ")
@@ -3031,20 +3026,20 @@ local function monTouch()
       tY = touchEvent[4]
       if tY < 9 then
         displayState = "info"
-        if monB ~= "none" then displayNotes(tY) end
+        if dhdSettings.monB ~= "none" then displayNotes(tY) end
       elseif tY > 8 then
         if tX < 10 then
           listPage = listPage - 1
           if listPage < 1 then listPage = 1 end
           displayGateList()
-        elseif tX >9 then
+        elseif tX > 9 then
           listPage = listPage + 1
           if listPage > listPages then listPage = listPages end
           displayGateList()
         end
       end
     elseif touchEvent[2] == dhdSettings.monB and displayState == "info" and gateStatus == "Disconnected" and secureStatus == "allclear" then
-      local dialNum = (tY+((listPage-1)*8))
+      local dialNum = (tY + ((listPage - 1) * 8))
       if dialNum > #allGates then dialNum = #allGates end
       dialAddress = allGates[dialNum].addr
       if dialAddress == dhdSettings.thisGate then return end
