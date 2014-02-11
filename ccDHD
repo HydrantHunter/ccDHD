@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.39    ]]--
+--[[    ver. 1.0.40    ]]--
 --[[  core ver. 4.3.7  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.39"
+local ccDHDVer = "1.0.40"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -99,6 +99,25 @@ local lime = colors.lime
 local green = colors.green
 -- End Configuration
 
+local function recordSessionData() -- Human readable log files (last gate & history)
+  if not fs.exists("/data") then fs.makeDir("/data") end
+  local dateStamp = tostring(textutils.formatTime(os.time(),false) .. " / Day " .. os.day())
+  local last = "/data/" .. dhdSettings.lastGate
+  local lastCall = fs.open(last,"w")
+  lastCall.writeLine(dateStamp)
+  lastCall.writeLine(dialAddress)
+  lastCall.close()
+  local archive = "/data/" .. dhdSettings.gateHistory
+  if not fs.exists(archive) then
+    local tmpHist = fs.open(archive,"w")
+    tmpHist.close()
+  end
+  local gateArchive = fs.open(archive,"a")
+  gateArchive.writeLine(dateStamp)
+  gateArchive.writeLine(dialAddress)
+  gateArchive.close()
+end
+
 local function updateStatus(newInfo)  -- Update status info
   if tostring(newInfo) ==  "000" then -- bit/trit/bit
     shieldStatus = "OFF"              -- 1st/bit = shield
@@ -127,11 +146,31 @@ local function updateStatus(newInfo)  -- Update status info
     gateStatus = "Dialing"
     secureStatus = "allclear"
     fuelGuage = false
+    --if dhdSettings.logs == "ON" and dialAddress ~= "" then recordSessionData() end
+    if dhdSettings.logs == "ON" then
+      if dialAddress == "" then
+        dialAddress = "<Inbound>"
+        recordSessionData()
+        dialAddress = ""
+      else
+        recordSessionData()
+      end
+    end
   elseif tostring(newInfo) ==  "021" then
     shieldStatus = "OFF"
     gateStatus = "Dialing"
     secureStatus = "allclear"
     fuelGuage = true
+    --if dhdSettings.logs == "ON" and dialAddress ~= "" then recordSessionData() end
+    if dhdSettings.logs == "ON" then
+      if dialAddress == "" then
+        dialAddress = "<Inbound>"
+        recordSessionData()
+        dialAddress = ""
+      else
+        recordSessionData()
+      end
+    end
   elseif tostring(newInfo) ==  "100" then
     shieldStatus = "ON"
     gateStatus = "Disconnected"
@@ -159,14 +198,44 @@ local function updateStatus(newInfo)  -- Update status info
     gateStatus = "Dialing"
     secureStatus = "allclear"
     fuelGuage = false
+    --if dhdSettings.logs == "ON" and dialAddress ~= "" then recordSessionData() end
+    if dhdSettings.logs == "ON" then
+      if dialAddress == "" then
+        dialAddress = "<Inbound>"
+        recordSessionData()
+        dialAddress = ""
+      else
+        recordSessionData()
+      end
+    end
   elseif tostring(newInfo) ==  "121" then
     shieldStatus = "ON"
     gateStatus = "Dialing"
     secureStatus = "allclear"
     fuelGuage = true
+    --if dhdSettings.logs == "ON" and dialAddress ~= "" then recordSessionData() end
+    if dhdSettings.logs == "ON" then
+      if dialAddress == "" then
+        dialAddress = "<Inbound>"
+        recordSessionData()
+        dialAddress = ""
+      else
+        recordSessionData()
+      end
+    end
   elseif tostring(newInfo) ==  "Dialing" then
     gateStatus = "Dialing"
     secureStatus = "allclear"
+    --if dhdSettings.logs == "ON" and dialAddress ~= "" then recordSessionData() end
+    if dhdSettings.logs == "ON" then
+      if dialAddress == "" then
+        dialAddress = "<Inbound>"
+        recordSessionData()
+        dialAddress = ""
+      else
+        recordSessionData()
+      end
+    end
   elseif tostring(newInfo) ==  "YY0" then
     secureStatus = "allclear"
     shieldStatus = "OFF"
@@ -333,25 +402,6 @@ local function saveData(filename,filetype)
     dhdConfig.write(textutils.serialize(allGates))
   end
   dhdConfig.close()
-end
-
-local function recordSessionData() -- Human readable log files (last gate & history)
-  if not fs.exists("/data") then fs.makeDir("/data") end
-  local dateStamp = tostring(textutils.formatTime(os.time(),false) .. " / Day " .. os.day())
-  local last = "/data/" .. dhdSettings.lastGate
-  local lastCall = fs.open(last,"w")
-  lastCall.writeLine(dateStamp)
-  lastCall.writeLine(dialAddress)
-  lastCall.close()
-  local archive = "/data/" .. dhdSettings.gateHistory
-  if not fs.exists(archive) then
-    local tmpHist = fs.open(archive,"w")
-    tmpHist.close()
-  end
-  local gateArchive = fs.open(archive,"a")
-  gateArchive.writeLine(dateStamp)
-  gateArchive.writeLine(dialAddress)
-  gateArchive.close()
 end
 
 local function localInventory()
@@ -572,7 +622,6 @@ local function drawHeader()
     if lastCall[1] == nil and lastCall[2] == nil then
       lastCall[1], lastCall[2] = "none" .. string.rep(" ",13),"nogate"
     end
-    --term.write(lastCall[1] .. " ." .. lastCall[2] .. ".")
     term.write(lastCall[1] .. "  ")
     term.setTextColor(lblue)
     term.write(lastCall[2])
@@ -746,29 +795,6 @@ local function drawNaviUI()
   end
 end
 
-local function drawDialUInew() -- Gate Address Book
-  local i = (pageNum - 1) * 24
-  for xPos = 2,32,10 do
-    for yPos = 6,16,2 do
-      i = i + 1
-      if i > #allGates then
-        term.setBackgroundColor(black)
-        return
-      end
-      term.setCursorPos(xPos,yPos)
-      term.setBackgroundColor(assignColor(i))
-      if dialAddress == allGates[i].addr then term.setTextColor(black) else term.setTextColor(white) end
-      if #allGates[i].addr < 10 then
-        term.write(string.rep(" ",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep(" ",math.floor((9-#allGates[i].addr)/2)))  -- Center the text.
-      else
-        term.write(allGates[i].addr:sub(1,7).."..")  -- ... or truncate it if it won't fit.
-      end
-    end
-  end
-  term.setBackgroundColor(black)
-end
-
-
 local function drawDialUI() -- Gate Address Book
   local xPos, yPos = 2, 4
   local j = ((pageNum - 1) * 23) + pageNum
@@ -786,7 +812,7 @@ local function drawDialUI() -- Gate Address Book
     end
     term.setBackgroundColor(assignColor(i))
     term.setCursorPos(xPos,yPos + ((i - ((pageNum - 1) * 24)) * 2))
-    if dialAddress == allGates[i].addr then -- Highlight the gate being dialed
+    if dialAddress == allGates[i].addr and dhdSettings.thisGate ~= allGates[i].addr then -- Highlight the gate being dialed
       term.setTextColor(black)
     else
       term.setTextColor(white)
@@ -1960,7 +1986,6 @@ local function remoteCommand()
       if gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
         dialAddress = string.upper(commandLine)
         netSend(dialAddress)
-        if dhdSettings.logs == "ON" then recordSessionData() end -- add dial & gate cmds received? (e.g. recordSessionData("dial"))
       end
     end
   end
@@ -2271,9 +2296,11 @@ local function mClick()
         if mcX > 1 and mcX < 11 and mcY == 4 + ((i - l) * 2) and i <= #allGates then
           if runState == "Dial" then
             if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
-              dialAddress = allGates[i].addr
-              netSend(dialAddress)
-              if dhdSettings.logs == "ON" then recordSessionData() end -- add dial & gate cmds received? (e.g. recordSessionData("dial"))
+              if allGates[i].addr ~= dhdSettings.thisGate then
+                dialAddress = allGates[i].addr
+                netSend(dialAddress)
+                return
+              end
             elseif mButton == 2 then
               viewGateEntry(i)
               return
@@ -2299,9 +2326,11 @@ local function mClick()
         elseif mcX > 11 and mcX < 21 and mcY == 4 + ((i - l) * 2) and (i + 6) <= #allGates then
           if runState == "Dial" then
             if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
-              dialAddress = allGates[i + 6].addr
-              netSend(dialAddress)
-              if dhdSettings.logs == "ON" then recordSessionData() end
+              if allGates[i + 6].addr ~= dhdSettings.thisGate then
+                dialAddress = allGates[i + 6].addr
+                netSend(dialAddress)
+                return
+              end
             elseif mButton == 2 then
               viewGateEntry(i + 6)
               return
@@ -2327,9 +2356,11 @@ local function mClick()
         elseif mcX > 21 and mcX < 31 and mcY == 4 + ((i - l) * 2) and (i + 12) <= #allGates then
           if runState == "Dial" then
             if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
-              dialAddress = allGates[i + 12].addr
-              netSend(dialAddress)
-              if dhdSettings.logs == "ON" then recordSessionData() end
+              if allGates[i + 12].addr ~= dhdSettings.thisGate then
+                dialAddress = allGates[i + 12].addr
+                netSend(dialAddress)
+                return
+              end
             elseif mButton == 2 then
               viewGateEntry(i + 12)
               return
@@ -2355,9 +2386,10 @@ local function mClick()
         elseif mcX > 31 and mcX < 41 and mcY == 4 + ((i - l) * 2) and (i + 18) <= #allGates then
           if runState == "Dial" then
             if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
-              dialAddress = allGates[i + 18].addr
-              netSend(dialAddress)
-              if dhdSettings.logs == "ON" then recordSessionData() end
+              if allGates[i + 18].addr ~= dhdSettings.thisGate then
+                dialAddress = allGates[i + 18].addr
+                netSend(dialAddress)
+              end
             elseif mButton == 2 then
               viewGateEntry(i + 18)
               return
