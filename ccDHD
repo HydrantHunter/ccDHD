@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.41    ]]--
+--[[    ver. 1.0.42    ]]--
 --[[  core ver. 4.3.7  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.41"
+local ccDHDVer = "1.0.42"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -311,13 +311,14 @@ local function ingestLogData()
     local timeDate = dhdHist.readLine()
     local gateAddr = dhdHist.readLine()
     if timeDate == nil or timeDate == "" then break end
-    local tTime = timeDate:sub(1,string.find(timeDate," / "))
-    local dDate = timeDate:sub(#tTime+3)
-    dDate = dDate:sub(5)
+    local tTime = timeDate:sub(1,string.find(timeDate," / ")) -- separate time from time/day
+    if #tTime == 8 then tTime = " " .. tTime end              -- move single digit hour times to the right one space
+    local dDate = timeDate:sub(#tTime+3)                      -- separate day from time/day
+    dDate = dDate:sub(5)                                      -- clean up day
     table.insert(callHistory,1,tTime .. string.rep(" ",termX-40-#tTime) .. dDate .. string.rep(" ",termX-41-#dDate) .. gateAddr)
   end
   dhdHist.close()
-  histPages = math.ceil(#callHistory/10)
+  histPages = math.ceil(#callHistory/10) -- paginate call logs
   if histPages < 1 then histPages = 1 end
   if not fs.exists("/data/DHDlast") then
     local tmpLast = fs.open("/data/DHDlast","w")
@@ -625,7 +626,7 @@ local function drawHeader()
     term.write("Time       Day       Gate")
     return
   end
-  if (runState == "Dial" or runState == "Edit") and secureStatus == "allclear" then
+  if (runState == "Dial" or runState == "Edit") and secureStatus == "allclear" then  -- Dial and Edit modes get the -DHD- menu
     term.setBackgroundColor(black)
     term.setCursorPos(2,1)
     term.write("-DHD-")
@@ -909,7 +910,7 @@ local function viewLogs()
     term.setTextColor(gray)                                      --
     term.write(callHistory[i]:sub(1,#callHistory[i]-9))          -- time/day - broken apart from gate, so gate can be highlighted
     term.setTextColor(lblue)                                     --
-    print(callHistory[i]:sub(#callHistory[i]-8,#callHistory[i]) .. "  ") -- gate
+    term.write(callHistory[i]:sub(#callHistory[i]-8,#callHistory[i]) .. "  ") -- gate
     if i > currentEntry + 9 or i > #callHistory then break end   -- if we've 'filled' the page or reached the end of the log then stop the loop
   end
 end
