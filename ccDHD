@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.45    ]]--
+--[[    ver. 1.0.46    ]]--
 --[[  core ver. 4.3.7  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.45"
+local ccDHDVer = "1.0.46"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -1339,53 +1339,22 @@ local function drawSecureUI()
 end
 
 local function drawSideList(pSide)
+  local tPos = { 5,7,9,11,13,15 }
+  local tSide = { "top","bottom","front","back","left","right" }
   term.setBackgroundColor(gray)
   for i = 4,16,1 do
     term.setCursorPos(26,i)
     term.write("        ")
   end
-  term.setCursorPos(27,5)
-  if pSide == "top" then
-    term.setTextColor(lime)
-  else
-    term.setTextColor(white)
+  for j,k in pairs(tSide) do
+    if pSide == k then
+      term.setTextColor(lime)
+    else
+      term.setTextColor(white)
+    end
+    term.setCursorPos(27,tPos[j])
+    term.write(string.upper(k):sub(1,1) .. k:sub(2) )
   end
-  term.write("Top")
-  term.setCursorPos(27,7)
-  if pSide == "bottom" then
-    term.setTextColor(lime)
-  else
-    term.setTextColor(white)
-  end
-  term.write("Bottom")
-  term.setCursorPos(27,9)
-  if pSide == "front" then
-    term.setTextColor(lime)
-  else
-    term.setTextColor(white)
-  end
-  term.write("Front")
-  term.setCursorPos(27,11)
-  if pSide == "back" then
-    term.setTextColor(lime)
-  else
-    term.setTextColor(white)
-  end
-  term.write("Back")
-  term.setCursorPos(27,13)
-  if pSide == "left" then
-    term.setTextColor(lime)
-  else
-    term.setTextColor(white)
-  end
-  term.write("Left")
-  term.setCursorPos(27,15)
-  if pSide == "right" then
-    term.setTextColor(lime)
-  else
-    term.setTextColor(white)
-  end
-  term.write("Right")
 end
 
 local function drawRatingList(gRating,currentGate)
@@ -1534,46 +1503,21 @@ local function drawRatingList(gRating,currentGate)
 end
 
 local function drawAuthList(cAuth)
+  local cPos = { 5,7,9,11,13 }
   term.setBackgroundColor(gray)
   for i = 4,14,1 do
     term.setCursorPos(26,i)
     term.write("   ")
   end
-  term.setCursorPos(27,5)
-  if cAuth == 1 then
-    term.setTextColor(lime)
-  else
-    term.setTextColor(white)
+  for j,k in pairs(cPos) do
+    if cAuth == j then
+      term.setTextColor(lime)
+    else
+      term.setTextColor(white)
+    end
+    term.setCursorPos(27,k)
+    term.write(j)
   end
-  term.write("1")
-  term.setCursorPos(27,7)
-  if cAuth == 2 then
-    term.setTextColor(lime)
-  else
-    term.setTextColor(white)
-  end
-  term.write("2")
-  term.setCursorPos(27,9)
-  if cAuth == 3 then
-    term.setTextColor(lime)
-  else
-    term.setTextColor(white)
-  end
-  term.write("3")
-  term.setCursorPos(27,11)
-  if cAuth == 4 then
-    term.setTextColor(lime)
-  else
-    term.setTextColor(white)
-  end
-  term.write("4")
-  term.setCursorPos(27,13)
-  if pSide == 5 then
-    term.setTextColor(lime)
-  else
-    term.setTextColor(white)
-  end
-  term.write("5")
 end
 
 local function drawMenu()
