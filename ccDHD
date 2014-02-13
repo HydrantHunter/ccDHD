@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.44    ]]--
+--[[    ver. 1.0.45    ]]--
 --[[  core ver. 4.3.7  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.44"
+local ccDHDVer = "1.0.45"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -148,7 +148,7 @@ local function updateStatus(newInfo)  -- Update status info
     fuelGuage = false
     if dhdSettings.logs == "ON" then
       if dialAddress == "" then
-        dialAddress = "<Inbound>"
+        dialAddress = ">Inbound<"
         recordSessionData()
         dialAddress = ""
       else
@@ -162,7 +162,7 @@ local function updateStatus(newInfo)  -- Update status info
     fuelGuage = true
     if dhdSettings.logs == "ON" then
       if dialAddress == "" then
-        dialAddress = "<Inbound>"
+        dialAddress = ">Inbound<"
         recordSessionData()
         dialAddress = ""
       else
@@ -198,7 +198,7 @@ local function updateStatus(newInfo)  -- Update status info
     fuelGuage = false
     if dhdSettings.logs == "ON" then
       if dialAddress == "" then
-        dialAddress = "<Inbound>"
+        dialAddress = ">Inbound<"
         recordSessionData()
         dialAddress = ""
       else
@@ -212,7 +212,7 @@ local function updateStatus(newInfo)  -- Update status info
     fuelGuage = true
     if dhdSettings.logs == "ON" then
       if dialAddress == "" then
-        dialAddress = "<Inbound>"
+        dialAddress = ">Inbound<"
         recordSessionData()
         dialAddress = ""
       else
@@ -224,7 +224,7 @@ local function updateStatus(newInfo)  -- Update status info
     secureStatus = "allclear"
     if dhdSettings.logs == "ON" then
       if dialAddress == "" then
-        dialAddress = "<Inbound>"
+        dialAddress = ">Inbound<"
         recordSessionData()
         dialAddress = ""
       else
@@ -310,6 +310,7 @@ local function ingestLogData()
   while true do
     local timeDate = dhdHist.readLine()
     local gateAddr = dhdHist.readLine()
+    if gateAddr == "" or gateAddr == nil then gateAddr = "No Record" end
     if timeDate == nil or timeDate == "" then break end
     local tTime = timeDate:sub(1,string.find(timeDate," / ")) -- separate time from time/day
     local dDate = timeDate:sub(#tTime+7)                      -- separate day from time/day
@@ -909,7 +910,14 @@ local function viewLogs()
     term.setCursorPos(2, i - ((histPage - 1) * 10) + 5)          -- position entry
     term.setTextColor(gray)                                      --
     term.write(callHistory[i]:sub(1,#callHistory[i]-9))          -- time/day - broken apart from gate, so gate can be highlighted
-    term.setTextColor(lblue)                                     --
+    local tGate = callHistory[i]:sub(#callHistory[i]-8,#callHistory[i])
+    if tGate == "No Record" then
+      term.setTextColor(lgray)
+    elseif tGate == ">Inbound<" or tGate == "<Inbound>" then
+      term.setTextColor(cyan)
+    else
+      term.setTextColor(lblue)
+    end
     term.write(callHistory[i]:sub(#callHistory[i]-8,#callHistory[i]) .. "  ") -- gate
     if i > currentEntry + 9 or i > #callHistory then break end   -- if we've 'filled' the page or reached the end of the log then stop the loop
   end
