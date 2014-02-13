@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.43    ]]--
+--[[    ver. 1.0.44    ]]--
 --[[  core ver. 4.3.7  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.43"
+local ccDHDVer = "1.0.44"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -74,7 +74,6 @@ local gateChange = false
 local trimChange = false
 local tempState, currentEdit
 local fuelGuage, dialAddress
-local connectTime, cTimer, cnTime = 0,0,0
  -- Gate List
 local numPages,pageNum = 1,1
 local listPages,listPage = 1,1
@@ -573,28 +572,6 @@ local function displayStatus()
   end
 end
 
-local function callTimer()
-  if gateStatus == "Connected" and cTimer == 0 then
-    -- start timer
-    connectTime = 0
-    cnTime = os.time()
-    cTimer = 1
-  elseif gateStatus == "Connected" and cTimer == 1 then
-    connectTime = os.time() - cnTime
-  elseif gateStatus == "Disconnected" and cTimer == 0 then
-    local lastTime = connectTime
-  elseif gateStatus == "Disconnected" and cTimer == 1 then
-    cTimer = 0
-  end
-  term.setBackgroundColor(blue) --
-  term.setTextColor(gray)
-  term.setCursorPos(termX-16,1)
-  term.write("Last Call:")
-  term.setTextColor(yellow)     --
-  term.setCursorPos(termX-5,1)  --
-  term.write(lastTime)          -- last call time
-end
-
 local function drawHeader()
   local bgColor
   term.setBackgroundColor(black)
@@ -815,7 +792,6 @@ local function drawNaviUI()
 end
 
 local function drawDialUI() -- Gate Address Book
-  --callTimer()
   local xPos, yPos = 2, 4
   local j = ((pageNum - 1) * 23) + pageNum
   local k = ((pageNum - 1) * 24)
@@ -1930,7 +1906,7 @@ function drawCLI()   -- Client Interface 'decider'
           displayGateList()
         end
       end
-      if runState == "Dial" or gateStatus == "Dialing" then
+      if runState == "Dial" then -- or gateStatus == "Dialing" then
         drawDialUI()
         drawControlUI()
         drawNaviUI()
@@ -3159,11 +3135,9 @@ end
 
 local function dhdKernel()
   if kernelState == true and secureStatus == "lockdown" then
-    parallel.waitForAny(secKernel) --,netReceive,bioScan
+    parallel.waitForAny(secKernel) --,netReceive,bioScan,keyClick
   elseif kernelState == true and secureStatus == "allclear" and runState ~= "rCmd" and runState ~= "page" then
-    parallel.waitForAny(mClick,mScroll,bioScan,monTouch,netReceive)  --,keyClick,callTimer
-  else
-    return kernelState
+    parallel.waitForAny(mClick,mScroll,bioScan,monTouch,netReceive)  --,keyClick
   end
   if runState == "reset" then
     netSend("reset")
