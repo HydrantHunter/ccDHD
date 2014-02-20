@@ -1,10 +1,10 @@
 --[[  LanteaCraft      ]]--
 --[[    Gate Liaison   ]]--
---[[  version  1.0.05  ]]--
+--[[  version  1.0.06  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "1.0.05"
+local gVer = "1.0.06"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -12,8 +12,8 @@ Tested with/requires:
   - ComputerCraft ver. 1.57+ for MC 1.6.4
     - HTTP API enabled (for installer/pastebin)
     - 1 Advanced Computer (color, mouse), 3 optional Advanced Monitors (color)
-    - DHD running on an Advanced Computer with 4 optional Advanced Monitors
-      - DHD also supports GopherATL's BioLock ver. 2.1.3 Fistprint scanner (updated for 1.6.4 by gamax92)
+    - ccDHD running on an Advanced Computer with 4 optional Advanced Monitors
+      - ccDHD also supports GopherATL's BioLock ver. 2.1.3 Fistprint scanner (updated for 1.6.4 by gamax92)
 ]]--
 -- AUTOMATIC/STATIC CONFIGURATION (Part 1)
 local modem
@@ -156,20 +156,11 @@ local function drawTermScreen()
       term.write(" ")
     end
   end
-  term.setCursorPos(2,3)
-  term.write(" Gate:")
-  term.setCursorPos(2,4)
-  term.write(" State:")
-  term.setCursorPos(2,5)
-  term.write(" Target:")
-  term.setCursorPos(2,6)
-  term.write(" Shield:")
-  term.setCursorPos(2,7)
-  term.write(" Fuel:")
-  term.setCursorPos(2,8)
-  term.write(" Status:")
-  term.setCursorPos(2,9)
-  term.write(" Network:")
+  local readouts = { " Gate:", " State:", " Target:", " Shield:", " Fuel:", " Status:", " Network:" }
+  for i = 1,7,1 do
+    term.setCursorPos(2,i+2)
+    term.write(readouts[i])
+  end
   term.setBackgroundColor(colors.black)
   term.setTextColor(colors.yellow)
   term.setCursorPos(17,3)
@@ -301,14 +292,14 @@ local function recordSessionData()  -- Human readable log files (last gate & his
   lastCall.writeLine(dateStamp)
   lastCall.writeLine(dialAddress)
   lastCall.close()
-  if not fs.exists(gateSettings.history) then
-    local tmpHist = fs.open(gateSettings.history,"w")
-    tmpHist.close()
-  end
-  local gateArchive = fs.open(gateSettings.history,"a")
-  gateArchive.writeLine(dateStamp)
-  gateArchive.writeLine(dialAddress)
-  gateArchive.close()
+  --if not fs.exists(gateSettings.history) then
+    --local tmpHist = fs.open(gateSettings.history,"w")
+    --tmpHist.close()
+  --end
+  --local gateArchive = fs.open(gateSettings.history,"a")
+  --gateArchive.writeLine(dateStamp)
+  --gateArchive.writeLine(dialAddress)
+  --gateArchive.close()
 end
 
 local function shieldControl(state)
