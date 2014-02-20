@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.47    ]]--
+--[[    ver. 1.0.48    ]]--
 --[[  core ver. 4.3.7  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.47"
+local ccDHDVer = "1.0.48"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -107,15 +107,17 @@ local function recordSessionData() -- Human readable log files (last gate & hist
   lastCall.writeLine(dateStamp)
   lastCall.writeLine(dialAddress)
   lastCall.close()
-  local archive = "/data/" .. dhdSettings.gateHistory
-  if not fs.exists(archive) then
-    local tmpHist = fs.open(archive,"w")
-    tmpHist.close()
+  if dhdSettings.logs == "ON" then
+    local archive = "/data/" .. dhdSettings.gateHistory
+    if not fs.exists(archive) then
+      local tmpHist = fs.open(archive,"w")
+      tmpHist.close()
+    end
+    local gateArchive = fs.open(archive,"a")
+    gateArchive.writeLine(dateStamp)
+    gateArchive.writeLine(dialAddress)
+    gateArchive.close()
   end
-  local gateArchive = fs.open(archive,"a")
-  gateArchive.writeLine(dateStamp)
-  gateArchive.writeLine(dialAddress)
-  gateArchive.close()
 end
 
 local function updateStatus(newInfo)  -- Update status info
@@ -146,28 +148,24 @@ local function updateStatus(newInfo)  -- Update status info
     gateStatus = "Dialing"
     secureStatus = "allclear"
     fuelGuage = false
-    if dhdSettings.logs == "ON" then
-      if dialAddress == "" then
-        dialAddress = "Inbound"
-        recordSessionData()
-        dialAddress = ""
-      else
-        recordSessionData()
-      end
+    if dialAddress == "" then
+      dialAddress = "Inbound"
+      recordSessionData()
+      dialAddress = ""
+    else
+      recordSessionData()
     end
   elseif tostring(newInfo) ==  "021" then
     shieldStatus = "OFF"
     gateStatus = "Dialing"
     secureStatus = "allclear"
     fuelGuage = true
-    if dhdSettings.logs == "ON" then
-      if dialAddress == "" then
-        dialAddress = "Inbound"
-        recordSessionData()
-        dialAddress = ""
-      else
-        recordSessionData()
-      end
+    if dialAddress == "" then
+      dialAddress = "Inbound"
+      recordSessionData()
+      dialAddress = ""
+    else
+      recordSessionData()
     end
   elseif tostring(newInfo) ==  "100" then
     shieldStatus = "ON"
@@ -196,40 +194,34 @@ local function updateStatus(newInfo)  -- Update status info
     gateStatus = "Dialing"
     secureStatus = "allclear"
     fuelGuage = false
-    if dhdSettings.logs == "ON" then
-      if dialAddress == "" then
-        dialAddress = "Inbound"
-        recordSessionData()
-        dialAddress = ""
-      else
-        recordSessionData()
-      end
+    if dialAddress == "" then
+      dialAddress = "Inbound"
+      recordSessionData()
+      dialAddress = ""
+    else
+      recordSessionData()
     end
   elseif tostring(newInfo) ==  "121" then
     shieldStatus = "ON"
     gateStatus = "Dialing"
     secureStatus = "allclear"
     fuelGuage = true
-    if dhdSettings.logs == "ON" then
-      if dialAddress == "" then
-        dialAddress = "Inbound"
-        recordSessionData()
-        dialAddress = ""
-      else
-        recordSessionData()
-      end
+    if dialAddress == "" then
+      dialAddress = "Inbound"
+      recordSessionData()
+      dialAddress = ""
+    else
+      recordSessionData()
     end
   elseif tostring(newInfo) ==  "Dialing" then
     gateStatus = "Dialing"
     secureStatus = "allclear"
-    if dhdSettings.logs == "ON" then
-      if dialAddress == "" then
-        dialAddress = "Inbound"
-        recordSessionData()
-        dialAddress = ""
-      else
-        recordSessionData()
-      end
+    if dialAddress == "" then
+      dialAddress = "Inbound"
+      recordSessionData()
+      dialAddress = ""
+    else
+      recordSessionData()
     end
   elseif tostring(newInfo) ==  "YY0" then
     secureStatus = "allclear"
