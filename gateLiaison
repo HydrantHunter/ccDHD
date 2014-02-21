@@ -1,10 +1,10 @@
 --[[  LanteaCraft      ]]--
 --[[    Gate Liaison   ]]--
---[[  version  1.0.06  ]]--
+--[[  version  1.0.07  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "1.0.06"
+local gVer = "1.0.07"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -26,7 +26,6 @@ local shieldStatus
 local gateStatus = "QRY"
 local dialAddress = "none"
 local currentState = "ZZ"
---local connectTimer = 0
 local pollTimer = 0
 local timePoller = 0
 local longName = ""
@@ -36,8 +35,7 @@ local gateSettings = { shield = "front",
                        chan = { send = 1787, recv = 1776 },
                        net = "R",
                        pollTime = 2,
-                       history = "/data/DHDhistory",
-                       last = "/data/DHDlast",
+                       last = "/data/lastCall",
                      }
 -- END AUTOMATIC/STATIC CONFIGURATION (Part 1)
 
@@ -50,7 +48,7 @@ end
 
 local function saveData()
   if not fs.exists("/data") then fs.makeDir("/data") end
-  local gateConfig = fs.open("/data/gateSettings","w") or error("Cannot open /data/gateSettings", 2)
+  local gateConfig = fs.open("/data/gateSettings","w") or error("/data/gateSettings does not exist", 2)
   gateConfig.write(textutils.serialize(gateSettings))
   gateConfig.close()
 end
@@ -292,14 +290,6 @@ local function recordSessionData()  -- Human readable log files (last gate & his
   lastCall.writeLine(dateStamp)
   lastCall.writeLine(dialAddress)
   lastCall.close()
-  --if not fs.exists(gateSettings.history) then
-    --local tmpHist = fs.open(gateSettings.history,"w")
-    --tmpHist.close()
-  --end
-  --local gateArchive = fs.open(gateSettings.history,"a")
-  --gateArchive.writeLine(dateStamp)
-  --gateArchive.writeLine(dialAddress)
-  --gateArchive.close()
 end
 
 local function shieldControl(state)
@@ -331,14 +321,10 @@ local function dialOut(targetAddress)
   dialAddress = tostring(targetAddress)
   if dialAddress ~= thisGate and tostring(gate.isConnected()) == "false" then -- Is the stargate connected to another stargate?  isConnected()
     local dialGate = gate.dial(dialAddress)
-    --if dialGate == true then  -- if dialGate then ??
-      gateStatus = "Dialing"
-      recordSessionData()
-      updateStatus()
-      return true
-    --elseif tostring(dialGate) == "false" then
-      --return false
-    --end
+    gateStatus = "Dialing"
+    recordSessionData()
+    updateStatus()
+    return true
   else
     return false
   end
@@ -514,51 +500,29 @@ local function firstRun()
   term.setTextColor(colors.lightBlue)
   term.write("Please select the shield/redstone output side")
   -- Draw side list
+  local tPos = { 5,7,9,11,13,15 }
+  local tSide = { "top","bottom","front","back","left","right" }
   term.setBackgroundColor(colors.gray)
-  for i = 4,16,1 do
-    term.setCursorPos(26,i)
-    term.write("        ")
-  end
-  term.setCursorPos(27,5)
   term.setTextColor(colors.white)
-  term.write("Top")
-  term.setCursorPos(27,7)
-  term.write("Bottom")
-  term.setCursorPos(27,9)
-  term.write("Front")
-  term.setCursorPos(27,11)
-  term.write("Back")
-  term.setCursorPos(27,13)
-  term.write("Left")
-  term.setCursorPos(27,15)
-  term.write("Right")
+  for i = 4,16,1 do                                   -- Draw blank menu
+    term.setCursorPos(26,i)                           --
+    term.write("        ")                            --
+  end
+  for j,k in pairs(tSide) do
+    term.setCursorPos(27,tPos[j])
+    term.write(string.upper(k):sub(1,1) .. k:sub(2) ) -- Draw side labels in menu
+  end
   while true do
-    local newSide = { os.pullEvent("mouse_click") }
-    if newSide[3] > 26 and newSide[3] < 34 then
-      if newSide[4] == 5 then
-        gateSettings.shield = "top"
-        break
-      elseif newSide[4] == 7 then
-        gateSettings.shield = "bottom"
-        break
-      elseif newSide[4] == 9 then
-        gateSettings.shield = "front"
-        break
-      elseif newSide[4] == 11 then
-        gateSettings.shield = "back"
-        break
-      elseif newSide[4] == 13 then
-        gateSettings.shield = "left"
-        break
-      elseif newSide[4] == 15 then
-        gateSettings.shield = "right"
-        break
+    local newSide = { os.pullEvent("mouse_click") }   -- Select shield side
+    if newSide[3] > 26 and newSide[3] < 34 then       --
+      for j,k in pairs(tSide) do                      --
+        if newSide[4] == tPos[j] then                 --
+          gateSettings.shield = k                     --
+          return false                                --
+        end
       end
     end
   end
-  term.setBackgroundColor(colors.black)
-  term.clear()
-  saveData()
 end
 
 -- AUTOMATIC/STATIC CONFIGURATION (Part 2)
@@ -578,7 +542,12 @@ local function initGate()
 end
 
 local function initMe()
-  if not fs.exists("/data/gateSettings") then firstRun() end
+  if not fs.exists("/data/gateSettings") then
+    firstRun()
+    term.setBackgroundColor(colors.black)
+    term.clear()
+    saveData()
+  end
   ingestData()
   shieldStatus = rs.getOutput(gateSettings.shield)
   for k,v in pairs(rs.getSides()) do
