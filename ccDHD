@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.48    ]]--
+--[[    ver. 1.0.49    ]]--
 --[[  core ver. 4.3.7  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.48"
+local ccDHDVer = "1.0.49"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -20,16 +20,10 @@ Tested with/requires:
 
   - ccDHD also supports the Biometric Lock (Fistprint Scanner) in GopherATL's Biolock MOD ver. 2.1.3 (updated for 1.6.4 by gamax92)
 ]]--
-
 if os.clock() < 5 then
   sleep(2)
 end
-
--- Automatic/Static Configuration
--- Peripherals
-local monA, monB = "none","none"
-local termX,termY = term.getSize()
-local modem  -- Modem (for ccNet)
+-- AUTOMATIC/STATIC CONFIGURATION
 -- Default Settings
 local settingsData = "/data/DHDsettings"
 local dhdSettings = { thisGate="GATEONE",
@@ -51,15 +45,17 @@ local dhdSettings = { thisGate="GATEONE",
                       logs="OFF",
                       lastGate="DHDlast",
                       gateHistory="DHDhistory",
-                      gateData = "/data/DHDgates",
+                      gateData="/data/DHDgates",
                     }
 local allGates = { {addr="NEWGATE",rating="U",note="short note",loc={x=99999,y=99999,z=99999,dim="0",},}, }
 local gateLiaison = dhdSettings.server
 local fistAuth = false
- -- 'Static' Menu/Control Labels
-local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "END Call", "LOCKDOWN", "rCmd", "+ Entry", "Save", "- Undo -", "-COMMIT-" }
-local passSymbols = { "!", "@", "#", "$", "%", "*", "?", "+", "x", "X" }
 local longName, tY
+-- Peripherals
+local termX,termY = term.getSize()
+local modem = dhdSettings.ccnet -- Modem (for ccNet)
+local monA = dhdSettings.monA   -- List monitor
+local monB = dhdSettings.monB   -- Marque Monitor
  -- Status Info
 local shieldStatus = "QRY"
 local gateStatus = "QRY"
@@ -71,7 +67,6 @@ local runState = "init"
 local currentState = "ZZ"
 local configChange = false
 local gateChange = false
-local trimChange = false
 local tempState, currentEdit
 local fuelGuage, dialAddress
  -- Gate List
@@ -97,7 +92,7 @@ local lblue = colors.lightBlue
 local cyan = colors.cyan
 local lime = colors.lime
 local green = colors.green
--- End Configuration
+-- END AUTOMATIC/STATIC CONFIGURATION
 
 local function recordSessionData() -- Human readable log files (last gate & history)
   if not fs.exists("/data") then fs.makeDir("/data") end
@@ -684,6 +679,7 @@ local function drawHeader()
 end
 
 local function drawControlUI()
+  local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "END Call", "LOCKDOWN", "rCmd", "+ Entry", "Save", "- Undo -", "-COMMIT-" }
   term.setBackgroundColor(gray)
   for i = 6,16,1 do
     for h = 42,termX,1 do
@@ -1800,6 +1796,7 @@ local function secKernel()       -- LOCKDOWN handler
   drawSecureUI()
   term.setTextColor(yellow)
   term.setBackgroundColor(black)
+  local passSymbols = { "!", "@", "#", "$", "%", "*", "?", "+", "x", "X" }
   while secureStatus == "lockdown" do
     term.setCursorPos(termX/2,15)
     local securePass = tostring(read(passSymbols[math.random(1,#passSymbols)]))
