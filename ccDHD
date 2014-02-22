@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.49    ]]--
+--[[    ver. 1.0.50    ]]--
 --[[  core ver. 4.3.7  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,13 +8,13 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.49"
+local ccDHDVer = "1.0.50"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
   - Latest LanteaCraft (snapshot 82+)
   - ComputerCraft ver. 1.57+ for MC 1.6.4
-    - HTTP API enabled (for installer/pastebin)
+    - HTTP API enabled (for installer/pastebin - not required for ccDHD)
     - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
     - gateLiaison running on an Advanced Computer with 3 optional Advanced Monitors
 
@@ -56,6 +56,7 @@ local termX,termY = term.getSize()
 local modem = dhdSettings.ccnet -- Modem (for ccNet)
 local monA = dhdSettings.monA   -- List monitor
 local monB = dhdSettings.monB   -- Marque Monitor
+--local cfgSides = { "top", "bottom", "front", "back", "left", "right", }
  -- Status Info
 local shieldStatus = "QRY"
 local gateStatus = "QRY"
@@ -301,13 +302,12 @@ local function ingestLogData()
     if timeDate == nil or timeDate == "" then break end
     local tTime = timeDate:sub(1,string.find(timeDate," / ")) -- separate time from time/day
     local dDate = timeDate:sub(#tTime+7)                      -- separate day from time/day
-    --local dDate = string.rep(" ",6-timeDate:sub(#tTime+7)) .. timeDate:sub(#tTime+7)  -- separate day from time/day and format
     if #tTime == 8 then tTime = " " .. tTime end  -- move single digit hour times to the right one space (this must happen after date so date doesn't get skewed by 1)
     table.insert(callHistory,1,tTime .. string.rep(" ",termX-40-#tTime) .. dDate .. string.rep(" ",termX-41-#dDate) .. gateAddr)
   end
   dhdHist.close()
   histPages = math.ceil(#callHistory/10) -- paginate call logs
-  if histPages < 1 then histPages = 1 end
+  if histPages < 1 then histPages = 1 end -- probably not necessary with math.ceil
   if not fs.exists("/data/DHDlast") then
     local tmpLast = fs.open("/data/DHDlast","w")
     tmpLast.close()
@@ -593,7 +593,7 @@ local function drawHeader()
     end
     term.setCursorPos(2,2)
     term.setTextColor(yellow)
-    term.write("D I A L   H I S T O R Y")
+    term.write("C A L L   H I S T O R Y")
     term.setCursorPos(termX - 6,2)
     term.setBackgroundColor(lgray)
     term.setTextColor(gray)
@@ -1993,7 +1993,7 @@ local function wrapPerp(perp,side)
     elseif perp == "C" then
       if peripheral.getType(side) == "modem" then
         if peripheral.call(side,"isWireless") == true then
-          modem = perihperal.wrap(side)
+          modem = peripheral.wrap(side)
           dhdSettings.ccnet = side
           modem.open(dhdSettings.channels.recv)
           configChange = true
@@ -2420,7 +2420,7 @@ local function mClick()
           end
           for i = 5,14,1 do
             term.setCursorPos(14,i)
-            term.write("                    ")
+            term.write(string.rep(" ",20))
           end
           term.setCursorPos(2,7)
           local gtColor = assignColor(currentEdit)
@@ -2475,7 +2475,7 @@ local function mClick()
           if newDim ~= "" and tostring(newDim) ~= "nil" then
             allGates[currentEdit].loc.dim = newDim
             term.setCursorPos(13,12)
-            term.write("                                      ")
+            term.write(string.rep(" ",38))
             gateChange = true
           end
           term.setCursorPos(13,12)
@@ -2553,7 +2553,7 @@ local function mClick()
         runState = "Edit"
         term.setBackgroundColor(black)
         term.setCursorPos(2,7)
-        term.write("                                        ")
+        term.write(string.rep(" ",40))
         term.setCursorPos(2,9)
         for i = 2,termX,1 do
           term.write(" ")
@@ -2564,17 +2564,19 @@ local function mClick()
         end
         for i = 12,15,1 do
           term.setCursorPos(2,i)
-          term.write("                ")
+          term.write(string.rep(" ",16))
         end
         term.setCursorPos(13,12)
-        term.write("                                      ")
+        term.write(string.rep(" ",38))
         term.setCursorPos((termX/2)-8,termY-1)
-        term.write("                   ")
+        term.write(string.rep(" ",19))
         drawCLI()
       end
     end
       -- DHD Settings
     if runState == "DialCfg" or runState == "EditCfg" then
+      local cfgPos = { 5, 7, 9, 11, 13, 15 }
+      local cfgSides = { "top", "bottom", "front", "back", "left", "right" }
         -- Save Settings
       if mcY == 2 and mcX > 38 and mcX < 45 then
         flashChoice("cfgsave")
@@ -2651,21 +2653,13 @@ local function mClick()
         drawAuthList(dhdSettings.bio.auth)
         local bioAuth = { os.pullEvent("mouse_click") }
         if bioAuth[3] > 26 and bioAuth[2] < 31 then
-          if bioAuth[4] == 5 then
-            dhdSettings.bio.auth = 1
-            configChange = true
-          elseif bioAuth[4] == 7 then
-            dhdSettings.bio.auth = 2
-            configChange = true
-          elseif bioAuth[4] == 9 then
-            dhdSettings.bio.auth = 3
-            configChange = true
-          elseif bioAuth[4] == 11 then
-            dhdSettings.bio.auth = 4
-            configChange = true
-          elseif bioAuth[4] == 13 then
-            dhdSettings.bio.auth = 5
-            configChange = true
+          local secPos = { 5, 7, 9, 11, 13 }
+          for j,k in pairs(secPos) do
+            if bioAuth[4] == k then
+              dhdSettings.bio.auth = j
+              configChange = true
+              break
+            end
           end
         end
         drawSettingsUI()
@@ -2677,14 +2671,14 @@ local function mClick()
           dhdSettings.net = "C"
           modem = peripheral.wrap(dhdSettings.ccnet)
           modem.open(dhdSettings.channels.recv)
-          configChange = true
+          saveData(settingsData,"cfg")
         elseif dhdSettings.net == "C" then
           netSend("redNet")
           modem.close(dhdSettings.channels.recv)
           modem = nil
           dhdSettings.net = "R"
           rednet.open(dhdSettings.rednet)
-          configChange = true
+          saveData(settingsData,"cfg")
         end
         drawSettingsUI()
         -- Select redNet Side
@@ -2693,18 +2687,11 @@ local function mClick()
           drawSideList(dhdSettings.rednet)
           local netSide = { os.pullEvent("mouse_click") }
           if netSide[3] > 26 and netSide[2] < 35 then
-            if netSide[4] == 5 then
-              wrapPerp("R","top")
-            elseif netSide[4] == 7 then
-              wrapPerp("R","bottom")
-            elseif netSide[4] == 9 then
-              wrapPerp("R","front")
-            elseif netSide[4] == 11 then
-              wrapPerp("R","back")
-            elseif netSide[4] == 13 then
-              wrapPerp("R","left")
-            elseif netSide[4] == 15 then
-              wrapPerp("R","right")
+            for jr,kr in pairs(cfgPos) do
+              if netSide[4] == kr then
+                wrapPerp("R",cfgSides[jr])
+                break
+              end
             end
           end
           drawSettingsUI()
@@ -2713,18 +2700,11 @@ local function mClick()
           drawSideList(dhdSettings.ccnet)
           local netSide = { os.pullEvent("mouse_click") }
           if netSide[3] > 26 and netSide[2] < 35 then
-            if netSide[4] == 5 then
-              wrapPerp("C","top")
-            elseif netSide[4] == 7 then
-              wrapPerp("C","bottom")
-            elseif netSide[4] == 9 then
-              wrapPerp("C","front")
-            elseif netSide[4] == 11 then
-              wrapPerp("C","back")
-            elseif netSide[4] == 13 then
-              wrapPerp("C","left")
-            elseif netSide[4] == 15 then
-              wrapPerp("C","right")
+            for jc,kc in pairs(cfgPos) do
+              if netSide[4] == kr then
+                wrapPerp("R",cfgSides[jr])
+                break
+              end
             end
           end
           drawSettingsUI()
@@ -2760,7 +2740,7 @@ local function mClick()
               modem.close(dhdSettings.channels.recv)
               dhdSettings.channels.recv = newChannel
               modem.open(dhdSettings.channels.recv)
-              configChange = true
+              saveData(settingsData,"cfg")
             end
           end
           term.setCursorPos(17,12)
@@ -2783,13 +2763,13 @@ local function mClick()
               sleep(0.1)
               netSend(newServer)
               dhdSettings.channels.send = newServer
+              saveData(settingsData,"cfg")
             end
-            configChange = true
-            term.setCursorPos(11,12)
-            term.write("     ")
           end
+          term.setCursorPos(11,12)
+          term.write("     ")
+          drawSettingsUI()
         end
-        drawSettingsUI()
         -- Select Marque Side
       elseif mcY == 14 and mcX < 24 then
         if mcX > 16 and mcX < 21  and dhdSettings.monB ~= "none" then
@@ -2802,18 +2782,11 @@ local function mClick()
           drawSideList(dhdSettings.monB)
           local monBSide = { os.pullEvent("mouse_click") }
           if monBSide[3] > 26 and monBSide[2] < 35 then
-            if monBSide[4] == 5 then
-              wrapPerp("B","top")
-            elseif monBSide[4] == 7 then
-              wrapPerp("B","bottom")
-            elseif monBSide[4] == 9 then
-              wrapPerp("B","front")
-            elseif monBSide[4] == 11 then
-              wrapPerp("B","back")
-            elseif monBSide[4] == 13 then
-              wrapPerp("B","left")
-            elseif monBSide[4] == 15 then
-              wrapPerp("B","right")
+            for jb,kb in pairs(cfgPos) do
+              if monBSide[4] == kb then
+                wrapPerp("B",cfgSides[jb])
+                break
+              end
             end
           end
         end
@@ -2830,18 +2803,11 @@ local function mClick()
           drawSideList(dhdSettings.monA)
           local monASide = { os.pullEvent("mouse_click") }
           if monASide[3] > 26 and monASide[2] < 35 then
-            if monASide[4] == 5 then
-              wrapPerp("A","top")
-            elseif monASide[4] == 7 then
-              wrapPerp("A","bottom")
-            elseif monASide[4] == 9 then
-              wrapPerp("A","front")
-            elseif monASide[4] == 11 then
-              wrapPerp("A","back")
-            elseif monASide[4] == 13 then
-              wrapPerp("A","left")
-            elseif monASide[4] == 15 then
-              wrapPerp("A","right")
+            for jb,kb in pairs(cfgPos) do
+              if monASide[4] == kb then
+                wrapPerp("A",cfgSides[jb])
+                break
+              end
             end
           end
         end
