@@ -1,16 +1,16 @@
 --[[  LanteaCraft      ]]--
 --[[    Gate Liaison   ]]--
---[[  version  1.0.07  ]]--
+--[[  version  1.0.08  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "1.0.07"
+local gVer = "1.0.08"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
   - Latest DeltaSG-Craft or LanteaCraft (snapshot 82)
   - ComputerCraft ver. 1.57+ for MC 1.6.4
-    - HTTP API enabled (for installer/pastebin)
+    - HTTP API enabled (for installer/pastebin - not required for gateLiaison)
     - 1 Advanced Computer (color, mouse), 3 optional Advanced Monitors (color)
     - ccDHD running on an Advanced Computer with 4 optional Advanced Monitors
       - ccDHD also supports GopherATL's BioLock ver. 2.1.3 Fistprint scanner (updated for 1.6.4 by gamax92)
@@ -48,7 +48,7 @@ end
 
 local function saveData()
   if not fs.exists("/data") then fs.makeDir("/data") end
-  local gateConfig = fs.open("/data/gateSettings","w") or error("/data/gateSettings does not exist", 2)
+  local gateConfig = fs.open("/data/gateSettings","w") or error("Cannot open /data/gateSettings", 2)
   gateConfig.write(textutils.serialize(gateSettings))
   gateConfig.close()
 end
@@ -285,6 +285,7 @@ end
 
 local function recordSessionData()  -- Human readable log files (last gate & history)
   if not fs.exists("/data") then fs.makeDir("/data") end
+  if fs.exists("/data/DHDlast") then fs.delete("/data/DHDlast") end
   local dateStamp = textutils.formatTime(os.time(),false) .. " / Day " .. os.day()
   local lastCall = fs.open(gateSettings.last,"w")
   lastCall.writeLine(dateStamp)
@@ -374,28 +375,16 @@ local function doCommand(thisCommand)
     saveData()
     drawTermScreen()
   elseif thisCommand == "CS" then
-    local newCR
-    if gateSettings.net == "R" then
-      _,newCR = rednet.receive(2)
-      gateSettings.chan.recv = newCR
-    elseif gateSettings.net == "C" then
-      newCR = { os.pullEvent("modem_message") }
-      modem.close(gateSettings.chan.recv)
-      gateSettings.chan.recv = newCR[5]
-      modem.open(gateSettings.chan.recv)
-      saveData()
-    end
+    local newCR = { os.pullEvent("modem_message") }
+    modem.close(gateSettings.chan.recv)
+    gateSettings.chan.recv = newCR[5]
+    modem.open(gateSettings.chan.recv)
+    saveData()
     drawTermScreen()
   elseif thisCommand == "CR" then
-    local newCS
-    if gateSettings.net == "R" then
-      _,newCS = rednet.receive(1)
-      gateSettings.chan.send = newCS
-    elseif gateSettings.net == "C" then
-      newCS = { os.pullEvent("modem_message") }
-      gateSettings.chan.send = newCS[5]
-      saveData()
-    end
+    local newCS = { os.pullEvent("modem_message") }
+    gateSettings.chan.send = newCS[5]
+    saveData()
     drawTermScreen()
   end                                  -- replaced elseif with end/if - split these into two if/thens
   if gateStatus ~= "lockdown" then
