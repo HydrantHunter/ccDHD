@@ -1,10 +1,10 @@
 --[[  LanteaCraft      ]]--
 --[[    Gate Liaison   ]]--
---[[  version  1.0.08  ]]--
+--[[  version  1.0.09  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "1.0.08"
+local gVer = "1.0.09"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -16,18 +16,14 @@ Tested with/requires:
       - ccDHD also supports GopherATL's BioLock ver. 2.1.3 Fistprint scanner (updated for 1.6.4 by gamax92)
 ]]--
 -- AUTOMATIC/STATIC CONFIGURATION (Part 1)
-local modem
-local modemSide
-local thisGate
-local gate
+local modem, modemSide
+local gate, thisGate
+local fuelGuage, shieldStatus
 local pData
-local fuelGuage
-local shieldStatus
 local gateStatus = "QRY"
 local dialAddress = "none"
 local currentState = "ZZ"
-local pollTimer = 0
-local timePoller = 0
+local pollTimer, timePoller = 0,0
 local longName = ""
 local mon = "none"
 local gateSettings = { shield = "front",
@@ -478,7 +474,7 @@ local function firstRun()
     term.write("       ")
     term.setCursorPos(2,8)
     local newDHD = tonumber(read())
-    if newDHD ~= "" and newDHD ~= nil and newDHD > 0 and newDHD < 999 then
+    if newDHD ~= "" and newDHD ~= nil and newDHD >= 0 and newDHD < 32768 then
       gateSettings.DHD = newDHD
       break
     end
@@ -498,11 +494,11 @@ local function firstRun()
     term.write("        ")                            --
   end
   for j,k in pairs(tSide) do
-    term.setCursorPos(27,tPos[j])
-    term.write(string.upper(k):sub(1,1) .. k:sub(2) ) -- Draw side labels in menu
+    term.setCursorPos(27,tPos[j])                     -- Draw side labels in menu
+    term.write(string.upper(k):sub(1,1) .. k:sub(2) ) --
   end
   while true do
-    local newSide = { os.pullEvent("mouse_click") }   -- Select shield side
+    local newSide = { os.pullEvent("mouse_click") }   -- Select shield (redstone output) side
     if newSide[3] > 26 and newSide[3] < 34 then       --
       for j,k in pairs(tSide) do                      --
         if newSide[4] == tPos[j] then                 --
