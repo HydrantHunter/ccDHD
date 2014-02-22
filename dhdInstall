@@ -1,5 +1,5 @@
 --[[ DHD/Gate Installer ]]--
---[[   version 1.0.02   ]]--
+--[[   version 1.0.03   ]]--
 --[[  by HydrantHunter  ]]--
 --[[      aka Dog       ]]--
 --[[ pastebin  A6uxKyCy ]]--
@@ -16,7 +16,7 @@ Test with/Requires:
 local startup
 
 local function downloadFile(fileToken, fileName)
-  local fileURL = http.get("http://pastebin.com/raw.php?i="..textutils.urlEncode(fileToken))
+  local fileURL = http.get("http://pastebin.com/raw.php?i=" .. textutils.urlEncode(fileToken))
   if fileURL then
     local fileContents = fileURL.readAll()
     fileURL.close()
@@ -114,9 +114,15 @@ while true do
       if fs.exists("startup") then
         if fs.exists("DHD") then
           fs.delete("DHD")
+          downloadFile("vMtcSz2e","DHD")
+          startup = 1
+        else
+          if fs.exists("/data/DHDsettings") then
+            fs.delete("startup")
+            downloadFile("vMtcSz2e","startup")
+            startup = 2
+          end
         end
-        downloadFile("vMtcSz2e","DHD")
-        startup = 1
       else
         downloadFile("vMtcSz2e","startup")
         startup = 2
@@ -132,9 +138,15 @@ while true do
       if fs.exists("startup") then
         if fs.exists("gateLiaison") then
           fs.delete("gateLiaison")
+          downloadFile("xSHHqL0h","gateLiaison")
+          startup = 1
+        else
+          if fs.exists("/data/gateSettings") then
+            fs.delete("startup")
+            downloadFile("xSHHqL0h","startup")
+            startup = 3
+          end
         end
-        downloadFile("xSHHqL0h","gateLiaison")
-        startup = 1
       else
         downloadFile("xSHHqL0h","startup")
         startup = 3
