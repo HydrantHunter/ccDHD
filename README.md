@@ -1,7 +1,7 @@
 ccDHD
 =====
 
-DHD for ComputerCraft and LanteaCraft
+ComputerCraft DHD for LanteaCraft
 
 Requires gateLiaison running on 'gate' computer
 
