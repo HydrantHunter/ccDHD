@@ -13,9 +13,7 @@ REQUIREMENTS:
 
 DHD requires the following:
  - Advanced Computer (color/mouse)
- - 
-   or
- -
+ - or
  - Advanced Wireless Turtle (color/mouse) but list monitor and Biometric Scanner can not be installed simultaneously
 
  - new directory:  /data
@@ -23,9 +21,7 @@ DHD requires the following:
 
 gateLiaison requires the following:
  - Advanced Computer (color)
- - 
-   or
- -
+ - or
  - Advanced Wireless Turtle (color) if no Marque monitor is installed
 
  - new directory:  /logs
