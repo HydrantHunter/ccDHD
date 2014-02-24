@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.50    ]]--
+--[[    ver. 1.0.51    ]]--
 --[[  core ver. 4.3.8  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,11 +8,11 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.50"
+local ccDHDVer = "1.0.51"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
-  - Latest LanteaCraft (snapshot 82+)
+  - LanteaCraft (snapshot 82 & RC1)
   - ComputerCraft ver. 1.57+ for MC 1.6.4
     - HTTP API enabled (for installer/pastebin - not required for ccDHD)
     - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
@@ -306,7 +306,7 @@ local function ingestLogData()
     table.insert(callHistory,1,tTime .. string.rep(" ",termX-40-#tTime) .. dDate .. string.rep(" ",termX-41-#dDate) .. gateAddr)
   end
   dhdHist.close()
-  histPages = math.ceil(#callHistory/10) -- paginate call logs
+  histPages = math.ceil(#callHistory/10)  -- paginate call logs
   if histPages < 1 then histPages = 1 end -- probably not necessary with math.ceil
   if not fs.exists("/data/DHDlast") then
     local tmpLast = fs.open("/data/DHDlast","w")
@@ -341,14 +341,18 @@ local function ingestData(fileName,fileType)
     end
     if dhdSettings.bio.lock ~= "none" then
     end
-    local tG = { }
-    longName = ""
-    for i = 1,dhdSettings.thisGate:len(),1 do
-      tG[i] = dhdSettings.thisGate:sub(i,i)
-      if i < dhdSettings.thisGate:len() then
-        longName = longName .. tG[i] .. " "
-      else
-        longName = longName .. tG[i]
+    if #dhdSettings.thisGate > 7 then
+      longName = dhdSettings.thisGate
+    else
+      local tG = { }
+      longName = ""
+      for i = 1,dhdSettings.thisGate:len(),1 do  -- This spaces out the name for a 7 character home gate address
+        tG[i] = dhdSettings.thisGate:sub(i,i)
+        if i < dhdSettings.thisGate:len() then
+          longName = longName .. tG[i] .. " "
+        else
+          longName = longName .. tG[i]
+        end
       end
     end
   elseif fileType == "gate" then
@@ -467,13 +471,18 @@ local function displayMarque()
   monB.setCursorPos(1,1)
   monB.write("Stargate")
   monB.setTextColor(yellow)
-  monB.setCursorPos(2,2)
+  if #longName == 7 then
+    monB.setCursorPos(2,2)
+  else
+    monB.setCursorPos(4,2)
+  end
   monB.write(longName)
 end
 
 local function displayGateList()
   local mX,mY = monA.getSize()
   local firstGate = ((listPage - 1) * 8) + 1
+  local tmX = 5
   local tmY = 1
   monA.setTextScale(0.5)
   monA.setBackgroundColor(black)
@@ -481,7 +490,8 @@ local function displayGateList()
   for i = firstGate, firstGate + 7, 1 do
     if tmY == 9 then break end
     if i > #allGates then break end
-    monA.setCursorPos(5,tmY)
+    if #allGates[i].addr > 7 then tmX = 4 end
+    monA.setCursorPos(tmX,tmY)
     monA.setTextColor(assignColor(i))
     monA.write(allGates[i].addr)
     tmY = tmY + 1
@@ -527,21 +537,22 @@ local function displayStatus()
     elseif gateStatus == "Connected" then
       monB.write("Connected to")
     end
-    monB.setTextColor(yellow)
     local xPos = 9 - dialAddress:len()
-    if xPos == 0 then
-      monB.setTextScale(1.5)
-      xPos = 1
+    if xPos < 2 then
+      xPos = 4
+      longAddress = dialAddress
     end
     monB.setCursorPos(xPos,2)
-    local longAddress = ""
-    local dA = { }
-    for i = 1,dialAddress:len(),1 do
-      dA[i] = dialAddress:sub(i,i)
-      if i < dialAddress:len() then
-        longAddress = longAddress .. dA[i] .. " "
-      else
-        longAddress = longAddress .. dA[i]
+    if #dialAddress < 8 then
+      local longAddress = ""
+      local dA = { }
+      for i = 1,dialAddress:len(),1 do
+        dA[i] = dialAddress:sub(i,i)
+        if i < dialAddress:len() then
+          longAddress = longAddress .. dA[i] .. " "
+        else
+          longAddress = longAddress .. dA[i]
+        end
       end
     end
     monB.setTextColor(yellow)
@@ -1309,8 +1320,9 @@ local function drawSecureUI()
   end
   if monB ~= "none" then
     monB.setBackgroundColor(black)
-    monB.clear()
     monB.setTextColor(red)
+    monB.setTextScale(2)
+    monB.clear()
     monB.setCursorPos(1,1)
     monB.write("!! LOCKDOWN !!")
   end
