@@ -1,14 +1,14 @@
 --[[  LanteaCraft      ]]--
 --[[    Gate Liaison   ]]--
---[[  version  1.0.09  ]]--
+--[[  version  1.0.10  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "1.0.09"
+local gVer = "1.0.10"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
-  - Latest DeltaSG-Craft or LanteaCraft (snapshot 82)
+  - LanteaCraft (snapshot 82 & RC1)
   - ComputerCraft ver. 1.57+ for MC 1.6.4
     - HTTP API enabled (for installer/pastebin - not required for gateLiaison)
     - 1 Advanced Computer (color, mouse), 3 optional Advanced Monitors (color)
@@ -57,8 +57,12 @@ local function displayMarque()
     mon.setCursorPos(1,1)
     mon.setTextColor(colors.cyan)
     mon.write("Stargate")
-    mon.setCursorPos(2,2)
     mon.setTextColor(colors.yellow)
+    if #thisGate > 7 then
+      mon.setCursorPos(4,2)
+    else
+      mon.setCursorPos(2,2)
+    end
     mon.write(longName)
   end
 end
@@ -72,11 +76,16 @@ local function displayStatus(select)
       mon.setTextColor(colors.lightBlue)
       mon.write("Connected to")
       mon.setTextColor(colors.yellow)
-      mon.setCursorPos(1,2)
-      local dA = { }
-      for i = 1,#dialAddress do
-        dA[i] = dialAddress:sub(i,i)
-        mon.write(" " .. dA[i])
+      if dialAddress > 7 then
+        mon.setCursorPos(4,2)
+        mon.write(dialAddress)
+      else
+        mon.setCursorPos(1,2)
+        local dA = { }
+        for i = 1,#dialAddress do
+          dA[i] = dialAddress:sub(i,i)
+          mon.write(" " .. dA[i])
+        end
       end
     else
       mon.setTextColor(colors.yellow)
@@ -92,11 +101,16 @@ local function displayStatus(select)
       mon.setTextColor(colors.lightBlue)
       mon.write("Dialing")
       mon.setTextColor(colors.yellow)
-      mon.setCursorPos(1,2)
-      local dA = { }
-      for i = 1,#dialAddress do
-        dA[i] = dialAddress:sub(i,i)
-        mon.write(" " .. dA[i])
+      if #dialAddress > 7 then
+        mon.setCursorPos(4,2)
+        mon.write(dialAddress)
+      else
+        mon.setCursorPos(1,2)
+        local dA = { }
+        for i = 1,#dialAddress do
+          dA[i] = dialAddress:sub(i,i)
+          mon.write(" " .. dA[i])
+        end
       end
     else
       mon.setTextColor(colors.yellow)
@@ -514,14 +528,18 @@ end
 local function initGate()
   thisGate = gate.getAddress()
   fuelGuage = gate.hasFuel()
-  local tG = { }
-  longName = ""
-  for i = 1,thisGate:len(),1 do
-    tG[i] = thisGate:sub(i,i)
-    if i < thisGate:len() then
-      longName = longName .. tG[i] .. " "
-    else
-      longName = longName .. tG[i]
+  if #thisGate > 7 then
+    longName = thisGate
+  else
+    local tG = { }
+    longName = ""
+    for i = 1,thisGate:len(),1 do
+      tG[i] = thisGate:sub(i,i)
+      if i < thisGate:len() then
+        longName = longName .. tG[i] .. " "
+      else
+        longName = longName .. tG[i]
+      end
     end
   end
 end
