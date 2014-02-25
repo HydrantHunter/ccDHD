@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.55    ]]--
+--[[    ver. 1.0.56    ]]--
 --[[  core ver. 4.3.8  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,11 +8,11 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.55"
+local ccDHDVer = "1.0.56"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
-  - LanteaCraft (snapshot 82)
+  - LanteaCraft (snapshot 82 and RC1)
   - ComputerCraft ver. 1.57+ for MC 1.6.4
     - HTTP API enabled (for installer/pastebin - not required for ccDHD)
     - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
@@ -98,18 +98,16 @@ local green = colors.green
 local function recordSessionData() -- Human readable log files (last gate & history)
   if not fs.exists("/data") then fs.makeDir("/data") end
   local dateStamp = tostring(textutils.formatTime(os.time(),false) .. " / Day " .. os.day())
-  local last = dhdSettings.lastGate
-  local lastCall = fs.open(last,"w")
+  local lastCall = fs.open(dhdSettings.lastGate,"w")
   lastCall.writeLine(dateStamp)
   lastCall.writeLine(dialAddress)
   lastCall.close()
   if dhdSettings.logs == "ON" then
-    local archive = dhdSettings.gateHistory
-    if not fs.exists(archive) then
-      local tmpHist = fs.open(archive,"w")
+    if not fs.exists(dhdSettings.gateHistory) then
+      local tmpHist = fs.open(dhdSettings.gateHistory,"w")
       tmpHist.close()
     end
-    local gateArchive = fs.open(archive,"a")
+    local gateArchive = fs.open(dhdSettings.gateHistory,"a")
     gateArchive.writeLine(dateStamp)
     gateArchive.writeLine(dialAddress)
     gateArchive.close()
@@ -290,11 +288,11 @@ local function netReceive()
 end
 
 local function ingestLogData()
-  if not fs.exists("/data/DHDhistory") then
-    local tmpHist = fs.open("/data/DHDhistory","w")
+  if not fs.exists(dhdSettings.gateHistory) then
+    local tmpHist = fs.open(dhdSettings.gateHistory,"w")
     tmpHist.close()
   end
-  local dhdHist = fs.open("/data/DHDhistory","r") or error("Cannot open /data/DHDhistory", 2)
+  local dhdHist = fs.open(dhdSettings.gateHistory,"r") or error("Cannot open /data/DHDhistory for reading", 2)
   while true do
     local timeDate = dhdHist.readLine()
     local gateAddr = dhdHist.readLine()
@@ -308,11 +306,11 @@ local function ingestLogData()
   dhdHist.close()
   histPages = math.ceil(#callHistory/10)  -- paginate call logs
   if histPages < 1 then histPages = 1 end -- probably not necessary with math.ceil
-  if not fs.exists("/data/DHDlast") then
-    local tmpLast = fs.open("/data/DHDlast","w")
+  if not fs.exists(dhdSettings.lastGate) then
+    local tmpLast = fs.open(dhdSettings.lastGate,"w")
     tmpLast.close()
   end
-  local dhdLast = fs.open("/data/DHDlast","r") or error("Cannot open /data/DHDlast", 2)
+  local dhdLast = fs.open(dhdSettings.lastGate,"r") or error("Cannot open /data/DHDlast for reading", 2)
   for i = 1,2,1 do
     local lastInfo = dhdLast.readLine()
     table.insert(lastCall,lastInfo)
@@ -362,7 +360,7 @@ local function ingestData(fileName,fileType)
     numPages = math.ceil(#allGates / 24)
     listPages = math.ceil(#allGates / 8)
   elseif fileType == "logs" then
-    local dhdHist = fs.open("/data/DHDhistory","r") or error("Cannot open /data/DHDhistory", 2)
+    local dhdHist = fs.open(dhdSettings.gateHistory,"r") or error("Cannot open /data/DHDhistory for reading", 2)
     while true do
       local timeDate = dhdHist.readLine()
       local gateAddr = dhdHist.readLine()
@@ -371,7 +369,7 @@ local function ingestData(fileName,fileType)
     end
     dhdHist.close()
     histPages = math.ceil(#callHistory/12)
-    local dhdLast = fs.open("/data/DHDlast","r") or error("Cannot open /data/DHDlast", 2)
+    local dhdLast = fs.open(dhdSettings.lastGate"r") or error("Cannot open /data/DHDlast for reading", 2)
     for i = 1,2,1 do
       local lastInfo = dhdLast.readLine()
       table.insert(lastCall,lastInfo)
@@ -383,7 +381,7 @@ end
 local function saveData(filename,filetype)
   menuState = false
   if not fs.exists("/data") then fs.makeDir("/data") end
-  local dhdConfig = fs.open(tostring(filename),"w") or error("Cannot open " .. filename, 2)
+  local dhdConfig = fs.open(tostring(filename),"w") or error("Cannot open " .. filename .. " for writing", 2)
   if filetype == "cfg" then
     dhdConfig.write(textutils.serialize(dhdSettings))
   elseif filetype == "gate" then
@@ -544,7 +542,7 @@ local function displayStatus()
     elseif gateStatus == "Connected" then
       monB.write("Connected to")
     end
-    local xPos = 9 - dialAddress:len()
+    local xPos = 9 - #dialAddress
     if xPos < 2 then
       xPos = 4
       longAddress = dialAddress
@@ -552,9 +550,9 @@ local function displayStatus()
     monB.setCursorPos(xPos,2)
     if #dialAddress < 8 then
       local dA = { }
-      for i = 1,dialAddress:len(),1 do
+      for i = 1,#dialAddress,1 do
         dA[i] = dialAddress:sub(i,i)
-        if i < dialAddress:len() then
+        if i < #dialAddress then
           longAddress = longAddress .. dA[i] .. " "
         else
           longAddress = longAddress .. dA[i]
@@ -1553,10 +1551,10 @@ local function drawMenu()
   term.write(" ")
   term.setBackgroundColor(lgray)
   term.write("View Logs")
-  if runState == "Dial" then       -- Whether to show Dial or Edit Help option in menu
-    term.setBackgroundColor(cyan)
-  elseif runState == "Edit" or runState == "Trim" then
-    term.setBackgroundColor(brown)
+  if runState == "Dial" then       -- Whether to show Dial Help or Edit Help color pip in menu
+    term.setBackgroundColor(cyan)                      --
+  elseif runState == "Edit" or runState == "Trim" then --
+    term.setBackgroundColor(brown)                     --
   end
   term.setCursorPos(2,7)
   term.write(" ")
@@ -1888,26 +1886,26 @@ end
 local function remoteCommand()
   tempState = runState
   runState = "rCmd"
-  term.setCursorPos(((termX/2)-11),8)
+  term.setCursorPos((termX/2)-11,8)
   term.setBackgroundColor(gray)
   term.setTextColor(white)
   term.write(" RemoteCommand ")
-  term.setCursorPos(((termX/2)-11),9)
+  term.setCursorPos((termX/2)-11,9)
   term.write(" ")
   term.setBackgroundColor(black)     --
-  term.setCursorPos(((termX/2)-10),9) -- These three lines kept in case ccDHD bg is changed
+  term.setCursorPos((termX/2)-10,9) -- These three lines kept in case ccDHD bg is changed
   term.write(string.rep(" ",15))     --
-  term.setCursorPos(((termX/2)+3),9)
+  term.setCursorPos((termX/2)+3,9)
   term.setBackgroundColor(gray)
   term.write(" ")
-  term.setCursorPos(((termX/2)-11),10)
+  term.setCursorPos((termX/2)-11,10)
   term.write(string.rep(" ",15))
-  term.setCursorPos(((termX/2)-10),9)
+  term.setCursorPos((termX/2)-10,9)
   term.setTextColor(lime)
   term.setBackgroundColor(black)
   local commandLine = tostring(read())
   for i = 8,10,1 do
-    term.setCursorPos(((termX/2)-11),i)
+    term.setCursorPos((termX/2)-11,i)
   term.write(string.rep(" ",15))
   end
   if commandLine == "quit" or commandLine == "exit" then
@@ -1949,26 +1947,26 @@ end
 local function goToPage()
   tempState = runState
   runState = "goPage"
-  term.setCursorPos(((termX/2)-11),8)
+  term.setCursorPos((termX/2)-11,8)
   term.setTextColor(white)
   term.setBackgroundColor(gray)
   term.write("  Go to page:  ")
-  term.setCursorPos(((termX/2)-11),9)
+  term.setCursorPos((termX/2)-11,9)
   term.write(" ")
   term.setBackgroundColor(black)     --
-  term.setCursorPos(((termX/2)-10),9) -- These three lines kept in case ccDHD bg is changed
+  term.setCursorPos((termX/2)-10,9)  -- These three lines kept in case ccDHD bg is changed
   term.write(string.rep(" ",15))     --
-  term.setCursorPos(((termX/2)+3),9)
+  term.setCursorPos((termX/2)+3,9)
   term.setBackgroundColor(gray)
   term.write(" ")
-  term.setCursorPos(((termX/2)-11),10)
+  term.setCursorPos((termX/2)-11,10)
   term.write(string.rep(" ",15))
-  term.setCursorPos(((termX/2)-10),9)
+  term.setCursorPos((termX/2)-10,9)
   term.setTextColor(lime)
   term.setBackgroundColor(black)
   local newPage = tonumber(read())
   for i = 8,10,1 do
-    term.setCursorPos(((termX/2)-11),i)
+    term.setCursorPos((termX/2)-11,i)
     term.write(string.rep(" ",15))
   end
   if newPage == nil or newPage < 1 then newPage = 1 end
@@ -3004,7 +3002,7 @@ local function bioScan()
       end
       return fistAuth
     else
-      --if fistPrint[5] >= dhdSettings.bio.auth - 1 then
+      --if fistPrint[5] >= dhdSettings.bio.auth - 1 then -- one level less than 'unlock' to activate shield/lockdown
         if dhdSettings.bio.func == "shield" then
           if shieldStatus == "OFF" then
             netSend("sON")
@@ -3080,7 +3078,7 @@ local function firstRun()
   term.write("I am " ..  os.getComputerLabel() .. " / cc# " .. os.getComputerID())
   term.setCursorPos(2,6)
   term.setTextColor(lblue)
-  term.write("Please enter the number of the Gate Liaison")
+  term.write("Please enter the cc# of the Gate Liaison")
   term.setTextColor(white)
   while true do
     term.setCursorPos(2,8)
@@ -3106,7 +3104,7 @@ local function firstRun()
     dhdSettings.channels.recv = ccNetRecv[2]
   end
   saveData(settingsData,"cfg")
-  if not fs.exists("/data/DHDgates") then
+  if not fs.exists(dhdSettings.gateData) then
     saveData(dhdSettings.gateData,"gate")
   end
 end
@@ -3163,7 +3161,7 @@ local function initMe()
   elseif dhdSettings.net == "C" then
     local netEvent = { os.pullEvent("modem_message") }
     if netEvent[3] == dhdSettings.channels.recv and netEvent[4] == dhdSettings.channels.send then
-        updateStatus(netEvent[5])
+      updateStatus(netEvent[5])
     end
   end
   term.setCursorPos(2,10)
