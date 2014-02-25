@@ -414,7 +414,7 @@ local function doCommand(thisCommand)
     elseif thisCommand == "restart" or thisCommand == "reset" then
       os.reboot()
     else
-      if thisCommand:len() > 6 and thisCommand:len() < 10 and thisCommand ~= "endCall" and thisCommand ~= "lockdown" and thisCommand ~= "allclear" then
+      if #thisCommand > 6 and #thisCommand < 10 and thisCommand ~= "endCall" and thisCommand ~= "lockdown" and thisCommand ~= "allclear" then
         if dialOut(thisCommand) == true then
           gateStatus = "Dialing"
           updateStatus()
@@ -482,7 +482,7 @@ local function firstRun()
   term.write("I am " ..  os.getComputerLabel() .. " / cc# " .. os.getComputerID())
   term.setCursorPos(2,6)
   term.setTextColor(colors.lightBlue)
-  term.write("Please enter the number of the ccDHD computer")
+  term.write("Please enter the cc# of the ccDHD computer")
   term.setTextColor(colors.white)
   while true do
     term.setCursorPos(2,8)
@@ -534,9 +534,9 @@ local function initGate()
   else
     local tG = { }
     longName = ""
-    for i = 1,thisGate:len(),1 do
+    for i = 1,#thisGate,1 do
       tG[i] = thisGate:sub(i,i)
-      if i < thisGate:len() then
+      if i < #thisGate then
         longName = longName .. tG[i] .. " "
       else
         longName = longName .. tG[i]
