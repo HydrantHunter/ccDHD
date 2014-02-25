@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.51    ]]--
+--[[    ver. 1.0.54    ]]--
 --[[  core ver. 4.3.8  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,11 +8,11 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.51"
+local ccDHDVer = "1.0.54"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
-  - LanteaCraft (snapshot 82 & RC1)
+  - LanteaCraft (snapshot 82)
   - ComputerCraft ver. 1.57+ for MC 1.6.4
     - HTTP API enabled (for installer/pastebin - not required for ccDHD)
     - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
@@ -43,8 +43,8 @@ local dhdSettings = { thisGate="GATEONE",
                       startShield="ON",
                       callEnd="OFF",
                       logs="OFF",
-                      lastGate="DHDlast",
-                      gateHistory="DHDhistory",
+                      lastGate="/data/DHDlast",
+                      gateHistory="/data/DHDhistory",
                       gateData="/data/DHDgates",
                     }
 local allGates = { {addr="NEWGATE",rating="U",note="short note",loc={x=99999,y=99999,z=99999,dim="0",},}, }
@@ -98,13 +98,13 @@ local green = colors.green
 local function recordSessionData() -- Human readable log files (last gate & history)
   if not fs.exists("/data") then fs.makeDir("/data") end
   local dateStamp = tostring(textutils.formatTime(os.time(),false) .. " / Day " .. os.day())
-  local last = "/data/" .. dhdSettings.lastGate
+  local last = dhdSettings.lastGate
   local lastCall = fs.open(last,"w")
   lastCall.writeLine(dateStamp)
   lastCall.writeLine(dialAddress)
   lastCall.close()
   if dhdSettings.logs == "ON" then
-    local archive = "/data/" .. dhdSettings.gateHistory
+    local archive = dhdSettings.gateHistory
     if not fs.exists(archive) then
       local tmpHist = fs.open(archive,"w")
       tmpHist.close()
@@ -341,18 +341,14 @@ local function ingestData(fileName,fileType)
     end
     if dhdSettings.bio.lock ~= "none" then
     end
-    if #dhdSettings.thisGate > 7 then
-      longName = dhdSettings.thisGate
-    else
-      local tG = { }
-      longName = ""
-      for i = 1,dhdSettings.thisGate:len(),1 do  -- This spaces out the name for a 7 character home gate address
-        tG[i] = dhdSettings.thisGate:sub(i,i)
-        if i < dhdSettings.thisGate:len() then
-          longName = longName .. tG[i] .. " "
-        else
-          longName = longName .. tG[i]
-        end
+    local tG = { }
+    longName = ""
+    for i = 1,dhdSettings.thisGate:len(),1 do -- This spaces out the name for a 7 character home gate address
+      tG[i] = dhdSettings.thisGate:sub(i,i)
+      if i < dhdSettings.thisGate:len() then
+        longName = longName .. tG[i] .. " "
+      else
+        longName = longName .. tG[i]
       end
     end
   elseif fileType == "gate" then
@@ -410,8 +406,8 @@ local function localInventory()
   dhdSettings.startShield="ON"
   dhdSettings.callEnd="OFF"
   dhdSettings.logs="OFF"
-  dhdSettings.lastGate="DHDlast"
-  dhdSettings.gateHistory="DHDhistory"
+  dhdSettings.lastGate="/data/DHDlast"
+  dhdSettings.gateHistory="/data/DHDhistory"
   dhdSettings.gateData="/data/DHDgates"
   local side
   for _,side in pairs(rs.getSides()) do
@@ -464,6 +460,7 @@ local function assignRating(gateNumber)
 end
 
 local function displayMarque()
+  if dhdSettings.monB == "none" then return end
   monB.setTextScale(2)
   monB.setBackgroundColor(black)
   monB.clear()
@@ -471,18 +468,13 @@ local function displayMarque()
   monB.setCursorPos(1,1)
   monB.write("Stargate")
   monB.setTextColor(yellow)
-  if #longName == 7 then
-    monB.setCursorPos(2,2)
-  else
-    monB.setCursorPos(4,2)
-  end
+  monB.setCursorPos(2,2)
   monB.write(longName)
 end
 
 local function displayGateList()
   local mX,mY = monA.getSize()
   local firstGate = ((listPage - 1) * 8) + 1
-  local tmX = 5
   local tmY = 1
   monA.setTextScale(0.5)
   monA.setBackgroundColor(black)
@@ -490,8 +482,7 @@ local function displayGateList()
   for i = firstGate, firstGate + 7, 1 do
     if tmY == 9 then break end
     if i > #allGates then break end
-    if #allGates[i].addr > 7 then tmX = 4 end
-    monA.setCursorPos(tmX,tmY)
+    monA.setCursorPos(5,tmY)
     monA.setTextColor(assignColor(i))
     monA.write(allGates[i].addr)
     tmY = tmY + 1
@@ -538,21 +529,19 @@ local function displayStatus()
       monB.write("Connected to")
     end
     local xPos = 9 - dialAddress:len()
-    if xPos < 2 then
-      xPos = 4
-      longAddress = dialAddress
+    if xPos == 0 then
+      monB.setTextScale(1)
+      xPos = 1
     end
     monB.setCursorPos(xPos,2)
-    if #dialAddress < 8 then
-      local longAddress = ""
-      local dA = { }
-      for i = 1,dialAddress:len(),1 do
-        dA[i] = dialAddress:sub(i,i)
-        if i < dialAddress:len() then
-          longAddress = longAddress .. dA[i] .. " "
-        else
-          longAddress = longAddress .. dA[i]
-        end
+    local longAddress = ""
+    local dA = { }
+    for i = 1,dialAddress:len(),1 do
+      dA[i] = dialAddress:sub(i,i)
+      if i < dialAddress:len() then
+        longAddress = longAddress .. dA[i] .. " "
+      else
+        longAddress = longAddress .. dA[i]
       end
     end
     monB.setTextColor(yellow)
@@ -576,7 +565,7 @@ local function drawHeader()
   term.setBackgroundColor(black)
   term.setTextColor(white)
   if secureStatus == "allclear" then
-    if runState == "Dial" or runState == "rCmd" or runState == "viewing" or runState == "page" then
+    if runState == "Dial" or runState == "rCmd" or runState == "viewing" or runState == "goPage" then
       term.setBackgroundColor(blue)
     elseif runState == "Edit" or runState == "GateEdit" then
       term.setBackgroundColor(brown)
@@ -593,7 +582,7 @@ local function drawHeader()
   end
   term.setCursorPos(1,1)
   term.write(string.rep(" ",termX))               -- Draw top/menu 'bar'
-  term.setCursorPos(((termX/2)-(#longName/2)),1)
+  term.setCursorPos((termX/2)-(#longName/2),1)
   term.write(longName)                            -- Write gate name
   if runState == "logs" then                      -- If we're viewing the logs, show the last call info instead of connect/shield info
     term.setBackgroundColor(gray)
@@ -682,7 +671,7 @@ local function drawHeader()
       term.write(dialAddress)
     end
   end
-  if runState == "rCmd" or runState == "page" then
+  if runState == "rCmd" or runState == "goPage" then
     term.setCursorPos(((termX/2)-10),9) -- this repositions the cursor for the rCmd & Go to Page boxes after an update is received
     term.setTextColor(lime)             -- this returns the cursor to 'lime' after an update is received
   end
@@ -823,7 +812,7 @@ local function drawDialUI() -- Gate Address Book
       end
     end
   end
-  term.setBackgroundColor(black)
+  term.setBackgroundColor(black) -- I think this is here for rCmd and goPage boxes, not sure
 end
 
 local function drawEditUI()
@@ -1672,13 +1661,13 @@ local function viewGateEntry(dataEntry)
   if tempState ~= "GateEdit" then runState = "viewing" end
   term.setBackgroundColor(black)
   term.clear()
-  drawCLI()
+  drawHeader()         -- drawCLI()
   term.setBackgroundColor(black)
   local txtColor = assignColor(dataEntry)
   term.setCursorPos(2,7)
   term.setTextColor(txtColor)
   term.write(allGates[dataEntry].addr)
-  term.setCursorPos(12,7)
+  term.setCursorPos(14,7)
   term.setTextColor(gray)
   local ratingWord = assignRating(dataEntry)
   term.write(ratingWord)
@@ -1714,8 +1703,6 @@ end
 local function editGateEntry(dataBlock)
   runState = "GateEdit"
   currentEdit = dataBlock
-  local colorBurst = { B = blue, H = lblue,  V = brown, M = magenta, S = green, C = orange, D = red, U = lgray, X = lgray }
-  local ratingBurst = { B = "Base", H = "Home",  V = "Village", M = "Misc.", S = "Safe", C = "Caution", D = "Danger", U = "Unknown", X = "obo" }
   if currentEdit == "new" or currentEdit == "newFast" then    -- If we're adding a new gate, create a generic gate to edit
     local newGate = { addr = "NEWGATE", rating = "U", note = "short note", loc = {x=99999,y=99999,z=99999,dim="0",}, }
     table.insert(allGates,newGate)
@@ -1740,7 +1727,7 @@ local function editGateEntry(dataBlock)
       term.setTextColor(tColor)
       term.setCursorPos(2,7)
       term.write(allGates[currentEdit].addr)
-      term.setCursorPos(12,7)
+      term.setCursorPos(14,7)
       term.setTextColor(gray)
       local ratingWord = assignRating(currentEdit)
       term.write(ratingWord)
@@ -1777,7 +1764,7 @@ local function editGateEntry(dataBlock)
 end
 
 local function clearGateEntryScreen()
-  runState=tempState
+  runState = tempState
   term.setBackgroundColor(black)
   term.setCursorPos(2,7)
   term.write(string.rep(" ",termX))
@@ -1845,7 +1832,7 @@ function drawCLI()   -- Client Interface 'decider'
   if menuState == false then
     drawHeader()
   end
-  if runState == "viewing" then return end
+  if runState == "viewing" or runState == "GateEdit" then return end
   if secureStatus == "lockdown" then
     secKernel()
     return
@@ -1882,7 +1869,7 @@ function drawCLI()   -- Client Interface 'decider'
 end
 
 local function remoteCommand()
-  local tempState = runState
+  tempState = runState
   runState = "rCmd"
   term.setCursorPos(((termX/2)-11),8)
   term.setBackgroundColor(gray)
@@ -1943,8 +1930,8 @@ local function remoteCommand()
 end
 
 local function goToPage()
-  local tempState = runState
-  runState = "page"
+  tempState = runState
+  runState = "goPage"
   term.setCursorPos(((termX/2)-11),8)
   term.setTextColor(white)
   term.setBackgroundColor(gray)
@@ -2388,9 +2375,6 @@ local function mClick()
          -- Edit Gate Rating/Classification
         elseif mcX > 11 and mcX < 19 then
           term.setBackgroundColor(black)
-          term.setTextColor(gray)
-          term.setCursorPos(12,7)
-          term.write(allGates[currentEdit].rating)
           term.setTextColor(yellow)
           drawRatingList(allGates[currentEdit].rating,currentEdit)
           local newRating = { os.pullEvent("mouse_click") }
@@ -2438,7 +2422,7 @@ local function mClick()
           local gtColor = assignColor(currentEdit)
           term.setTextColor(gtColor)
           term.write(allGates[currentEdit].addr)
-          term.setCursorPos(12,7)
+          term.setCursorPos(14,7)
           term.setTextColor(gray)
           local gtRating = assignRating(currentEdit)
           term.write(gtRating)
@@ -2770,7 +2754,7 @@ local function mClick()
           term.setTextColor(green)
           local newServer = tonumber(read())
           if tostring(newServer) ~= "" and newServer ~= nil and newServer ~= dhdSettings.channels.send then
-            if newServer > 0 and newServer <= 65535 then
+            if newServer >= 0 and newServer <= 65535 then
               netSend("CS")
               sleep(0.1)
               netSend(newServer)
@@ -3055,7 +3039,7 @@ end
 local function dhdKernel()
   if kernelState == true and secureStatus == "lockdown" then
     parallel.waitForAny(secKernel) --,netReceive,bioScan,keyClick
-  elseif kernelState == true and secureStatus == "allclear" and runState ~= "rCmd" and runState ~= "page" then
+  elseif kernelState == true and secureStatus == "allclear" and runState ~= "rCmd" and runState ~= "goPage" then
     parallel.waitForAny(mClick,mScroll,bioScan,monTouch,netReceive)  --,keyClick
   end
   if runState == "reset" then
@@ -3086,7 +3070,7 @@ local function firstRun()
     term.write("       ")
     term.setCursorPos(2,8)
     local newServer = tonumber(read())
-    if newServer ~= "" and newServer ~= nil and newServer > 0 and newServer < 999 then
+    if newServer ~= "" and newServer ~= nil and newServer >= 0 and newServer < 65535 then
       dhdSettings.server = newServer
       break
     end
