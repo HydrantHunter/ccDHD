@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.56    ]]--
+--[[    ver. 1.0.57    ]]--
 --[[  core ver. 4.3.8  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.56"
+local ccDHDVer = "1.0.57"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -16,7 +16,7 @@ Tested with/requires:
   - ComputerCraft ver. 1.57+ for MC 1.6.4
     - HTTP API enabled (for installer/pastebin - not required for ccDHD)
     - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
-    - gateLiaison running on an Advanced Computer with 3 optional Advanced Monitors
+    - gateLiaison running on an Advanced Computer (with 3 optional Advanced Monitors) or an Advanced Wireless Turtle (no monitors)
 
   - ccDHD also supports the Biometric Lock (Fistprint Scanner) in GopherATL's Biolock MOD ver. 2.1.3 (updated for 1.6.4 by gamax92)
 ]]--
@@ -31,7 +31,7 @@ local dhdSettings = { thisGate="GATEONE",
                       monA="none",
                       monB="none",
                       bio={lock="OFF",side="none",func="none",auth=4,},
-                      net="R",
+                      net="C",
                       rednet="none",
                       server=999,
                       ccnet="none",
@@ -73,7 +73,7 @@ local fuelGuage, dialAddress
  -- Gate List
 local numPages,pageNum = 1,1
 local listPages,listPage = 1,1
- -- Call history
+ -- Call History
 local histPages,histPage = 1,1
 local callHistory = { }
 local lastCall = { }
@@ -271,6 +271,7 @@ local function netReceive()
         if tonumber(netEvent[1]) == gateLiaison then
           if currentState ~= netEvent[2] then
             updateStatus(netEvent[2])
+            --return
           end
         end
       end
@@ -280,6 +281,7 @@ local function netReceive()
         if netEvent[3] == dhdSettings.channels.recv and netEvent[4] == dhdSettings.channels.send then
           if currentState ~= netEvent[5] then
             updateStatus(netEvent[5])
+            --return
           end
         end
       end
@@ -396,7 +398,7 @@ local function localInventory()
   dhdSettings.bio.lock="OFF"
   dhdSettings.bio.side="none"
   dhdSettings.bio.func="none"
-  dhdSettings.net="R"
+  dhdSettings.net="C"
   dhdSettings.rednet="none"
   dhdSettings.server=999
   dhdSettings.ccnet="none"
@@ -424,6 +426,7 @@ local function localInventory()
           modem = peripheral.wrap(side)
           modem.open(dhdSettings.channels.recv)
           dhdSettings.ccnet = side
+          dhdSettings.rednet = side
         end
       end
       if tostring(perp) == "monitor" then
@@ -1199,89 +1202,7 @@ local function drawSettingsUI()
   term.setTextColor(black)
   term.write("#")
   -- Settings 2nd column
-  term.setCursorPos(28,4)
-  term.setBackgroundColor(black)
-  term.setTextColor(gray)
-  term.write("END Call Shield")    -- END Call Shield (ON/OFF)
-  term.setCursorPos(45,4)
-  if dhdSettings.ecShield == "OFF" then
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
-  elseif dhdSettings.ecShield == "ON" then
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
-  end
-  term.setCursorPos(28,6)
-  term.setBackgroundColor(black)
-  term.setTextColor(gray)
-  term.write("STARTUP Shield")     -- Shield ON/OFF @ startup
-  term.setCursorPos(45,6)
-  --term.setTextColor(lblue)
-  if dhdSettings.startShield == "OFF" then
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
-  elseif dhdSettings.startShield == "ON" then
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
-  end
   term.setCursorPos(28,8)
-  term.setBackgroundColor(black)
-  term.setTextColor(gray)
-  term.write("Call Logging")       -- Gate Liaison should/not log outbound calls
-  term.setCursorPos(45,8)
-  --term.setTextColor(lblue)
-  if dhdSettings.logs == "OFF" then
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
-  elseif dhdSettings.logs == "ON" then
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
-  end
-  term.setCursorPos(28,10)
-  term.setBackgroundColor(black)
-  term.setTextColor(gray)
-  term.write("Last Dial")          -- Last Gate Dialed (log)
-  term.setCursorPos(38,10)
-  term.setBackgroundColor(black)
-  term.setTextColor(lgray)
-  term.write(dhdSettings.lastGate)
-  term.setCursorPos(28,12)
-  term.setBackgroundColor(black)
-  term.setTextColor(gray)
-  term.write("History")            -- Dialing History (log)
-  term.setCursorPos(38,12)
-  term.setBackgroundColor(black)
-  term.setTextColor(lgray)
-  term.write(dhdSettings.gateHistory)
-  term.setCursorPos(28,14)
-  term.setBackgroundColor(black)
-  term.setTextColor(gray)
-  term.write("Initiator Only")     -- Only call initiator can end call (ON/OFF)
-  term.setCursorPos(45,14)
-  if dhdSettings.callEnd == "OFF" then
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
-  elseif dhdSettings.callEnd == "ON" then
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
-  end
-  term.setCursorPos(28,16)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
   term.write("Bio: ")              -- Whether Biolock controls shield or initiates lockdown or does nothing
@@ -1295,7 +1216,7 @@ local function drawSettingsUI()
     term.setTextColor(red)
     term.write("Lockdown")
   end
-  term.setCursorPos(45,16)
+  term.setCursorPos(45,8)
   if dhdSettings.bio.func == "none" then
     term.setBackgroundColor(green)
     term.write(" ")
@@ -1312,6 +1233,72 @@ local function drawSettingsUI()
     term.setBackgroundColor(gray)
     term.write("  ")
     term.setBackgroundColor(red)
+    term.write("  ")
+  end
+  term.setCursorPos(28,10)
+  term.setBackgroundColor(black)
+  term.setTextColor(gray)
+  term.write("STARTUP Shield")     -- Shield ON/OFF @ startup
+  term.setCursorPos(45,10)
+  --term.setTextColor(lblue)
+  if dhdSettings.startShield == "OFF" then
+    term.setBackgroundColor(gray)
+    term.write("  ")
+    term.setBackgroundColor(red)
+    term.write("  ")
+  elseif dhdSettings.startShield == "ON" then
+    term.setBackgroundColor(green)
+    term.write("  ")
+    term.setBackgroundColor(gray)
+    term.write("  ")
+  end
+  term.setCursorPos(28,12)
+  term.setBackgroundColor(black)
+  term.setTextColor(gray)
+  term.write("END Call Shield")    -- END Call Shield (ON/OFF)
+  term.setCursorPos(45,12)
+  if dhdSettings.ecShield == "OFF" then
+    term.setBackgroundColor(gray)
+    term.write("  ")
+    term.setBackgroundColor(red)
+    term.write("  ")
+  elseif dhdSettings.ecShield == "ON" then
+    term.setBackgroundColor(green)
+    term.write("  ")
+    term.setBackgroundColor(gray)
+    term.write("  ")
+  end
+  term.setCursorPos(28,14)
+  term.setBackgroundColor(black)
+  term.setTextColor(gray)
+  term.write("Call Logging")       -- Gate Liaison should/not log outbound calls
+  term.setCursorPos(45,14)
+  --term.setTextColor(lblue)
+  if dhdSettings.logs == "OFF" then
+    term.setBackgroundColor(gray)
+    term.write("  ")
+    term.setBackgroundColor(red)
+    term.write("  ")
+  elseif dhdSettings.logs == "ON" then
+    term.setBackgroundColor(green)
+    term.write("  ")
+    term.setBackgroundColor(gray)
+    term.write("  ")
+  end
+  term.setCursorPos(28,16)
+  term.setBackgroundColor(black)
+  term.setTextColor(gray)
+  term.write("Initiator Only")     -- Only call initiator can end call (ON/OFF)
+  term.setCursorPos(45,16)
+  if dhdSettings.callEnd == "OFF" then
+    term.setBackgroundColor(gray)
+    term.write("  ")
+    term.setBackgroundColor(red)
+    term.write("  ")
+  elseif dhdSettings.callEnd == "ON" then
+    term.setBackgroundColor(green)
+    term.write("  ")
+    term.setBackgroundColor(gray)
     term.write("  ")
   end
 end
@@ -2824,75 +2811,7 @@ local function mClick()
         end
         drawSettingsUI()
         -- Settings Column 2
-        -- End Call Shield (ON/OFF)
-      elseif mcY == 4 and mcX > 44 and mcX < 49 then
-        if dhdSettings.ecShield == "ON" then
-          dhdSettings.ecShield = "OFF"
-          configChange = true
-        elseif dhdSettings.ecShield == "OFF" then
-          dhdSettings.ecShield = "ON"
-          configChange = true
-        end
-        drawSettingsUI()
-        -- Startup Shield (ON/OFF)
-      elseif mcY == 6 and mcX > 44 and mcX < 49 then
-        if dhdSettings.startShield == "ON" then
-          dhdSettings.startShield = "OFF"
-          configChange = true
-        elseif dhdSettings.startShield == "OFF" then
-          dhdSettings.startShield = "ON"
-          configChange = true
-        end
-        drawSettingsUI()
-        -- Call Logging (ON/OFF)
       elseif mcY == 8 and mcX > 44 and mcX < 49 then
-        if dhdSettings.logs == "ON" then
-          dhdSettings.logs = "OFF"
-          configChange = true
-        elseif dhdSettings.logs == "OFF" then
-          dhdSettings.logs = "ON"
-          configChange = true
-        end
-        drawSettingsUI()
-        -- Last Gate Dialed (log)
-      elseif mcY == 10 and mcX > 37 and mcX < 49 then
-        term.setBackgroundColor(black)
-        term.setCursorPos(38,10)
-        term.setTextColor(gray)
-        term.write(dhdSettings.lastGate)
-        term.setCursorPos(38,10)
-        term.setTextColor(lgray)
-        local newLast = tostring(read())
-        if newLast ~= "" and newLast ~= nil and newLast ~= dhdSettings.lastGate then
-          dhdSettings.lastGate = newLast
-          configChange = true
-        end
-        drawSettingsUI()
-        -- Gate Dial History (log)
-      elseif mcY == 12 and mcX > 37 and mcX < 49 then
-        term.setBackgroundColor(black)
-        term.setCursorPos(38,12)
-        term.setTextColor(gray)
-        term.write(dhdSettings.gateHistory)
-        term.setCursorPos(38,12)
-        term.setTextColor(lgray)
-        local newHist = tostring(read())
-        if newHist ~= "" and newHist ~= nil and newHist ~= dhdSettings.gateHistory then
-          dhdSettings.gateHistory = newHist
-          configChange = true
-        end
-        drawSettingsUI()
-        -- Call Initiator ONLY for endCall (ON/OFF)
-      elseif mcY == 14 and mcX > 44 and mcX < 49 then
-        if dhdSettings.callEnd == "ON" then
-          dhdSettings.callEnd = "OFF"
-          configChange = true
-        elseif dhdSettings.callEnd == "OFF" then
-          dhdSettings.callEnd = "ON"
-          configChange = true
-        end
-        drawSettingsUI()
-      elseif mcY == 16 and mcX > 44 and mcX < 49 then
         if dhdSettings.bio.func == "none" then
           dhdSettings.bio.func = "shield"
           configChange = true
@@ -2901,6 +2820,46 @@ local function mClick()
           configChange = true
         elseif dhdSettings.bio.func == "lock" then
           dhdSettings.bio.func = "none"
+          configChange = true
+        end
+        drawSettingsUI()
+        -- Startup Shield (ON/OFF)
+      elseif mcY == 10 and mcX > 44 and mcX < 49 then
+        if dhdSettings.startShield == "ON" then
+          dhdSettings.startShield = "OFF"
+          configChange = true
+        elseif dhdSettings.startShield == "OFF" then
+          dhdSettings.startShield = "ON"
+          configChange = true
+        end
+        drawSettingsUI()
+        -- End Call Shield (ON/OFF)
+      elseif mcY == 12 and mcX > 44 and mcX < 49 then
+        if dhdSettings.ecShield == "ON" then
+          dhdSettings.ecShield = "OFF"
+          configChange = true
+        elseif dhdSettings.ecShield == "OFF" then
+          dhdSettings.ecShield = "ON"
+          configChange = true
+        end
+        drawSettingsUI()
+        -- Call Logging (ON/OFF)
+      elseif mcY == 14 and mcX > 44 and mcX < 49 then
+        if dhdSettings.logs == "ON" then
+          dhdSettings.logs = "OFF"
+          configChange = true
+        elseif dhdSettings.logs == "OFF" then
+          dhdSettings.logs = "ON"
+          configChange = true
+        end
+        drawSettingsUI()
+        -- Call Initiator ONLY for endCall (ON/OFF)
+      elseif mcY == 16 and mcX > 44 and mcX < 49 then
+        if dhdSettings.callEnd == "ON" then
+          dhdSettings.callEnd = "OFF"
+          configChange = true
+        elseif dhdSettings.callEnd == "OFF" then
+          dhdSettings.callEnd = "ON"
           configChange = true
         end
         drawSettingsUI()
@@ -3073,35 +3032,16 @@ local function firstRun()
   if tostring(ccLabel) == "nil" or ccLabel == "" then
     os.setComputerLabel("ccDHD  cc# " .. os.getComputerID())
   end
-  term.setCursorPos(2,2)
-  term.setTextColor(white)
-  term.write("I am " ..  os.getComputerLabel() .. " / cc# " .. os.getComputerID())
-  term.setCursorPos(2,6)
-  term.setTextColor(lblue)
-  term.write("Please enter the cc# of the Gate Liaison")
-  term.setTextColor(white)
-  while true do
-    term.setCursorPos(2,8)
-    term.write("       ")
-    term.setCursorPos(2,8)
-    local newServer = tonumber(read())
-    if newServer ~= "" and newServer ~= nil and newServer >= 0 and newServer < 65535 then
-      dhdSettings.server = newServer
-      break
-    end
+  netSend("1stRun")
+  sleep(0.5)
+  netSend(os.getComputerID())
+  local myGate = { os.pullEvent("modem_message") }
+  if myGate[3] == dhdSettings.channels.recv and myGate[4] == dhdSettings.channels.send then
+    dhdSettings.thisGate = myGate[5]
   end
-  rednet.send(dhdSettings.server,"1stRun",true)
-  local myGate = { rednet.receive(2) }
-  if tonumber(myGate[1]) == dhdSettings.server then
-    dhdSettings.thisGate = myGate[2]
-  end
-  local ccNetSend = { rednet.receive(2) }
-  if tonumber(ccNetSend[1]) == dhdSettings.server then
-    dhdSettings.channels.send = ccNetSend[2]
-  end
-  local ccNetRecv = { rednet.receive(2) }
-  if tonumber(ccNetRecv[1]) == dhdSettings.server then
-    dhdSettings.channels.recv = ccNetRecv[2]
+  local myServer = { os.pullEvent("modem_message") }
+  if myServer[3] == dhdSettings.channels.recv and myServer[4] == dhdSettings.channels.send then
+    dhdSettings.server = myServer[5]
   end
   saveData(settingsData,"cfg")
   if not fs.exists(dhdSettings.gateData) then
