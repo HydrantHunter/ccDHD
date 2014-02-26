@@ -1507,7 +1507,7 @@ local function drawAuthList(cAuth)
       term.setTextColor(white)
     end
     term.setCursorPos(27,k)
-    term.write(j)
+    term.write(tostring(j))
   end
 end
 
