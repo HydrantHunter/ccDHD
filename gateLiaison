@@ -380,11 +380,6 @@ local function doCommand(thisCommand)
     netSend(thisGate)
     sleep(0.2)                         -- long waits to ensure ccDHD is ready to receive the data
     netSend(os.getComputerID())
-    --[[
-    netSend(gateSettings.chan.recv)
-    sleep(0.2)
-    netSend(gateSettings.chan.send)
-    ]]--
     return
   elseif thisCommand == "redNet" then
     if gateSettings.net == "C" then modem.close(gateSettings.chan.recv) end
