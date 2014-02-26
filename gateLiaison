@@ -28,7 +28,7 @@ local pollTimer, timePoller = 0,0
 local longName = ""
 local mon = "none"
 local gateSettings = { shield = "front",
-                       DHD = 1,
+                       DHD = 999,
                        chan = { send = 1787, recv = 1776 },
                        net = "C",
                        pollTime = 2,
