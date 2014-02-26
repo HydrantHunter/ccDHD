@@ -1,10 +1,10 @@
 --[[  LanteaCraft      ]]--
 --[[    Gate Liaison   ]]--
---[[  version  1.0.12  ]]--
+--[[  version  1.0.13  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "1.0.12"
+local gVer = "1.0.13"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -30,7 +30,7 @@ local mon = "none"
 local gateSettings = { shield = "front",
                        DHD = 1,
                        chan = { send = 1787, recv = 1776 },
-                       net = "R",
+                       net = "C",
                        pollTime = 2,
                        last = "/data/lastCall",
                      }
@@ -343,7 +343,11 @@ local function dialOut(targetAddress)
 end
 
 local function endCall()
-  gate.disconnect()
+  if #thisGate == 9 then     -- RC1 (9 symbols)
+    if dialAddress ~= "none" then gate.disconnect() end  -- Initiator only enforced - need a call to tell if it's on or off
+  elseif #thisGate == 7 then -- snapshot 82 (7 symbols)
+    gate.disconnect()
+  end
   sleep(0.5)
   if tostring(gate.isConnected()) == "false" then
     gateStatus = "Disconnected"
@@ -365,11 +369,22 @@ local function doCommand(thisCommand)
     updateStatus("QRY")
     return
   elseif thisCommand == "1stRun" then  -- When DHD signifies its first run, it is given the gate's address & ccNet channels
+    while true do
+      local myBoss = { os.pullEvent("modem_message") }
+      if myBoss[3] == gateSettings.chan.recv and myBoss[4] == gateSettings.chan.send then
+        gateSettings.DHD = myBoss[5]
+        saveData()
+        break
+      end
+    end
     netSend(thisGate)
     sleep(0.2)                         -- long waits to ensure ccDHD is ready to receive the data
+    netSend(os.getComputerID())
+    --[[
     netSend(gateSettings.chan.recv)
     sleep(0.2)
     netSend(gateSettings.chan.send)
+    ]]--
     return
   elseif thisCommand == "redNet" then
     if gateSettings.net == "C" then modem.close(gateSettings.chan.recv) end
@@ -414,7 +429,7 @@ local function doCommand(thisCommand)
     elseif thisCommand == "restart" or thisCommand == "reset" then
       os.reboot()
     else
-      if #thisCommand > 6 and #thisCommand < 10 and thisCommand ~= "endCall" and thisCommand ~= "lockdown" and thisCommand ~= "allclear" then
+      if #tostring(thisCommand) > 6 and #tostring(thisCommand) < 10 and thisCommand ~= "endCall" and thisCommand ~= "lockdown" and thisCommand ~= "allclear" then
         if dialOut(thisCommand) == true then
           gateStatus = "Dialing"
           updateStatus()
@@ -477,24 +492,6 @@ local function firstRun()
   if ccLabel == nil or ccLabel == "" then
     os.setComputerLabel("Gate Liaison - cc# " .. os.getComputerID())
   end
-  term.setCursorPos(2,2)
-  term.setTextColor(colors.white)
-  term.write("I am " ..  os.getComputerLabel() .. " / cc# " .. os.getComputerID())
-  term.setCursorPos(2,6)
-  term.setTextColor(colors.lightBlue)
-  term.write("Please enter the cc# of the ccDHD computer")
-  term.setTextColor(colors.white)
-  while true do
-    term.setCursorPos(2,8)
-    term.write("       ")
-    term.setCursorPos(2,8)
-    local newDHD = tonumber(read())
-    if newDHD ~= "" and newDHD ~= nil and newDHD >= 0 and newDHD < 32768 then
-      gateSettings.DHD = newDHD
-      break
-    end
-  end
-  term.clear()
   -- Select shield/redstone output side
   term.setCursorPos(2,2)
   term.setTextColor(colors.lightBlue)
