@@ -28,7 +28,7 @@ local pollTimer, timePoller = 0,0
 local longName = ""
 local mon = "none"
 local gateSettings = { shield = "front",
-                       DHD = 999,
+                       DHD = 1,
                        chan = { send = 1787, recv = 1776 },
                        net = "C",
                        pollTime = 2,
@@ -154,7 +154,7 @@ local function drawTermScreen()
   term.write(string.rep(" ",35))
   term.setCursorPos(2,10)
   term.write(" " .. os.getComputerLabel())
-  local cID = tostring(math.floor(os.getComputerID()))
+  local cID = tostring(os.getComputerID())
   term.setCursorPos(37-(3+#cID),10)
   term.write("# " .. cID)
   term.setBackgroundColor(colors.lightGray)
@@ -217,10 +217,10 @@ local function drawTermScreen()
   term.setCursorPos(17,9)
   if gateSettings.net == "R" then
     term.setTextColor(colors.red)
-    term.write("redNet / " .. gateSettings.DHD)
+    term.write("redNet / " .. tostring(gateSettings.DHD))
   elseif gateSettings.net == "C" then
     term.setTextColor(colors.green)
-    term.write("ccNet / " .. gateSettings.chan.send .. "-" .. gateSettings.chan.recv)
+    term.write("ccNet / " .. tostring(gateSettings.chan.send) .. "-" .. tostring(gateSettings.chan.recv))
   end
 end
 
