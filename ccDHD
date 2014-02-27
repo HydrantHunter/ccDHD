@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.58    ]]--
+--[[    ver. 1.0.59    ]]--
 --[[  core ver. 4.3.8  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.58"
+local ccDHDVer = "1.0.59"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -56,7 +56,6 @@ local termX,termY = term.getSize()
 local modem = dhdSettings.ccnet -- Modem (for ccNet)
 local monA = dhdSettings.monA   -- List monitor
 local monB = dhdSettings.monB   -- Marque Monitor
---local cfgSides = { "top", "bottom", "front", "back", "left", "right", }
  -- Status Info
 local shieldStatus = "QRY"
 local gateStatus = "QRY"
@@ -2357,7 +2356,7 @@ local function mClick()
     if runState == "GateEdit" then
       if mcY == 7 then
          -- Edit Gate Address
-        if mcX > 1 and mcX < 10 then
+        if mcX > 1 and mcX < 11 then
           term.setBackgroundColor(black)
           term.setTextColor(gray)
           term.setCursorPos(2,7)
@@ -2375,36 +2374,68 @@ local function mClick()
           term.setBackgroundColor(black)
           term.write(allGates[currentEdit].addr)
          -- Edit Gate Rating/Classification
-        elseif mcX > 11 and mcX < 19 then
+        elseif mcX > 13 and mcX < 30 then
           term.setBackgroundColor(black)
           term.setTextColor(yellow)
           drawRatingList(allGates[currentEdit].rating,currentEdit)
           local newRating = { os.pullEvent("mouse_click") }
           if newRating[3] > 14 and newRating[3] < 33 then
             if newRating[4] == 6 then
-              allGates[currentEdit].rating = "B"
-              gateChange = true
+              if allGates[currentEdit].rating == "B" then
+                gateChange = false
+              else
+                allGates[currentEdit].rating = "B"
+                gateChange = true
+              end
             elseif newRating[4] == 7 then
-              allGates[currentEdit].rating = "H"
-              gateChange = true
+              if allGates[currentEdit].rating == "H" then
+                gateChange = false
+              else
+                allGates[currentEdit].rating = "H"
+                gateChange = true
+              end
             elseif newRating[4] == 8 then
-              allGates[currentEdit].rating = "V"
-              gateChange = true
+              if allGates[currentEdit].rating == "V" then
+                gateChange = false
+              else
+                allGates[currentEdit].rating = "V"
+                gateChange = true
+              end
             elseif newRating[4] == 9 then
-              allGates[currentEdit].rating = "M"
-              gateChange = true
+              if allGates[currentEdit].rating == "M" then
+                gateChange = false
+              else
+                allGates[currentEdit].rating = "M"
+                gateChange = true
+              end
             elseif newRating[4] == 10 then
-              allGates[currentEdit].rating = "S"
-              gateChange = true
+              if allGates[currentEdit].rating == "S" then
+                gateChange = true
+              else
+                allGates[currentEdit].rating = "S"
+                gateChange = true
+              end
             elseif newRating[4] == 11 then
-              allGates[currentEdit].rating = "C"
-              gateChange = true
+              if allGates[currentEdit].rating == "C" then
+                gateChange = false
+              else
+                allGates[currentEdit].rating = "C"
+                gateChange = true
+              end
             elseif newRating[4] == 12 then
-              allGates[currentEdit].rating = "D"
-              gateChange = true
+              if allGates[currentEdit].rating == "D" then
+                gateChange = false
+              else
+                allGates[currentEdit].rating = "D"
+                gateChange = true
+              end
             elseif newRating[4] == 13 then
-              allGates[currentEdit].rating = "U"
-              gateChange = true
+              if allGates[currentEdit].rating == "U" then
+                gateChange = false
+              else
+                allGates[currentEdit].rating = "U"
+                gateChange = true
+              end
             end
           end
           term.setBackgroundColor(black)
