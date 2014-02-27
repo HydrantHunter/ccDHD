@@ -1,10 +1,10 @@
 --[[  LanteaCraft      ]]--
 --[[    Gate Liaison   ]]--
---[[  version  1.0.13  ]]--
+--[[  version  1.0.14  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "1.0.13"
+local gVer = "1.0.14"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -318,7 +318,11 @@ end
 local function lockDown()
   gateStatus = "lockdown"
   shieldControl("ON")
-  gate.disconnect()
+  if #thisGate == 9 then     -- RC1 (9 symbols)
+    if dialAddress ~= "none" then gate.disconnect() end  -- Initiator only enforced - need a call to tell if it's on or off
+  elseif #thisGate == 7 then -- snapshot 82 (7 symbols)
+    gate.disconnect()
+  end
   dialAddress = "none"
   updateStatus()
   if mon ~= "none" then
