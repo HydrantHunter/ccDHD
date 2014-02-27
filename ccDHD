@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.57    ]]--
+--[[    ver. 1.0.58    ]]--
 --[[  core ver. 4.3.8  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.57"
+local ccDHDVer = "1.0.58"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -456,7 +456,7 @@ local function assignColor(gateNumber)
 end
 
 local function assignRating(gateNumber)
-  local ratingBurst = { B = "Base", H = "Home", V = "Village", M = "Misc.", S = "Safe", C = "Caution", D = "Danger", U = "Unknown", X = "Zog" }
+  local ratingBurst = { B = "Base/Outpost/Hub", H = "Home/Camp", V = "Village", M = "Misc/Special", S = "Safe", C = "Caution", D = "Danger", U = "Unknown", Z = "Zog" }
   for i,j in pairs(ratingBurst) do
     if allGates[gateNumber].rating == i then
       return j
@@ -904,11 +904,11 @@ local function viewLogs()
   term.setTextColor(black)
   term.write("page # ")
   term.setTextColor(white)
-  term.write(histPage)
+  term.write(tostring(histPage))
   term.setTextColor(black)
   term.write(" of ")
   term.setTextColor(white)
-  term.write(histPages)
+  term.write(tostring(histPages))
   term.setBackgroundColor(black)
   local currentEntry = ((histPage - 1) * 10) + 1                 -- Set the first entry to show (based on page number)
   if callHistory[1] == "" or callHistory[1] == nil then callHistory[1] = "No Logs" .. string.rep(" ",13) end
