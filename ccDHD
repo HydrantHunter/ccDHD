@@ -97,7 +97,7 @@ local green = colors.green
 
 local function recordSessionData() -- Human readable log files (last gate & history)
   if not fs.exists("/data") then fs.makeDir("/data") end
-  local dateStamp = tostring(textutils.formatTime(os.time(),false) .. " / Day " .. os.day())
+  local dateStamp = tostring(textutils.formatTime(os.time(),false) .. " / Day " .. tostring(os.day()))
   local lastCall = fs.open(dhdSettings.lastGate,"w")
   lastCall.writeLine(dateStamp)
   lastCall.writeLine(dialAddress)
