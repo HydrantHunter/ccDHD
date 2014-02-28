@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.61    ]]--
+--[[    ver. 1.0.62    ]]--
 --[[  core ver. 4.3.9  ]]--
 --[[   ui ver. 4.2.1   ]]--
 --[[     by Dog        ]]--
@@ -8,7 +8,7 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.61"
+local ccDHDVer = "1.0.62"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -607,11 +607,11 @@ local function drawHeader()
     term.write("C A L L   H I S T O R Y")
     term.setCursorPos(termX-6,2)
     term.setBackgroundColor(lgray)
-    term.setTextColor(gray)
+    term.setTextColor(red)
     term.write(" Close ")
     term.setCursorPos(termX-6,4)
     term.setBackgroundColor(lgray)
-    term.setTextColor(gray)
+    term.setTextColor(orange)
     term.write(" Clear ")
     term.setCursorPos(2,3)
     term.setBackgroundColor(gray)
@@ -1022,7 +1022,7 @@ local function drawHelpUI()
   term.setTextColor(lgray)
   term.setCursorPos(2,2)
   term.write("-- Key --")          -- Color key for gate classifications
-  term.setTextColor(gray)
+  term.setTextColor(red)
   term.setBackgroundColor(lgray)
   term.setCursorPos(termX-6,2)
   term.write(" Close ")
@@ -2542,7 +2542,7 @@ local function mClick()
           term.setCursorPos(5,13)
           term.setTextColor(gray)
           term.setBackgroundColor(black)
-          term.write(allGates[currentEdit].loc.x)
+          term.write(tostring(allGates[currentEdit].loc.x))
           term.setCursorPos(5,13)
           term.setTextColor(brown)
           local newX = tonumber(read())
@@ -2555,7 +2555,7 @@ local function mClick()
           term.setCursorPos(5,13)
           term.setTextColor(brown)
           term.setBackgroundColor(black)
-          term.write(allGates[currentEdit].loc.x)
+          term.write(tostring(allGates[currentEdit].loc.x))
         end
          -- Gate Y position
       elseif mcY == 14 then
@@ -2563,7 +2563,7 @@ local function mClick()
           term.setCursorPos(5,14)
           term.setTextColor(gray)
           term.setBackgroundColor(black)
-          term.write(allGates[currentEdit].loc.y)
+          term.write(tostring(allGates[currentEdit].loc.y))
           term.setCursorPos(5,14)
           term.setTextColor(brown)
           local newY = tonumber(read())
@@ -2576,7 +2576,7 @@ local function mClick()
           term.setCursorPos(5,14)
           term.setTextColor(brown)
           term.setBackgroundColor(black)
-          term.write(allGates[currentEdit].loc.y)
+          term.write(tostring(allGates[currentEdit].loc.y))
         end
          -- Gate Z position
       elseif mcY == 15 then
@@ -2584,7 +2584,7 @@ local function mClick()
           term.setCursorPos(5,15)
           term.setTextColor(gray)
           term.setBackgroundColor(black)
-          term.write(allGates[currentEdit].loc.z)
+          term.write(tostring(allGates[currentEdit].loc.z))
           term.setCursorPos(5,15)
           term.setTextColor(brown)
           local newZ = tonumber(read())
@@ -2597,7 +2597,7 @@ local function mClick()
           term.setCursorPos(5,15)
           term.setTextColor(brown)
           term.setBackgroundColor(black)
-          term.write(allGates[currentEdit].loc.z)
+          term.write(tostring(allGates[currentEdit].loc.z))
         end
         -- Exit Edit Screen
       elseif mcY == (termY-1) then
@@ -2766,7 +2766,7 @@ local function mClick()
         term.setTextColor(gray)
         if dhdSettings.net == "R" then
           term.setCursorPos(17,12)
-          term.write(dhdSettings.server)
+          term.write(tostring(dhdSettings.server))
           term.setCursorPos(17,12)
           term.setTextColor(red)
           local newServer = tonumber(read())
@@ -2779,7 +2779,7 @@ local function mClick()
           term.setBackgroundColor(black)
           term.setTextColor(gray)
           term.setCursorPos(17,12)
-          term.write(dhdSettings.channels.recv)
+          term.write(tostring(dhdSettings.channels.recv) .. string.rep(" ",5-#tostring(dhdSettings.channels.recv)))
           term.setCursorPos(17,12)
           term.setTextColor(green)
           local newChannel = tonumber(read())
@@ -2804,7 +2804,7 @@ local function mClick()
         term.setTextColor(gray)
         if dhdSettings.net == "C" then
           term.setCursorPos(11,12)
-          term.write(dhdSettings.channels.send)
+          term.write(tostring(dhdSettings.channels.send) .. string.rep(" ",5-#tostring(dhdSettings.channels.send)))
           term.setCursorPos(11,12)
           term.setTextColor(green)
           local newServer = tonumber(read())
