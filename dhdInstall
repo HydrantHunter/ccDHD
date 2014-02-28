@@ -1,19 +1,19 @@
 --[[ DHD/Gate Installer ]]--
---[[   version 1.0.03   ]]--
+--[[   version 1.0.04   ]]--
 --[[  by HydrantHunter  ]]--
 --[[      aka Dog       ]]--
 --[[ pastebin  A6uxKyCy ]]--
 local iVer = "1.0"
 --[[
-Test with/Requires:
+Tested with/Requires:
   - Minecraft 1.6.4
   - HTTP API enabled (for this installer only)
-  - LanteaCraft (snapshot 82)
+  - LanteaCraft (snapshot 82 and RC1)
   - ComputerCraft 1.57+ for MC 1.6.4
     - ccDHD: Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch), optional Biolock
     - gateLiaison: Advanced Computer (color, mouse), 3 optional Advanced Monitors (color)
 ]]--
-local startup
+local startup = 0
 
 local function downloadFile(fileToken, fileName)
   local fileURL = http.get("http://pastebin.com/raw.php?i=" .. textutils.urlEncode(fileToken))
@@ -32,17 +32,17 @@ local function drawHeader()
   term.setBackgroundColor(colors.lightBlue)
   term.setTextColor(colors.black)
   term.setCursorPos(2,1)
-  term.write("                   ")
+  term.write(string.rep(" ",19))
   term.setCursorPos(2,2)
   term.write(" DHD Installer " .. iVer .. " ")
   term.setCursorPos(2,3)
-  term.write("                   ")
+  term.write(string.rep(" ",19))
 end
 
 local function drawCLI()
   term.setBackgroundColor(colors.black)
   term.setCursorPos(1,6)
-  if fs.exists("DHD") or (startup == 2 and fs.exists("startup")) then
+  if startup == 1 or startup == 2 then
     term.setTextColor(colors.lime)
     term.write(" [                 ] ")
     term.setCursorPos(4,6)
@@ -53,7 +53,7 @@ local function drawCLI()
     term.write(" [  Install ccDHD  ] ")
   end
   term.setCursorPos(1,8)
-  if fs.exists("gateLiaison") or (startup == 3 and fs.exists("startup")) then
+  if startup == 3 or startup == 4 then
     term.setTextColor(colors.lime)
     term.write(" [                 ] ")
     term.setCursorPos(4,8)
@@ -77,10 +77,23 @@ local function drawCLI()
   term.write("Quit")
 end
 
+local function drawErrorScreen()
+  term.setBackgroundColor(colors.black)
+  term.setTextColor(colors.red)
+  term.clear()
+  term.setCursorPos(2,2)
+  term.write("D'oh! Stupid Errors!")
+  term.setCursorPos(2,6)
+  term.setTextColor(colors.lightGray)
+  term.write("Think of doughnuts and click to continue")
+  os.pullEvent("mouse_click")
+  return
+end
+
 local function setCCLabel(whichType)
   local currentCCLabel = os.getComputerLabel()
   local currentCCID = tostring(os.getComputerID())
-  if currentCCLabel ~= "" and currentCCLabel ~= nil then return end
+  if currentCCLabel ~= "" and currentCCLabel ~= "nil" then return end
   if whichType == "gate" then
     os.setComputerLabel("Gate - CC# " .. currentCCID)
   elseif whichType == "dhd" then
@@ -95,7 +108,15 @@ local function cleanUp()
   if fs.exists("/logs/DHDhistory") then
     fs.move("/logs/DHDhistory","/data/DHDhistory")
   end
-  if fs.exists("/logs") then fs.delete("logs") end
+  if fs.exists("/logs") then fs.delete("/logs") end
+end
+
+if fs.exists("/data/gateSettings") then startup = 4 end -- gateLiaison installed?
+if fs.exists("/gateLiaison") then startup = 3 end       -- gateLiaison installed as gateLiason (otherwise installed as startup)
+if fs.exists("/data/DHDsettings") then startup = 2 end  -- ccDHD installed?
+if fs.exists("/DHD") then startup = 1 end               -- ccDHD installed as ccDHD (otherwise installed as startup)
+if startup == 0 then                                    -- neither is installed
+  if fs.exists("/startup") then startup = 5 end         -- startup exists, install by name (otherwise install as startup)
 end
 
 drawHeader()
@@ -106,50 +127,40 @@ while true do
   if userInput[3] > 1 and userInput[3] < 21 then
     if userInput[4] == 6 then
       setCCLabel("dhd")
-      if fs.exists("logs") then fs.delete("/data/DHDsettings") end
-      if not fs.exists("data") then
-        fs.makeDir("data")
+      if fs.exists("/logs") then fs.delete("/data/DHDsettings") end
+      if not fs.exists("/data") then
+        fs.makeDir("/data")
       end
       cleanUp()
-      if fs.exists("startup") then
-        if fs.exists("DHD") then
-          fs.delete("DHD")
-          downloadFile("vMtcSz2e","DHD")
-          startup = 1
-        else
-          if fs.exists("/data/DHDsettings") then
-            fs.delete("startup")
-            downloadFile("vMtcSz2e","startup")
-            startup = 2
-          end
-        end
-      else
-        downloadFile("vMtcSz2e","startup")
+      if startup == 1 or startup == 5 then
+        if fs.exists("/DHD") then fs.delete("/DHD") end
+        downloadFile("vMtcSz2e","/DHD")
+        startup = 1
+      elseif startup == 0 or startup == 2 then
+        if fs.exists("/startup") then fs.delete("/startup") end
+        downloadFile("vMtcSz2e","/startup")
         startup = 2
+      else
+        drawErrorScreen()
       end
       drawCLI()
     elseif userInput[4] == 8 then
       setCCLabel("gate")
-      if fs.exists("logs") then fs.delete("/data/gateSettings") end
-      if not fs.exists("data") then
-        fs.makeDir("data")
+      if fs.exists("/logs") then fs.delete("/data/gateSettings") end
+      if not fs.exists("/data") then
+        fs.makeDir("/data")
       end
       cleanUp()
-      if fs.exists("startup") then
-        if fs.exists("gateLiaison") then
-          fs.delete("gateLiaison")
-          downloadFile("xSHHqL0h","gateLiaison")
-          startup = 1
-        else
-          if fs.exists("/data/gateSettings") then
-            fs.delete("startup")
-            downloadFile("xSHHqL0h","startup")
-            startup = 3
-          end
-        end
-      else
-        downloadFile("xSHHqL0h","startup")
+      if startup == 3 or startup == 5 then
+        if fs.exists("/gateLiaison") then fs.delete("/gateLiaison") end
+        downloadFile("xSHHqL0h","/gateLiaison")
         startup = 3
+      elseif startup == 0 or startup == 4 then
+        if fs.exists("/startup") then fs.delete("/startup") end
+        downloadFile("xSHHqL0h","/startup")
+        startup = 4
+      else
+        drawErrorScreen()
       end
       drawCLI()
     elseif userInput[4] == 10 then
