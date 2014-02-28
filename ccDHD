@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.59    ]]--
+--[[    ver. 1.0.60    ]]--
 --[[  core ver. 4.3.8  ]]--
 --[[   ui ver. 4.2.0   ]]--
 --[[     by Dog        ]]--
@@ -8,13 +8,13 @@
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.59"
+local ccDHDVer = "1.0.60"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
   - LanteaCraft (snapshot 82 and RC1)
   - ComputerCraft ver. 1.57+ for MC 1.6.4
-    - HTTP API enabled (for installer/pastebin - not required for ccDHD)
+    - HTTP API enabled (for pastebin installer - not required for ccDHD)
     - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
     - gateLiaison running on an Advanced Computer (with 3 optional Advanced Monitors) or an Advanced Wireless Turtle (no monitors)
 
@@ -33,12 +33,9 @@ local dhdSettings = { thisGate="GATEONE",
                       bio={lock="OFF",side="none",func="none",auth=4,},
                       net="C",
                       rednet="none",
-                      server=999,
+                      server=9999,
                       ccnet="none",
                       channels={send=1776,recv=1787,},
-                      uptime="OFF",
-                      gps="OFF",
-                      loc={x=99999,y=99999,z=99999,dim="0",},
                       ecShield="ON",
                       startShield="ON",
                       callEnd="OFF",
@@ -68,7 +65,7 @@ local currentState = "ZZ"
 local configChange = false
 local gateChange = false
 local tempState, currentEdit
-local fuelGuage, dialAddress
+local fuelGauge, dialAddress
  -- Gate List
 local numPages,pageNum = 1,1
 local listPages,listPage = 1,1
@@ -118,29 +115,29 @@ local function updateStatus(newInfo)  -- Update status info
     shieldStatus = "OFF"              -- 1st/bit = shield
     gateStatus = "Disconnected"       -- 2nd/trit = connection/dialing
     secureStatus = "allclear"
-    fuelGuage = false                 -- 3rd/bit = fuel
+    fuelGauge = false                 -- 3rd/bit = fuel
     dialAddress = ""
   elseif tostring(newInfo) ==  "001" then
     shieldStatus = "OFF"
     gateStatus = "Disconnected"
     secureStatus = "allclear"
     dialAddress = ""
-    fuelGuage = true
+    fuelGauge = true
   elseif tostring(newInfo) ==  "010" then
     shieldStatus = "OFF"
     gateStatus = "Connected"
     secureStatus = "allclear"
-    fuelGuage = false
+    fuelGauge = false
   elseif tostring(newInfo) ==  "011" then
     shieldStatus = "OFF"
     gateStatus = "Connected"
     secureStatus = "allclear"
-    fuelGuage = true
+    fuelGauge = true
   elseif tostring(newInfo) ==  "020" then
     shieldStatus = "OFF"
     gateStatus = "Dialing"
     secureStatus = "allclear"
-    fuelGuage = false
+    fuelGauge = false
     if dialAddress == "" then
       dialAddress = "Inbound"
       recordSessionData()
@@ -152,7 +149,7 @@ local function updateStatus(newInfo)  -- Update status info
     shieldStatus = "OFF"
     gateStatus = "Dialing"
     secureStatus = "allclear"
-    fuelGuage = true
+    fuelGauge = true
     if dialAddress == "" then
       dialAddress = "Inbound"
       recordSessionData()
@@ -165,28 +162,28 @@ local function updateStatus(newInfo)  -- Update status info
     gateStatus = "Disconnected"
     secureStatus = "allclear"
     dialAddress = ""
-    fuelGuage = false
+    fuelGauge = false
   elseif tostring(newInfo) ==  "101" then
     shieldStatus = "ON"
     gateStatus = "Disconnected"
     secureStatus = "allclear"
     dialAddress = ""
-    fuelGuage = true
+    fuelGauge = true
   elseif tostring(newInfo) ==  "110" then
     shieldStatus = "ON"
     gateStatus = "Connected"
     secureStatus = "allclear"
-    fuelGuage = false
+    fuelGauge = false
   elseif tostring(newInfo) ==  "111" then
     shieldStatus = "ON"
     gateStatus = "Connected"
     secureStatus = "allclear"
-    fuelGuage = true
+    fuelGauge = true
   elseif tostring(newInfo) ==  "120" then
     shieldStatus = "ON"
     gateStatus = "Dialing"
     secureStatus = "allclear"
-    fuelGuage = false
+    fuelGauge = false
     if dialAddress == "" then
       dialAddress = "Inbound"
       recordSessionData()
@@ -198,7 +195,7 @@ local function updateStatus(newInfo)  -- Update status info
     shieldStatus = "ON"
     gateStatus = "Dialing"
     secureStatus = "allclear"
-    fuelGuage = true
+    fuelGauge = true
     if dialAddress == "" then
       dialAddress = "Inbound"
       recordSessionData()
@@ -220,7 +217,7 @@ local function updateStatus(newInfo)  -- Update status info
     secureStatus = "allclear"
     shieldStatus = "OFF"
     gateStatus = "Disconnected"
-    fuelGuage = false
+    fuelGauge = false
     dialAddress = ""
     term.setBackgroundColor(black)
     term.clear()
@@ -228,7 +225,7 @@ local function updateStatus(newInfo)  -- Update status info
     secureStatus = "allclear"
     shieldStatus = "OFF"
     gateStatus = "Disconnected"
-    fuelGuage = true
+    fuelGauge = true
     dialAddress = ""
     term.setBackgroundColor(black)
     term.clear()
@@ -236,13 +233,13 @@ local function updateStatus(newInfo)  -- Update status info
     secureStatus = "lockdown"
     shieldStatus = "ON"
     gateStatus = "Disconnected"
-    fuelGuage = false
+    fuelGauge = false
     dialAddress = ""
   elseif tostring(newInfo) ==  "XX1" then
     secureStatus = "lockdown"
     shieldStatus = "ON"
     gateStatus = "Disconnected"
-    fuelGuage = true
+    fuelGauge = true
     dialAddress = ""
   end
   currentState = tostring(newInfo)
@@ -252,7 +249,7 @@ end
 
 local function netSend(dataPack)
   if dhdSettings.net == "R" then
-    if dhdSettings.server ~= 999 then
+    if dhdSettings.server ~= 9999 then
       rednet.send(gateLiaison,dataPack,true)
     end
   elseif dhdSettings.net == "C" then
@@ -265,7 +262,7 @@ end
 local function netReceive()
   while true do
     if dhdSettings.net == "R" then
-      if dhdSettings.server ~= 999 then
+      if dhdSettings.server ~= 9999 then
         local netEvent = { rednet.receive() }
         if tonumber(netEvent[1]) == gateLiaison then
           if currentState ~= netEvent[2] then
@@ -297,7 +294,7 @@ local function ingestLogData()
   while true do
     local timeDate = dhdHist.readLine()
     local gateAddr = dhdHist.readLine()
-    if gateAddr == "" or gateAddr == nil then gateAddr = "Restart" end
+    if gateAddr == "" or gateAddr == nil then gateAddr = "No Data" end
     if timeDate == nil or timeDate == "" then break end
     local tTime = timeDate:sub(1,string.find(timeDate," / ")) -- separate time from time/day
     local dDate = timeDate:sub(#tTime+7)                      -- separate day from time/day
@@ -399,12 +396,9 @@ local function localInventory()
   dhdSettings.bio.func="none"
   dhdSettings.net="C"
   dhdSettings.rednet="none"
-  dhdSettings.server=999
+  dhdSettings.server=9999
   dhdSettings.ccnet="none"
   dhdSettings.channels={send=1776,recv=1787,}
-  dhdSettings.uptime="OFF"
-  dhdSettings.gps="OFF"
-  dhdSettings.loc={x=99999,y=99999,z=99999,dim="0",}
   dhdSettings.ecShield="ON"
   dhdSettings.startShield="ON"
   dhdSettings.callEnd="OFF"
@@ -611,10 +605,10 @@ local function drawHeader()
     term.setCursorPos(2,2)
     term.setTextColor(yellow)
     term.write("C A L L   H I S T O R Y")
-    term.setCursorPos(termX - 6,2)
+    term.setCursorPos(termX-13,2)
     term.setBackgroundColor(lgray)
     term.setTextColor(gray)
-    term.write(" Close ")
+    term.write(" Clear  Close ")
     term.setCursorPos(2,3)
     term.setBackgroundColor(gray)
     term.setTextColor(lgray)
@@ -677,11 +671,16 @@ local function drawHeader()
     term.write("Incoming Connection")
   else
     if gateStatus == "Connected" and dialAddress ~= "" and dialAddress ~= nil then
-      term.write(gateStatus .. " to          ")
+      term.write(gateStatus .. " to" .. string.rep(" ",10))
       term.setCursorPos(39,3)
     else
-      term.write(gateStatus .. "             ")
+      term.write(gateStatus .. string.rep(" ",13))
       term.setCursorPos(34,3)
+    end
+    if gateStatus == "Disconnected" and fuelGauge == false then
+      term.setTextColor(red)
+      term.setCursorPos(26,3)
+      term.write("N O  F U E L" .. string.rep(" ",13))
     end
     if gateStatus ~= "Disconnected" then
       term.setTextColor(yellow)
@@ -707,7 +706,7 @@ local function drawControlUI()
   term.setTextColor(white)
   term.setCursorPos(43,7)
   if runState == "Dial" then
-    if fuelGuage then
+    if fuelGauge then
       term.setBackgroundColor(green)
     else
       term.setBackgroundColor(red)
@@ -1599,6 +1598,16 @@ local function flashChoice(choice)
     term.setBackgroundColor(lgray)
     term.setTextColor(red)
     term.write(" Close ")
+  elseif choice == "clear" then
+    term.setCursorPos(termX-13,2)
+    term.setBackgroundColor(orange)
+    term.setTextColor(white)
+    term.write(" Clear ")
+    sleep(0.1)
+    term.setCursorPos(termX-13,2)
+    term.setBackgroundColor(lgray)
+    term.setTextColor(gray)
+    term.write(" Clear ")
   elseif choice == "cfgsave" then
     term.setCursorPos(termX-12,2)
     term.setBackgroundColor(green)
@@ -2100,7 +2109,16 @@ local function mClick()
         return
       end
     elseif menuState == false and runState == "logs" then
-      if mcX > 44 and mcY == 2 then
+      if mcX > 38 and mcX < 45 and mcY == 2 then
+        flashChoice("clear")
+        local clearLog = fs.open("/data/DHDhistory","w")
+        clearLog.close()
+        callHistory = { }
+        histPages = 1
+        histPage = 1
+        viewLogs()
+        return
+      elseif mcX > 44 and mcY == 2 then
         flashChoice("close")
         term.setBackgroundColor(black)
         term.clear()
