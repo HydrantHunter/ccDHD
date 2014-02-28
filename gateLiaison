@@ -1,16 +1,16 @@
 --[[  LanteaCraft      ]]--
 --[[    Gate Liaison   ]]--
---[[  version  1.0.14  ]]--
+--[[  version  1.0.15  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "1.0.14"
+local gVer = "1.0.15"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
   - LanteaCraft (snapshot 82 & RC1)
   - ComputerCraft ver. 1.57+ for MC 1.6.4
-    - HTTP API enabled (for installer/pastebin - not required for gateLiaison)
+    - HTTP API enabled (for pastebin installer - not required for gateLiaison)
     - 1 Advanced Computer (color), 3 optional Advanced Monitors (color)
       - or 1 Advanced Wireless Turtle (color), no monitors
     - ccDHD running on an Advanced Computer with 4 optional Advanced Monitors
@@ -262,6 +262,7 @@ local function updateStatus(special)
     else
       pData = "0"
     end
+    --[[
     if gate.isConnected() == true then
       pData = pData .. "1"
       gateStatus = "Connected"
@@ -281,6 +282,28 @@ local function updateStatus(special)
         pData = pData .. "0"
       end
     end
+    ]]--
+
+    if gate.isDialing() == true then
+      pData = pData .. "2"
+      gateStatus = "Dialing"
+      if mon ~= "none" then
+        displayStatus("dial")
+      end
+    elseif gate.isDialing() == false then
+      if gate.isConnected() == true then
+        pData = pData .. "1"
+        gateStatus = "Connected"
+        if mon ~= "none" then
+          displayStatus("con")
+        end
+      elseif gate.isConnected() == false then
+        gateStatus = "Disconnected"
+        dialAddress = "none"
+        pData = pData .. "0"
+      end
+    end
+
     if fuelGuage == false then
       pData = pData .. "0"
     elseif fuelGuage == true then
