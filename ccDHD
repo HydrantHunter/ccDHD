@@ -1,14 +1,14 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.60    ]]--
---[[  core ver. 4.3.8  ]]--
---[[   ui ver. 4.2.0   ]]--
+--[[    ver. 1.0.61    ]]--
+--[[  core ver. 4.3.9  ]]--
+--[[   ui ver. 4.2.1   ]]--
 --[[     by Dog        ]]--
 --[[ aka HydrantHunter ]]--
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.60"
+local ccDHDVer = "1.0.61"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -605,10 +605,14 @@ local function drawHeader()
     term.setCursorPos(2,2)
     term.setTextColor(yellow)
     term.write("C A L L   H I S T O R Y")
-    term.setCursorPos(termX-13,2)
+    term.setCursorPos(termX-6,2)
     term.setBackgroundColor(lgray)
     term.setTextColor(gray)
-    term.write(" Clear  Close ")
+    term.write(" Close ")
+    term.setCursorPos(termX-6,4)
+    term.setBackgroundColor(lgray)
+    term.setTextColor(gray)
+    term.write(" Clear ")
     term.setCursorPos(2,3)
     term.setBackgroundColor(gray)
     term.setTextColor(lgray)
@@ -1599,12 +1603,12 @@ local function flashChoice(choice)
     term.setTextColor(red)
     term.write(" Close ")
   elseif choice == "clear" then
-    term.setCursorPos(termX-13,2)
+    term.setCursorPos(termX-6,4)
     term.setBackgroundColor(orange)
     term.setTextColor(white)
     term.write(" Clear ")
     sleep(0.1)
-    term.setCursorPos(termX-13,2)
+    term.setCursorPos(termX-6,4)
     term.setBackgroundColor(lgray)
     term.setTextColor(gray)
     term.write(" Clear ")
@@ -2109,16 +2113,7 @@ local function mClick()
         return
       end
     elseif menuState == false and runState == "logs" then
-      if mcX > 38 and mcX < 45 and mcY == 2 then
-        flashChoice("clear")
-        local clearLog = fs.open("/data/DHDhistory","w")
-        clearLog.close()
-        callHistory = { }
-        histPages = 1
-        histPage = 1
-        viewLogs()
-        return
-      elseif mcX > 44 and mcY == 2 then
+      if mcX > 44 and mcY == 2 then
         flashChoice("close")
         term.setBackgroundColor(black)
         term.clear()
@@ -2126,6 +2121,15 @@ local function mClick()
         lastCall = { }
         runState = tempState
         drawCLI()
+        return
+      elseif mcX > 44 and mcY == 4 then
+        flashChoice("clear")
+        local clearLog = fs.open("/data/DHDhistory","w")
+        clearLog.close()
+        callHistory = { }
+        histPages = 1
+        histPage = 1
+        viewLogs()
         return
       end
     elseif menuState == false and runState == "viewing" then
