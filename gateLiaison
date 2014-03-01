@@ -1,10 +1,10 @@
 --[[  LanteaCraft      ]]--
 --[[    Gate Liaison   ]]--
---[[  version  1.0.15  ]]--
+--[[  version  1.0.16  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "1.0.15"
+local gVer = "1.0.16"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -370,15 +370,12 @@ local function dialOut(targetAddress)
 end
 
 local function endCall()
-  if #thisGate == 9 then     -- RC1 (9 symbols)
-    if dialAddress ~= "none" then gate.disconnect() end  -- Initiator only enforced - need a call to tell if it's on or off
-  elseif #thisGate == 7 then -- snapshot 82 (7 symbols)
-    gate.disconnect()
-  end
-  sleep(0.5)
-  if tostring(gate.isConnected()) == "false" then
+  local ok, err = { pcall(gate.disconnect) }
+  if ok then
     gateStatus = "Disconnected"
     dialAddress = "none"
+  else
+    gateStatus = "Connected"
   end
 end
 
