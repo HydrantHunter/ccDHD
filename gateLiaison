@@ -1,10 +1,10 @@
 --[[  LanteaCraft      ]]--
 --[[    Gate Liaison   ]]--
---[[  version  1.0.16  ]]--
+--[[  version  1.0.17  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "1.0.16"
+local gVer = "1.0.17"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -305,26 +305,37 @@ local function recordSessionData()  -- Human readable log files (last gate & his
   lastCall.close()
 end
 
+local function irisControl(istate)
+  if istate == "ON" then
+    rs.setOutput(gateSettings.shield,true)
+  elseif istate == "OFF" then
+    rs.setOutput(gateSettings.shield,false)
+  end
+  --return
+end
+
 local function shieldControl(state)
   if state == "ON" then
     rs.setOutput(gateSettings.shield,true)
   elseif state == "OFF" then
     rs.setOutput(gateSettings.shield,false)
-  else
-    rs.setOutput(gateSettings.shield,true)
   end
-  return
+  --return
 end
 
 local function lockDown()
   gateStatus = "lockdown"
-  shieldControl("ON")
   if #thisGate == 9 then     -- RC1 (9 symbols)
-    if dialAddress ~= "none" then gate.disconnect() end  -- Initiator only enforced - need a call to tell if it's on or off
+    irisControl("ON")
+    local ok, _ = { pcall(gate.disconnect) }
+    if ok then
+      dialAddress = "none"
+    end
   elseif #thisGate == 7 then -- snapshot 82 (7 symbols)
+    shieldControl("ON")
     gate.disconnect()
+    dialAddress = "none"
   end
-  dialAddress = "none"
   updateStatus()
   if mon ~= "none" then
     mon.clear()
@@ -356,8 +367,6 @@ local function endCall()
   if ok then
     gateStatus = "Disconnected"
     dialAddress = "none"
-  else
-    gateStatus = "Connected"
   end
 end
 
@@ -366,7 +375,11 @@ local function doCommand(thisCommand)
     lockDown()
   elseif thisCommand == "allclear" then
     displayMarque()
-    shieldControl("OFF")
+    if #thisGate == 7 then
+      shieldControl("OFF")
+    elseif #thisGate == 9 then
+      irisControl("OFF")
+    end
     gateStatus = "allclear"
     dialAddress = "none"
     updateStatus()
@@ -374,7 +387,7 @@ local function doCommand(thisCommand)
   elseif thisCommand == "QRY" then
     updateStatus("QRY")
     return
-  elseif thisCommand == "1stRun" then  -- When DHD signifies its first run, it is given the gate's address & ccNet channels
+  elseif thisCommand == "1stRun" then  -- When DHD signifies its first run, it then sends it's cc# and waits for the gate's address & cc #
     while true do
       local myBoss = { os.pullEvent("modem_message") }
       if myBoss[3] == gateSettings.chan.recv and myBoss[4] == gateSettings.chan.send then
@@ -383,8 +396,9 @@ local function doCommand(thisCommand)
         break
       end
     end
+    sleep(0.25)                        -- long waits to ensure ccDHD is ready to receive the data
     netSend(thisGate)
-    sleep(0.2)                         -- long waits to ensure ccDHD is ready to receive the data
+    sleep(0.25)                        -- long waits to ensure ccDHD is ready to receive the data
     netSend(os.getComputerID())
     return
   elseif thisCommand == "redNet" then
@@ -420,11 +434,19 @@ local function doCommand(thisCommand)
       updateStatus()
       return
     elseif thisCommand == "sON" then
-      shieldControl("ON")
+      if #thisGate == 7 then
+        shieldControl("ON")
+      elseif #thisGate == 9 then
+        irisControl("ON")
+      end
       updateStatus()
       return
     elseif thisCommand == "sOFF" then
-      shieldControl("OFF")
+      if #thisGate == 7 then
+        shieldControl("OFF")
+      elseif #thisGate == 9 then
+        irisControl("OFF")
+      end
       updateStatus()
       return
     elseif thisCommand == "restart" or thisCommand == "reset" then
