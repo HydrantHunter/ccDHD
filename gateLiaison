@@ -262,28 +262,6 @@ local function updateStatus(special)
     else
       pData = "0"
     end
-    --[[
-    if gate.isConnected() == true then
-      pData = pData .. "1"
-      gateStatus = "Connected"
-      if mon ~= "none" then
-        displayStatus("con")
-      end
-    elseif gate.isConnected() == false then
-      if gate.isDialing() == true then
-        pData = pData .. "2"
-        gateStatus = "Dialing"
-        if mon ~= "none" then
-          displayStatus("dial")
-        end
-      elseif gate.isDialing() == false then
-        gateStatus = "Disconnected"
-        dialAddress = "none"
-        pData = pData .. "0"
-      end
-    end
-    ]]--
-
     if gate.isDialing() == true then
       pData = pData .. "2"
       gateStatus = "Dialing"
@@ -360,10 +338,14 @@ local function dialOut(targetAddress)
   dialAddress = tostring(targetAddress)
   if dialAddress ~= thisGate and tostring(gate.isConnected()) == "false" then -- Is the stargate connected to another stargate?  isConnected()
     local dialGate = gate.dial(dialAddress)
-    gateStatus = "Dialing"
-    recordSessionData()
-    updateStatus()
-    return true
+    if dialGate then
+      gateStatus = "Dialing"
+      recordSessionData()
+      updateStatus()
+      return true
+    else
+      return false
+    end
   else
     return false
   end
