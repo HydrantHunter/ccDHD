@@ -1,14 +1,15 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.62    ]]--
---[[  core ver. 4.3.9  ]]--
---[[   ui ver. 4.2.1   ]]--
+--[[    ver. 1.0.63    ]]--
+--[[  core ver. 4.4.0  ]]--
+--[[   ui ver. 4.3.0   ]]--
 --[[     by Dog        ]]--
 --[[ aka HydrantHunter ]]--
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
-local ccDHDVer = "1.0.62"
+--[[      GPL v3       ]]--
+local ccDHDVer = "1.0.63"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -466,7 +467,7 @@ local function displayMarque()
   monB.setCursorPos(1,1)
   monB.write("Stargate")
   monB.setTextColor(yellow)
-  if #longName == 7 then
+  if #dhdSettings.thisGate == 7 then
     monB.setCursorPos(2,2)
   else
     monB.setCursorPos(4,2)
@@ -593,8 +594,8 @@ local function drawHeader()
   end
   term.setCursorPos(1,1)
   term.write(string.rep(" ",termX))               -- Draw top/menu 'bar'
-  term.setCursorPos((termX/2)-(#longName/2),1)
-  term.write(longName)                            -- Write gate name
+  term.setCursorPos((termX/2)-(#longName/2),1)    -- Set position for gate name (depending on length)
+  term.write(longName)                            -- Write gate name (longName is the spaced out version of the name for 7 symbol addresses)
   if runState == "logs" then                      -- If we're viewing the logs, show the last call info instead of connect/shield info
     term.setBackgroundColor(gray)
     term.setTextColor(lgray)
@@ -641,9 +642,13 @@ local function drawHeader()
       term.write(" ")
     end
   end
-  term.setCursorPos(2,3)
   term.setTextColor(lgray)
-  term.write("Shield is")
+  term.setCursorPos(2,3)
+  if #dhdSettings.thisGate > 7 then
+    term.write("Iris is")
+  else
+    term.write("Shield is")
+  end
   term.setCursorPos(20,3)
   term.write("Gate:")
   local tColor
@@ -655,9 +660,16 @@ local function drawHeader()
   else
     tColor = red
   end
-  term.setCursorPos(12,3)
   term.setTextColor(tColor)
-  term.write(shieldStatus .. " ")
+  term.setCursorPos(10,3)
+  if #dhdSettings.thisGate > 7 and shieldStatus == "ON" then
+    term.write("CLOSED")
+  elseif #dhdSettings.thisGate > 7 and shieldStatus == "OFF" then
+    term.write("OPEN")
+  else
+    term.setCursorPos(12,3)
+    term.write(shieldStatus .. " ")
+  end
   if gateStatus == "Connected" then
     tColor = orange
   elseif gateStatus == "Disconnected" then
@@ -699,7 +711,7 @@ local function drawHeader()
 end
 
 local function drawControlUI()
-  local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "END Call", "LOCKDOWN", "rCmd", "+ Entry", "Save", "- Undo -", "-COMMIT-" }
+  local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "Iris", "END Call", "LOCKDOWN", "rCmd", "+ Entry", "Save", "- Undo -", "-COMMIT-" }
   term.setBackgroundColor(gray)
   for i = 6,16,1 do
     for h = 42,termX,1 do
@@ -726,34 +738,38 @@ local function drawControlUI()
   if runState == "Dial" then
     term.setCursorPos(43,9)
     term.setBackgroundColor(lblue)
-    term.write(dhdCommandOptions[4] .. "   ")
-    if shieldStatus == "ON" then
-      term.setBackgroundColor(green)
-    elseif shieldStatus == "OFF" then
-      term.setBackgroundColor(orange)
-    else
-      term.setBackgroundColor(red)
+    if #dhdSettings.thisGate == 7 then
+      term.write(dhdCommandOptions[4] .. "   ")
+    elseif #dhdSettings.thisGate == 9 then
+      term.write(dhdCommandOptions[5] .. "    ")
     end
-    term.setCursorPos(termX,9)
-    term.write(" ")
+    if shieldStatus == "ON" then      --
+      term.setBackgroundColor(green)  --
+    elseif shieldStatus == "OFF" then --
+      term.setBackgroundColor(orange) -- Shield pip
+    else                              --
+      term.setBackgroundColor(red)    --
+    end                               --
+    term.setCursorPos(termX,9)        --
+    term.write(" ")                   --
     term.setCursorPos(43,11)
     term.setTextColor(black)
     term.setBackgroundColor(orange)
-    term.write(dhdCommandOptions[5] .. " ")
+    term.write(dhdCommandOptions[6] .. " ")
     term.setCursorPos(43,13)
     term.setTextColor(orange)
     term.setBackgroundColor(red)
-    term.write(dhdCommandOptions[6] .. " ")
+    term.write(dhdCommandOptions[7] .. " ")
     term.setCursorPos(43,15)
     term.setTextColor(gray)
     term.setBackgroundColor(cyan)
-    term.write(dhdCommandOptions[7] .. "     ")
+    term.write(dhdCommandOptions[8] .. "     ")
   elseif runState == "Edit" then
     if #allGates < 23976 then
       term.setCursorPos(43,11)
       term.setTextColor(white)
       term.setBackgroundColor(blue)
-      term.write(dhdCommandOptions[8] .. "  ")
+      term.write(dhdCommandOptions[9] .. "  ")
     end
     term.setCursorPos(43,13)
     term.setTextColor(white)
@@ -761,16 +777,16 @@ local function drawControlUI()
     if gateChange == true then
       term.setTextColor(lime)
     end
-    term.write(dhdCommandOptions[9] .. "     ")
+    term.write(dhdCommandOptions[10] .. "     ")
   elseif runState == "Trim" then
     term.setCursorPos(43,11)
     term.setTextColor(gray)
     term.setBackgroundColor(lgray)
-    term.write(dhdCommandOptions[10] .. " ")
+    term.write(dhdCommandOptions[11] .. " ")
     term.setCursorPos(43,13)
     term.setTextColor(black)
     term.setBackgroundColor(red)
-    term.write(dhdCommandOptions[11] .. " ")
+    term.write(dhdCommandOptions[12] .. " ")
   end
   term.setBackgroundColor(black)
 end
@@ -2074,7 +2090,7 @@ local function mClick()
           kernelState = false
           menuState = false
           break  -- required to exit properly
-        else
+        elseif mcY < 2 or mcY > 10 then
           menuState = false
           term.setBackgroundColor(black)
           for i = 5,10,1 do
@@ -2225,16 +2241,16 @@ local function mClick()
     -- Page Navigation via click
     if mcY == termY then
       if runState == "Dial" or runState == "Edit" or runState == "Trim" then
-        if mcX < 20 and mcY == termY then  -- Bottom row of screen - Back
+        if mcX < 20 and mcY == termY then -- Bottom row of screen - Back
           if pageNum > 1 then
             pageNum = pageNum - 1
             term.clear()
             drawCLI()
             return
           end
-        elseif mcX > 19 and mcX < 23 and mcY == termY then  -- Bottom row of screen - Page Numbers (Go To Page dialogue)
+        elseif mcX > 19 and mcX < 23 and mcY == termY then -- Bottom row of screen - Page Numbers (Go To Page dialogue)
           goToPage()
-        elseif mcX > 22 and mcY == termY then  -- Bottom row of screen - Forward
+        elseif mcX > 22 and mcY == termY then -- Bottom row of screen - Forward
           if pageNum < numPages then
             pageNum = pageNum + 1
             term.clear()
@@ -2656,20 +2672,25 @@ local function mClick()
         term.write(dhdSettings.thisGate)
         term.setTextColor(cyan)
         term.setCursorPos(17,4)
-        local newGate = tostring(read())
+        local newGate = string.upper(tostring(read()))
         if newGate ~= "" and newGate ~= "nil" and newGate ~= dhdSettings.thisGate and newGate:len() > 6 and newGate:len() < 10 then
           configChange = true
           dhdSettings.thisGate = newGate
           longName = ""
-          tG = {}
-          for i = 1,dhdSettings.thisGate:len(),1 do
-            tG[i] = dhdSettings.thisGate:sub(i,i)
-            if i < dhdSettings.thisGate:len() then
-              longName = longName .. tG[i] .. " "
-            else
-              longName = longName .. tG[i]
+          if #newGate == 7 then
+            tG = {}
+            for i = 1,dhdSettings.thisGate:len(),1 do
+              tG[i] = dhdSettings.thisGate:sub(i,i)
+              if i < dhdSettings.thisGate:len() then
+                longName = longName .. tG[i] .. " "
+              else
+                longName = longName .. tG[i]
+              end
             end
+          elseif #newGate == 9 then
+            longName = newGate
           end
+          if gateStatus == "Disconnected" then displayMarque() end
         end
         term.setCursorPos(16,4)
         term.write("         ")
@@ -3086,7 +3107,7 @@ local function firstRun()
     os.setComputerLabel("ccDHD  cc# " .. os.getComputerID())
   end
   netSend("1stRun")
-  sleep(0.5)
+  sleep(0.25)
   netSend(os.getComputerID())
   local myGate = { os.pullEvent("modem_message") }
   if myGate[3] == dhdSettings.channels.recv and myGate[4] == dhdSettings.channels.send then
@@ -3147,7 +3168,7 @@ local function initMe()
   term.setCursorPos(2,8)
   term.write("Awaiting response . . .")
   if dhdSettings.net == "R" then
-    local senderID, message = rednet.receive(1)
+    local senderID, message = rednet.receive()
     if senderID == gateLiaison then
       updateStatus(message)
     end
