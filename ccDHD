@@ -1,6 +1,5 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[    ver. 1.0.63    ]]--
 --[[  core ver. 4.4.0  ]]--
 --[[   ui ver. 4.3.0   ]]--
 --[[     by Dog        ]]--
@@ -9,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.63"
+local ccDHDVer = "1.0.64"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -746,7 +745,7 @@ local function drawControlUI()
     if shieldStatus == "ON" then      --
       term.setBackgroundColor(green)  --
     elseif shieldStatus == "OFF" then --
-      term.setBackgroundColor(orange) -- Shield pip
+      term.setBackgroundColor(orange) -- Iris/Shield pip
     else                              --
       term.setBackgroundColor(red)    --
     end                               --
@@ -1229,7 +1228,11 @@ local function drawSettingsUI()
     term.write("No Function")
   elseif dhdSettings.bio.func == "shield" then
     term.setTextColor(green)
-    term.write("Shield")
+    if #dhdSettings.thisGate == 7 then
+      term.write("Shield")
+    elseif #dhdSettings.thisGate > 7 then
+      term.write("Iris")
+    end
   elseif dhdSettings.bio.func == "lock" then
     term.setTextColor(red)
     term.write("Lockdown")
@@ -1256,7 +1259,11 @@ local function drawSettingsUI()
   term.setCursorPos(28,10)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
-  term.write("STARTUP Shield")     -- Shield ON/OFF @ startup
+  if #dhdSettings.thisGate == 7 then
+    term.write("STARTUP Shield")     -- Shield ON/OFF @ startup
+  elseif #dhdSettings.thisGate > 7 then
+    term.write("STARTUP Iris")
+  end
   term.setCursorPos(45,10)
   --term.setTextColor(lblue)
   if dhdSettings.startShield == "OFF" then
@@ -1273,7 +1280,11 @@ local function drawSettingsUI()
   term.setCursorPos(28,12)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
-  term.write("END Call Shield")    -- END Call Shield (ON/OFF)
+  if #dhdSettings.thisGate == 7 then
+    term.write("END Call Shield")    -- END Call Shield (ON/OFF)
+  elseif #dhdSettings.thisGate > 7 then
+    term.write("END Call Iris")
+  end
   term.setCursorPos(45,12)
   if dhdSettings.ecShield == "OFF" then
     term.setBackgroundColor(gray)
@@ -1876,7 +1887,7 @@ function drawCLI()   -- Client Interface 'decider'
           displayGateList()
         end
       end
-      if runState == "Dial" then -- or gateStatus == "Dialing" then
+      if runState == "Dial" then
         drawDialUI()
         drawControlUI()
         drawNaviUI()
