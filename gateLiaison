@@ -1,13 +1,12 @@
 --[[  LanteaCraft      ]]--
 --[[    Gate Liaison   ]]--
---[[  version  1.0.18  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
 --[[  with help from   ]]--
---[[  AfterlifeLochie  ]]--
+--[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.0.18"
+local gVer = "1.0.19"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -23,7 +22,7 @@ Tested with/requires:
 local modem, modemSide
 local gate, thisGate
 local fuelGuage, shieldStatus
-local pData, gateSide
+local pData
 local gateStatus = "QRY"
 local dialAddress = "none"
 local currentState = "ZZ"
@@ -53,37 +52,37 @@ local function saveData()
   gateConfig.close()
 end
 
-local function displayMarque()
-  if mon ~= "none" then
-    mon.setBackgroundColor(colors.black)
-    mon.clear()
-    mon.setTextScale(2)
-    mon.setCursorPos(1,1)
-    mon.setTextColor(colors.cyan)
-    mon.write("Stargate")
-    mon.setTextColor(colors.yellow)
-    if #thisGate > 7 then
-      mon.setCursorPos(4,2)
-    else
-      mon.setCursorPos(2,2)
-    end
-    mon.write(longName)
+local function displayMarque() -- Display the local address when there is no other information to display
+  if mon == "none" then return end
+  mon.setBackgroundColor(colors.black)
+  mon.clear()
+  mon.setTextScale(2)
+  mon.setCursorPos(1,1)
+  mon.setTextColor(colors.cyan)
+  mon.write("Stargate")
+  mon.setTextColor(colors.yellow)
+  if #thisGate > 7 then
+    mon.setCursorPos(4,2)
+  else
+    mon.setCursorPos(2,2)
   end
+  mon.write(longName)
 end
 
 local function displayStatus(select)
-  if select == "con" then
+  if mon == "none" then return end
+  if select == "con" then -- Connection status - dialAddress or incoming
     mon.clear()
     mon.setTextScale(2)
     mon.setCursorPos(1,1)
-    if dialAddress ~= "none" then
+    if dialAddress ~= "none" then -- dialAddress
       mon.setTextColor(colors.lightBlue)
       mon.write("Connected to")
       mon.setTextColor(colors.yellow)
       if #dialAddress > 7 then
         mon.setCursorPos(4,2)
         mon.write(dialAddress)
-      else
+      else                        -- incoming
         mon.setCursorPos(1,2)
         local dA = { }
         for i = 1,#dialAddress do
@@ -97,7 +96,7 @@ local function displayStatus(select)
       mon.setCursorPos(4,2)
       mon.write("Connection")
     end
-  elseif select == "dial" then
+  elseif select == "dial" then -- Dial status - dialAddress or incoming
     mon.clear()
     mon.setTextScale(2)
     mon.setCursorPos(1,1)
@@ -107,8 +106,8 @@ local function displayStatus(select)
       mon.setTextColor(colors.yellow)
       if #dialAddress > 7 then
         mon.setCursorPos(4,2)
-        mon.write(dialAddress)
-      else
+        mon.write(dialAddress) -- dialAddress (8+ symbols)
+      else                     -- or longName (7 symbols)
         mon.setCursorPos(1,2)
         local dA = { }
         for i = 1,#dialAddress do
@@ -116,14 +115,14 @@ local function displayStatus(select)
           mon.write(" " .. dA[i])
         end
       end
-    else
+    else                       -- incoming
       mon.setTextColor(colors.yellow)
       mon.write(" Incoming")
       mon.setCursorPos(4,2)
       mon.write("Connection")
     end
-  elseif select == "" or select == nil then
-    if gate.isDialing() == true and dialAddress == "" then
+  elseif select == "" or select == nil then -- Non-specified status - incoming or marque
+    if gate.isDialing() == true and dialAddress == "" then -- incoming
       mon.clear()
       mon.setTextScale(2)
       mon.setTextColor(colors.yellow)
@@ -132,7 +131,7 @@ local function displayStatus(select)
       mon.setCursorPos(4,2)
       mon.write("Connection")
     else
-      displayMarque()
+      displayMarque()                                      -- marque
     end
   end
 end
@@ -152,13 +151,13 @@ local function drawTermScreen()
     term.setTextColor(colors.white)
   end
   term.setCursorPos(2,2)
-  term.write(" Gate Liaison          ver. " .. gVer .. " ")
+  term.write(" Gate Liaison            ver. " .. gVer .. " ")
   term.setCursorPos(2,10)
-  term.write(string.rep(" ",35))
+  term.write(string.rep(" ",37))
   term.setCursorPos(2,10)
   term.write(" " .. os.getComputerLabel())
   local cID = tostring(os.getComputerID())
-  term.setCursorPos(37-(3+#cID),10)
+  term.setCursorPos(39-(3+#cID),10)
   term.write("# " .. cID)
   term.setBackgroundColor(colors.lightGray)
   term.setTextColor(colors.black)
@@ -168,10 +167,14 @@ local function drawTermScreen()
       term.write(" ")
     end
   end
-  local readouts = { " Gate:", " State:", " Target:", " Shield:", " Fuel:", " Status:", " Network:" }
+  local readouts = { " Gate:", " State:", " Target:",  " Iris:", " Fuel:", " Status:", " Network:" }
   for i = 1,7,1 do
     term.setCursorPos(2,i+2)
     term.write(readouts[i])
+  end
+  if #thisGate == 7 then
+    term.setCursorPos(2,6)
+    term.write(" Shield:")
   end
   term.setBackgroundColor(colors.black)
   term.setTextColor(colors.yellow)
@@ -196,12 +199,20 @@ local function drawTermScreen()
   term.setCursorPos(17,6)
   if shieldStatus == true then
     term.setTextColor(colors.green)
-    term.write("ON ")
+    if #thisGate == 7 then
+      term.write("ON   ")
+    elseif #thisGate > 7 then
+      term.write("CLOSED")
+    end
   elseif shieldStatus == false then
     term.setTextColor(colors.orange)
-    term.write("OFF")
+    if #thisGate == 7 then
+      term.write("OFF  ")
+    elseif #thisGate > 7 then
+      term.write("OPEN  ")
+    end
   else
-    term.write("ERR")
+    term.write("ERROR")
   end
   term.setCursorPos(17,7)
   if fuelGuage == true then
@@ -220,10 +231,22 @@ local function drawTermScreen()
   term.setCursorPos(17,9)
   if gateSettings.net == "R" then
     term.setTextColor(colors.red)
-    term.write("redNet / " .. tostring(gateSettings.DHD))
+    term.write("redNet   ")
+    term.setTextColor(colors.gray)
+    term.write("ccDHD ")
+    term.setTextColor(colors.red)
+    term.write(tostring(gateSettings.DHD))
   elseif gateSettings.net == "C" then
     term.setTextColor(colors.green)
-    term.write("ccNet / " .. tostring(gateSettings.chan.send) .. "-" .. tostring(gateSettings.chan.recv))
+    term.write("ccNet ")
+    term.setTextColor(colors.gray)
+    term.write("s:")
+    term.setTextColor(colors.green)
+    term.write(tostring(gateSettings.chan.send))
+    term.setTextColor(colors.gray)
+    term.write(" r:")
+    term.setTextColor(colors.green)
+    term.write(tostring(gateSettings.chan.recv))
   end
 end
 
@@ -242,9 +265,9 @@ end
 local function updateStatus(special)
   currentState = pData
   fuelGuage = gate.hasFuel()
-  if #thisGate == 7 then
+  if #thisGate == 7 then    -- snapshot 82 (7 symbols)
     shieldStatus = rs.getOutput(gateSettings.shield)
-  elseif #thisGate == 9 then
+  elseif #thisGate > 7 then -- RC1 (8+ symbols)
     if gateSettings.shield == "iris" then
       shieldStatus, _ = { pcall(gate.isIrisClosed) }
     else
@@ -253,8 +276,12 @@ local function updateStatus(special)
   end
   if gateStatus == "allclear" then
     shieldState = false
-    gateStatus = "Disconnected"
-    dialAddress = "none"
+    if gate.isConnected() then
+      gateStatus = "Connected"
+    else
+      gateStatus = "Disconnected"
+      dialAddress = "none"
+    end
     if fuelGuage == false then
       pData = "YY0"
     elseif fuelGuage == true then
@@ -318,9 +345,9 @@ end
 
 local function shieldControl(state)
   if state == "ON" then
-    if #thisGate == 7 then
+    if #thisGate == 7 then    -- snapshot 82 (7 symbols)
       rs.setOutput(gateSettings.shield,true)
-    elseif #thisGate == 9 then
+    elseif #thisGate > 7 then -- RC1 (8+ symbols)
       if gateSettings.shield == "iris" then
         pcall(gate.irisClose)
       else
@@ -329,9 +356,9 @@ local function shieldControl(state)
     end
     return
   elseif state == "OFF" then
-    if #thisGate == 7 then
+    if #thisGate == 7 then    -- snapshot 82 (7 symbols)
       rs.setOutput(gateSettings.shield,false)
-    elseif #thisGate == 9 then
+    elseif #thisGate > 7 then -- RC1 (8+ symbols)
       if gateSettings.shield == "iris" then
         pcall(gate.irisOpen)
       else
@@ -345,7 +372,7 @@ end
 local function lockDown()
   gateStatus = "lockdown"
   shieldControl("ON")
-  if #thisGate == 9 then     -- RC1 (9 symbols)
+  if #thisGate > 7 then     -- RC1 (8+ symbols)
     local ok, _ = { pcall(gate.disconnect) }
     if ok then
       dialAddress = "none"
@@ -381,7 +408,7 @@ local function dialOut(targetAddress)
 end
 
 local function endCall()
-  local ok, err = { pcall(gate.disconnect) }
+  local ok, _ = { pcall(gate.disconnect) }
   if ok then
     gateStatus = "Disconnected"
     dialAddress = "none"
@@ -401,9 +428,9 @@ local function doCommand(thisCommand)
   elseif thisCommand == "QRY" then
     updateStatus("QRY")
     return
-  elseif thisCommand == "1stRun" then  -- When ccDHD signifies its first run, it then sends it's cc# and waits for the gate's address & cc #
+  elseif thisCommand == "1stRun" then  -- When ccDHD signifies its first run...
     while true do
-      local myBoss = { os.pullEvent("modem_message") }
+      local myBoss = { os.pullEvent("modem_message") }  -- ...it then sends it's cc# and waits for the gate's address & cc #
       if myBoss[3] == gateSettings.chan.recv and myBoss[4] == gateSettings.chan.send then
         gateSettings.DHD = myBoss[5]
         saveData()
@@ -532,21 +559,24 @@ local function firstRun()
     if #thisGate == 7 then
       tPos = { 5,7,9,11,13,15 }
       tSide = { "top","bottom","front","back","left","right" }
-    elseif #thisGate == 9 then
-      tPos = { 5,7,9,11,13,15,17 }
-      tSide = { "top","bottom","front","back","left","right","iris" }
+    elseif #thisGate > 7 then
+      tPos = { 5,7,9,11,13,15 }
+      tSide = { "top","bottom","front","back","left","right" }
+      --tPos = { 5,7,9,11,13,15,17 }
+      --tSide = { "top","bottom","front","back","left","right","iris" }
     end
     term.setBackgroundColor(colors.gray)
     term.setTextColor(colors.white)
     if #thisGate == 7 then
       for i = 4,16,1 do                                 --
         term.setCursorPos(26,i)                         -- Draw blank menu (snapshot 82)
-        term.write("        ")                          --
+        term.write(string.rep(" ",8))                   --
       end
-    elseif #thisGate == 9 then
-      for i = 4,18,1 do                                 --
+    elseif #thisGate > 7 then
+      --for i = 4,18,1 do                               --
+      for i = 4,16,1 do                                 --
         term.setCursorPos(26,i)                         -- Draw blank menu (RC1)
-        term.write("        ")                          --
+        term.write(string.rep(" ",8))                   --
       end
     end
     for j,k in pairs(tSide) do                          --
@@ -605,7 +635,6 @@ local function initMe()
     if peripheral.getType(v) == "stargate" then
       if not gate then
         gate = peripheral.wrap(tostring(v))
-        gateSide = tostring(v)
         initGate()
       end
     elseif peripheral.getType(v) == "modem" then
@@ -638,7 +667,7 @@ local function initMe()
   end
   if #thisGate == 7 then
     shieldStatus = rs.getOutput(gateSettings.shield)
-  elseif #thisGate == 9 then
+  elseif #thisGate > 7 then
     if gateSettings.shield == "iris" then
       shieldStatus, _ = { pcall(gate.isIrisClosed) }
     else
