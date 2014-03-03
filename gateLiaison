@@ -1,10 +1,13 @@
 --[[  LanteaCraft      ]]--
 --[[    Gate Liaison   ]]--
---[[  version  1.0.17  ]]--
+--[[  version  1.0.18  ]]--
 --[[ by HydrantHunter  ]]--
 --[[     aka Dog       ]]--
+--[[  with help from   ]]--
+--[[  AfterlifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
-local gVer = "1.0.17"
+--[[      GPL v3       ]]--
+local gVer = "1.0.18"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -20,7 +23,7 @@ Tested with/requires:
 local modem, modemSide
 local gate, thisGate
 local fuelGuage, shieldStatus
-local pData
+local pData, gateSide
 local gateStatus = "QRY"
 local dialAddress = "none"
 local currentState = "ZZ"
@@ -239,7 +242,15 @@ end
 local function updateStatus(special)
   currentState = pData
   fuelGuage = gate.hasFuel()
-  shieldStatus = rs.getOutput(gateSettings.shield)
+  if #thisGate == 7 then
+    shieldStatus = rs.getOutput(gateSettings.shield)
+  elseif #thisGate == 9 then
+    if gateSettings.shield == "iris" then
+      shieldStatus, _ = { pcall(gate.isIrisClosed) }
+    else
+      shieldStatus = rs.getOutput(gateSettings.shield)
+    end
+  end
   if gateStatus == "allclear" then
     shieldState = false
     gateStatus = "Disconnected"
@@ -305,34 +316,41 @@ local function recordSessionData()  -- Human readable log files (last gate & his
   lastCall.close()
 end
 
-local function irisControl(istate)
-  if istate == "ON" then
-    rs.setOutput(gateSettings.shield,true)
-  elseif istate == "OFF" then
-    rs.setOutput(gateSettings.shield,false)
-  end
-  --return
-end
-
 local function shieldControl(state)
   if state == "ON" then
-    rs.setOutput(gateSettings.shield,true)
+    if #thisGate == 7 then
+      rs.setOutput(gateSettings.shield,true)
+    elseif #thisGate == 9 then
+      if gateSettings.shield == "iris" then
+        pcall(gate.irisClose)
+      else
+        rs.setOutput(gateSettings.shield,true)
+      end
+    end
+    return
   elseif state == "OFF" then
-    rs.setOutput(gateSettings.shield,false)
+    if #thisGate == 7 then
+      rs.setOutput(gateSettings.shield,false)
+    elseif #thisGate == 9 then
+      if gateSettings.shield == "iris" then
+        pcall(gate.irisOpen)
+      else
+        rs.setOutput(gateSettings.shield,false)
+      end
+    end
+    return
   end
-  --return
 end
 
 local function lockDown()
   gateStatus = "lockdown"
+  shieldControl("ON")
   if #thisGate == 9 then     -- RC1 (9 symbols)
-    irisControl("ON")
     local ok, _ = { pcall(gate.disconnect) }
     if ok then
       dialAddress = "none"
     end
   elseif #thisGate == 7 then -- snapshot 82 (7 symbols)
-    shieldControl("ON")
     gate.disconnect()
     dialAddress = "none"
   end
@@ -347,7 +365,7 @@ end
 
 local function dialOut(targetAddress)
   dialAddress = tostring(targetAddress)
-  if dialAddress ~= thisGate and tostring(gate.isConnected()) == "false" then -- Is the stargate connected to another stargate?  isConnected()
+  if dialAddress ~= thisGate and tostring(gate.isConnected()) == "false" and #dialAddress > 6 and # dialAddress < 10 then -- Is the stargate connected to another stargate?  isConnected()
     local dialGate = gate.dial(dialAddress)
     if dialGate then
       gateStatus = "Dialing"
@@ -375,11 +393,7 @@ local function doCommand(thisCommand)
     lockDown()
   elseif thisCommand == "allclear" then
     displayMarque()
-    if #thisGate == 7 then
-      shieldControl("OFF")
-    elseif #thisGate == 9 then
-      irisControl("OFF")
-    end
+    shieldControl("OFF")
     gateStatus = "allclear"
     dialAddress = "none"
     updateStatus()
@@ -387,7 +401,7 @@ local function doCommand(thisCommand)
   elseif thisCommand == "QRY" then
     updateStatus("QRY")
     return
-  elseif thisCommand == "1stRun" then  -- When DHD signifies its first run, it then sends it's cc# and waits for the gate's address & cc #
+  elseif thisCommand == "1stRun" then  -- When ccDHD signifies its first run, it then sends it's cc# and waits for the gate's address & cc #
     while true do
       local myBoss = { os.pullEvent("modem_message") }
       if myBoss[3] == gateSettings.chan.recv and myBoss[4] == gateSettings.chan.send then
@@ -434,19 +448,11 @@ local function doCommand(thisCommand)
       updateStatus()
       return
     elseif thisCommand == "sON" then
-      if #thisGate == 7 then
-        shieldControl("ON")
-      elseif #thisGate == 9 then
-        irisControl("ON")
-      end
+      shieldControl("ON")
       updateStatus()
       return
     elseif thisCommand == "sOFF" then
-      if #thisGate == 7 then
-        shieldControl("OFF")
-      elseif #thisGate == 9 then
-        irisControl("OFF")
-      end
+      shieldControl("OFF")
       updateStatus()
       return
     elseif thisCommand == "restart" or thisCommand == "reset" then
@@ -515,34 +521,55 @@ local function firstRun()
   if ccLabel == nil or ccLabel == "" then
     os.setComputerLabel("Gate Liaison - cc# " .. os.getComputerID())
   end
-  -- Select shield/redstone output side
-  term.setCursorPos(2,2)
-  term.setTextColor(colors.lightBlue)
-  term.write("Please select the shield/redstone output side")
-  -- Draw side list
-  local tPos = { 5,7,9,11,13,15 }
-  local tSide = { "top","bottom","front","back","left","right" }
-  term.setBackgroundColor(colors.gray)
-  term.setTextColor(colors.white)
-  for i = 4,16,1 do                                   -- Draw blank menu
-    term.setCursorPos(26,i)                           --
-    term.write("        ")                            --
-  end
-  for j,k in pairs(tSide) do
-    term.setCursorPos(27,tPos[j])                     -- Draw side labels in menu
-    term.write(string.upper(k):sub(1,1) .. k:sub(2) ) --
-  end
-  while true do
-    local newSide = { os.pullEvent("mouse_click") }   -- Select shield (redstone output) side
-    if newSide[3] > 26 and newSide[3] < 34 then       --
-      for j,k in pairs(tSide) do                      --
-        if newSide[4] == tPos[j] then                 --
-          gateSettings.shield = k                     --
-          return false                                --
+  --if #thisGate == 7 then                              -- implement when iris control is introduced?
+    -- Select shield/redstone output side
+    term.setCursorPos(2,2)
+    term.setTextColor(colors.lightBlue)
+    term.write("Please select the shield/redstone output side")
+    -- Draw side list
+    local tPos = { }
+    local tSide = { }
+    if #thisGate == 7 then
+      tPos = { 5,7,9,11,13,15 }
+      tSide = { "top","bottom","front","back","left","right" }
+    elseif #thisGate == 9 then
+      tPos = { 5,7,9,11,13,15,17 }
+      tSide = { "top","bottom","front","back","left","right","iris" }
+    end
+    term.setBackgroundColor(colors.gray)
+    term.setTextColor(colors.white)
+    if #thisGate == 7 then
+      for i = 4,16,1 do                                 --
+        term.setCursorPos(26,i)                         -- Draw blank menu (snapshot 82)
+        term.write("        ")                          --
+      end
+    elseif #thisGate == 9 then
+      for i = 4,18,1 do                                 --
+        term.setCursorPos(26,i)                         -- Draw blank menu (RC1)
+        term.write("        ")                          --
+      end
+    end
+    for j,k in pairs(tSide) do                          --
+      term.setCursorPos(27,tPos[j])                     -- Draw side labels in menu
+      term.write(string.upper(k):sub(1,1) .. k:sub(2) ) --
+    end
+    while true do
+      local newSide = { os.pullEvent("mouse_click") }   --
+      if newSide[3] > 26 and newSide[3] < 34 then       --
+        for j,k in pairs(tSide) do                      --
+          if newSide[4] == tPos[j] then                 --
+            if k == "iris" then                         -- Select shield (redstone output) side
+              gateSettings.shield = "iris"              --          or internal iris
+              return false                              --
+            else                                        --
+              gateSettings.shield = k                   --
+              return false                              --
+            end
+          end
         end
       end
     end
-  end
+  --end
 end
 
 -- AUTOMATIC/STATIC CONFIGURATION (Part 2)
@@ -573,12 +600,14 @@ local function initMe()
     saveData()
   end
   ingestData()
-  shieldStatus = rs.getOutput(gateSettings.shield)
   for k,v in pairs(rs.getSides()) do
         -- Stargate
     if peripheral.getType(v) == "stargate" then
-      gate = peripheral.wrap(tostring(v))
-      initGate()
+      if not gate then
+        gate = peripheral.wrap(tostring(v))
+        gateSide = tostring(v)
+        initGate()
+      end
     elseif peripheral.getType(v) == "modem" then
         -- Modem/redNet
       if peripheral.call(tostring(v),"isWireless") == true then
@@ -592,17 +621,28 @@ local function initMe()
         end
         -- Network/ccNet
       elseif peripheral.call(tostring(v),"isWireless") == false then
-        -- Monitor
+        -- Monitor / Stargate
         local mPerps = peripheral.call(tostring(v),"getNamesRemote")
         for num,mPerp in pairs(mPerps) do
           if tostring(mPerp):sub(1,7) == "monitor" then
             mon = peripheral.wrap(mPerp)
           elseif tostring(mPerp):sub(1,8) == "stargate" then
-            gate = peripheral.wrap(mPerp)
-            initGate()
+            if not gate then
+              gate = peripheral.wrap(mPerp)
+              initGate()
+            end
           end
         end
       end
+    end
+  end
+  if #thisGate == 7 then
+    shieldStatus = rs.getOutput(gateSettings.shield)
+  elseif #thisGate == 9 then
+    if gateSettings.shield == "iris" then
+      shieldStatus, _ = { pcall(gate.isIrisClosed) }
+    else
+      shieldStatus = rs.getOutput(gateSettings.shield)
     end
   end
   if mon ~= "none" then
