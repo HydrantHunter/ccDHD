@@ -6,7 +6,7 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.0.19"
+local gVer = "1.0.20"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -131,7 +131,7 @@ local function displayStatus(select)
       mon.setCursorPos(4,2)
       mon.write("Connection")
     else
-      displayMarque()                                      -- marque
+      displayMarque()          -- marque
     end
   end
 end
@@ -176,11 +176,12 @@ local function drawTermScreen()
     term.setCursorPos(2,6)
     term.write(" Shield:")
   end
+  term.setCursorPos(17,3)
   term.setBackgroundColor(colors.black)
   term.setTextColor(colors.yellow)
-  term.setCursorPos(17,3)
   term.write(thisGate)
   term.setCursorPos(17,4)
+  term.setTextColor(colors.blue)
   if gateStatus == "Disconnected" then
     term.setTextColor(colors.green)
   elseif gateStatus == "Connected" then
@@ -190,6 +191,9 @@ local function drawTermScreen()
   end
   if gateStatus == "Dialing" and dialAddress == "none" then
     term.write("Incoming Connection")
+  elseif gateStatus == "lockdown" then
+    term.setTextColor(colors.red)
+    term.write("!! LOCKDOWN !!")
   else
     term.write(gateStatus)
   end
@@ -200,27 +204,28 @@ local function drawTermScreen()
   if shieldStatus == true then
     term.setTextColor(colors.green)
     if #thisGate == 7 then
-      term.write("ON   ")
+      term.write("ON    ")
     elseif #thisGate > 7 then
       term.write("CLOSED")
     end
   elseif shieldStatus == false then
     term.setTextColor(colors.orange)
     if #thisGate == 7 then
-      term.write("OFF  ")
+      term.write("OFF   ")
     elseif #thisGate > 7 then
       term.write("OPEN  ")
     end
   else
-    term.write("ERROR")
+    term.setTextColor(colors.magenta)
+    term.write("ERROR ")
   end
   term.setCursorPos(17,7)
   if fuelGuage == true then
     term.setTextColor(colors.green)
-    term.write("Yes")
+    term.write("YES  ")
   elseif fuelGuage == false then
     term.setTextColor(colors.red)
-    term.write("NO")
+    term.write("NO   ")
   else
     term.setTextColor(colors.magenta)
     term.write("ERROR")
@@ -418,6 +423,7 @@ end
 local function doCommand(thisCommand)
   if thisCommand == "lockdown" then
     lockDown()
+    return
   elseif thisCommand == "allclear" then
     displayMarque()
     shieldControl("OFF")
@@ -518,6 +524,7 @@ local function netReceive()
           doCommand(eventNet[5])
         end
       end
+      return
     end
   end
 end
