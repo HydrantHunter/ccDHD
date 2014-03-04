@@ -6,7 +6,7 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.0.20"
+local gVer = "1.0.21"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -611,6 +611,27 @@ end
 
 -- AUTOMATIC/STATIC CONFIGURATION (Part 2)
 local function initGate()
+  for k,v in pairs(rs.getSides()) do
+        -- Stargate
+    if peripheral.getType(v) == "stargate" then
+      if not gate then
+        gate = peripheral.wrap(tostring(v))
+        break
+      end
+    elseif peripheral.getType(v) == "modem" then
+      if peripheral.call(tostring(v),"isWireless") == false then
+        local mPerps = peripheral.call(tostring(v),"getNamesRemote")
+        for num,mPerp in pairs(mPerps) do
+          if tostring(mPerp):sub(1,8) == "stargate" then
+            if not gate then
+              gate = peripheral.wrap(mPerp)
+              break
+            end
+          end
+        end
+      end
+    end
+  end
   thisGate = gate.getAddress()
   fuelGuage = gate.hasFuel()
   if #thisGate > 7 then
@@ -630,6 +651,7 @@ local function initGate()
 end
 
 local function initMe()
+  initGate()
   if not fs.exists("/data/gateSettings") then
     firstRun()
     term.setBackgroundColor(colors.black)
@@ -638,14 +660,8 @@ local function initMe()
   end
   ingestData()
   for k,v in pairs(rs.getSides()) do
-        -- Stargate
-    if peripheral.getType(v) == "stargate" then
-      if not gate then
-        gate = peripheral.wrap(tostring(v))
-        initGate()
-      end
-    elseif peripheral.getType(v) == "modem" then
         -- Modem/redNet
+    if peripheral.getType(v) == "modem" then
       if peripheral.call(tostring(v),"isWireless") == true then
         if gateSettings.net == "R" then
           modemSide = v
@@ -662,11 +678,6 @@ local function initMe()
         for num,mPerp in pairs(mPerps) do
           if tostring(mPerp):sub(1,7) == "monitor" then
             mon = peripheral.wrap(mPerp)
-          elseif tostring(mPerp):sub(1,8) == "stargate" then
-            if not gate then
-              gate = peripheral.wrap(mPerp)
-              initGate()
-            end
           end
         end
       end
