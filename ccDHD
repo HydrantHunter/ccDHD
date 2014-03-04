@@ -396,7 +396,8 @@ function importGateData()
   allGates = textutils.unserialize(gateList)
   numPages = math.ceil(#allGates / 24)
   listPages = math.ceil(#allGates / 8)
-  saveData(dhdSettings.gateData,"gate")
+  gateChange = true
+  --saveData(dhdSettings.gateData,"gate")
   return
 end
 
