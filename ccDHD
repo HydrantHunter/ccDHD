@@ -1906,6 +1906,7 @@ local function secKernel()       -- LOCKDOWN handler
           term.write(string.rep(" ",22))
         end
       end
+      netSend("QRY")
       drawCLI()
       break
     end
