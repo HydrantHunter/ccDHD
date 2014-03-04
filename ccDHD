@@ -388,6 +388,26 @@ local function saveData(filename,filetype)
   dhdConfig.close()
 end
 
+function importGateData()
+  menuState = false
+  local gateData = fs.open("/disk/DHDgates","r") or error("Cannot open /disk/DHDgates for reading", 2)
+  local gateList = gateData.readAll()
+  gateData.close()
+  allGates = textutils.unserialize(gateList)
+  numPages = math.ceil(#allGates / 24)
+  listPages = math.ceil(#allGates / 8)
+  saveData(dhdSettings.gateData,"gate")
+  return
+end
+
+function exportGateData()
+  menuState = false
+  local gateData = fs.open("/disk/DHDgates","w") or error("Cannot open /disk/DHDgates for writing", 2)
+  gateData.write(textutils.serialize(allGates))
+  gateData.close()
+  return
+end
+
 local function localInventory()
   dhdSettings.monA="none"
   dhdSettings.monB="none"
@@ -710,7 +730,7 @@ local function drawHeader()
 end
 
 local function drawControlUI()
-  local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "Iris", "END Call", "LOCKDOWN", "rCmd", "+ Entry", "Save", "- Undo -", "-COMMIT-" }
+  local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "Iris", "END Call", "LOCKDOWN", "rCmd", "+ Entry", "Import", "Export", "Save", "- Undo -", "-COMMIT-" }
   term.setBackgroundColor(gray)
   for i = 6,16,1 do
     for h = 42,termX,1 do
@@ -726,21 +746,21 @@ local function drawControlUI()
     else
       term.setBackgroundColor(red)
     end
-    term.write(dhdCommandOptions[1] .. "     ")
+    term.write(dhdCommandOptions[1] .. "     ") -- D I A L
   elseif runState == "Edit" then
     term.setBackgroundColor(brown)
-    term.write(dhdCommandOptions[2] .. "     ")
+    term.write(dhdCommandOptions[2] .. "     ") -- E D I T
   elseif runState == "Trim" then
     term.setBackgroundColor(orange)
-    term.write(dhdCommandOptions[3] .. "     ")
+    term.write(dhdCommandOptions[3] .. "     ") -- T R I M
   end
   if runState == "Dial" then
     term.setCursorPos(43,9)
     term.setBackgroundColor(lblue)
     if #dhdSettings.thisGate == 7 then
-      term.write(dhdCommandOptions[4] .. "   ")
+      term.write(dhdCommandOptions[4] .. "   ") -- Shield
     elseif #dhdSettings.thisGate > 7 then
-      term.write(dhdCommandOptions[5] .. "    ")
+      term.write(dhdCommandOptions[5] .. "    ") -- Iris
     end
     if shieldStatus == "ON" then      --
       term.setBackgroundColor(green)  --
@@ -754,38 +774,46 @@ local function drawControlUI()
     term.setCursorPos(43,11)
     term.setTextColor(black)
     term.setBackgroundColor(orange)
-    term.write(dhdCommandOptions[6] .. " ")
+    term.write(dhdCommandOptions[6] .. " ") -- endCall
     term.setCursorPos(43,13)
     term.setTextColor(orange)
     term.setBackgroundColor(red)
-    term.write(dhdCommandOptions[7] .. " ")
+    term.write(dhdCommandOptions[7] .. " ") -- Lockdown
     term.setCursorPos(43,15)
     term.setTextColor(gray)
     term.setBackgroundColor(cyan)
-    term.write(dhdCommandOptions[8] .. "     ")
+    term.write(dhdCommandOptions[8] .. "     ") -- rCmd
   elseif runState == "Edit" then
     if #allGates < 23976 then
-      term.setCursorPos(43,11)
+      term.setCursorPos(43,9)
       term.setTextColor(white)
       term.setBackgroundColor(blue)
-      term.write(dhdCommandOptions[9] .. "  ")
+      term.write(dhdCommandOptions[9] .. "  ") -- +Entry
     end
+    term.setCursorPos(43,11)
+    term.setTextColor(white)
+    term.setBackgroundColor(orange)
+    term.write(dhdCommandOptions[10] .. "     ") -- Import Gate Data
     term.setCursorPos(43,13)
+    term.setTextColor(white)
+    term.setBackgroundColor(green)
+    term.write(dhdCommandOptions[11] .. "     ") -- Export Gate Data
+    term.setCursorPos(43,15)
     term.setTextColor(white)
     term.setBackgroundColor(cyan)
     if gateChange == true then
       term.setTextColor(lime)
     end
-    term.write(dhdCommandOptions[10] .. "     ")
+    term.write(dhdCommandOptions[12] .. "     ") -- Save Gate Data
   elseif runState == "Trim" then
     term.setCursorPos(43,11)
     term.setTextColor(gray)
     term.setBackgroundColor(lgray)
-    term.write(dhdCommandOptions[11] .. " ")
+    term.write(dhdCommandOptions[13] .. " ") -- Undo
     term.setCursorPos(43,13)
     term.setTextColor(black)
     term.setBackgroundColor(red)
-    term.write(dhdCommandOptions[12] .. " ")
+    term.write(dhdCommandOptions[14] .. " ") -- Commit
   end
   term.setBackgroundColor(black)
 end
@@ -1649,6 +1677,12 @@ local function flashChoice(choice)
     term.setBackgroundColor(lgray)
     term.setTextColor(gray)
     term.write(" Save ")
+  elseif choice == "new" then
+    term.setCursorPos(43,9)
+    term.setBackgroundColor(white)
+    term.setTextColor(blue)
+    term.write("+ Entry  ")
+    sleep(0.1)
   elseif choice == "end" then
     term.setCursorPos(43,11)
     term.setBackgroundColor(black)
@@ -1656,12 +1690,13 @@ local function flashChoice(choice)
     term.write("END Call ")
     sleep(0.1)
     drawControlUI()
-  elseif choice == "new" then
+  elseif choice == "import" then
     term.setCursorPos(43,11)
     term.setBackgroundColor(white)
-    term.setTextColor(blue)
-    term.write("+ Entry  ")
+    term.setTextColor(orange)
+    term.write("Import   ")
     sleep(0.1)
+    drawControlUI()
   elseif choice == "undo" then
     term.setCursorPos(43,11)
     term.setBackgroundColor(brown)
@@ -1674,11 +1709,11 @@ local function flashChoice(choice)
     term.setTextColor(red)
     term.write("LOCKDOWN ")
     sleep(0.1)
-  elseif choice == "save" then
+  elseif choice == "export" then
     term.setCursorPos(43,13)
     term.setBackgroundColor(white)
-    term.setTextColor(cyan)
-    term.write("Save     ")
+    term.setTextColor(green)
+    term.write("Export   ")
     sleep(0.1)
     drawControlUI()
   elseif choice == "commit" then
@@ -1692,6 +1727,13 @@ local function flashChoice(choice)
     term.setBackgroundColor(lgray)
     term.setTextColor(cyan)
     term.write("rCmd     ")
+    sleep(0.1)
+    drawControlUI()
+  elseif choice == "save" then
+    term.setCursorPos(43,15)
+    term.setBackgroundColor(white)
+    term.setTextColor(cyan)
+    term.write("Save     ")
     sleep(0.1)
     drawControlUI()
   end
@@ -2186,10 +2228,21 @@ local function mClick()
         elseif mcY == 9 then
           if runState == "Dial" and shieldStatus == "OFF" then
             netSend("sON")
+            return
           elseif runState == "Dial" and shieldStatus == "ON" and secureStatus == "allclear" then
             netSend("sOFF")
+            return
+          elseif runState == "Edit" then
+            if #allGates < 23976 then
+              flashChoice("new")
+              gateChange = true
+              if mButton == 1 then
+                editGateEntry("new")
+              elseif mButton == 2 then
+                editGateEntry("newFast")
+              end
+            end
           end
-          return
         elseif mcY == 11 then
           if runState == "Dial" then
             if dhdSettings.ecShield == "ON" then
@@ -2201,15 +2254,11 @@ local function mClick()
               dialAddress = ""
             end
           elseif runState == "Edit" then
-            if #allGates < 23976 then
-              flashChoice("new")
-              gateChange = true
-              if mButton == 1 then
-                editGateEntry("new")
-              elseif mButton == 2 then
-                editGateEntry("newFast")
-              end
-            end
+            flashChoice("import")
+            importGateData()
+            term.setBackgroundColor(black)
+            term.clear()
+            drawCLI()
           elseif runState == "Trim" then
             flashChoice("undo")
             runState = "Edit"
@@ -2228,10 +2277,8 @@ local function mClick()
             secureStatus = "lockdown"
             netSend(secureStatus)
           elseif runState == "Edit" then
-            flashChoice("save")
-            gateChange = false
-            saveData(dhdSettings.gateData,"gate")
-            drawControlUI()
+            flashChoice("export")
+            exportGateData()
           elseif runState == "Trim" then
             flashChoice("commit")
             runState = "Edit"
@@ -2244,6 +2291,11 @@ local function mClick()
           if runState == "Dial" then
             flashChoice("rcmd")
             remoteCommand()
+          elseif runState == "Edit" then
+            flashChoice("save")
+            gateChange = false
+            saveData(dhdSettings.gateData,"gate")
+            drawControlUI()
           end
           if runState == "reboot" or runState == "reset" or runState == "exit" then break end
         end
@@ -2517,29 +2569,31 @@ local function mClick()
         end
        -- Edit Gate Notes
       elseif mcY > 8 and mcY < 11 then
-        term.setBackgroundColor(black)
-        term.setTextColor(gray)
-        term.setCursorPos(2,9)
-        term.write(allGates[currentEdit].note)
-        term.setTextColor(white)
-        term.setCursorPos(2,9)
-        local newNote = tostring(read())
-        if newNote ~= "" and newNote ~= "nil" then
-          allGates[currentEdit].note = newNote
-          gateChange = true
+        if mcX < 40 then
+          term.setBackgroundColor(black)
+          term.setTextColor(gray)
+          term.setCursorPos(2,9)
+          term.write(allGates[currentEdit].note)
+          term.setTextColor(white)
+          term.setCursorPos(2,9)
+          local newNote = tostring(read())
+          if newNote ~= "" and newNote ~= "nil" then
+            allGates[currentEdit].note = newNote
+            gateChange = true
+          end
+          term.setBackgroundColor(black)
+          term.setCursorPos(2,9)
+          for i = 2,termX,1 do
+            term.write(" ")
+          end
+          term.setCursorPos(2,10)
+          for i = 2,termX,1 do
+            term.write(" ")
+          end
+          term.setCursorPos(2,9)
+          term.setTextColor(white)
+          term.write(allGates[currentEdit].note)
         end
-        term.setBackgroundColor(black)
-        term.setCursorPos(2,9)
-        for i = 2,termX,1 do
-          term.write(" ")
-        end
-        term.setCursorPos(2,10)
-        for i = 2,termX,1 do
-          term.write(" ")
-        end
-        term.setCursorPos(2,9)
-        term.setTextColor(white)
-        term.write(allGates[currentEdit].note)
          -- Gate Dimension
       elseif mcY == 12 then
         if mcX > 12 and mcX < 16 then
