@@ -157,8 +157,8 @@ local function drawTermScreen()
   term.setCursorPos(2,10)
   term.write(" " .. os.getComputerLabel())
   local cID = tostring(os.getComputerID())
-  term.setCursorPos(39-(3+#cID),10)
-  term.write("# " .. cID)
+  term.setCursorPos(39-(6+#cID),10)
+  term.write("cc # " .. cID)
   term.setBackgroundColor(colors.lightGray)
   term.setTextColor(colors.black)
   for i = 2,14,1 do
@@ -553,7 +553,7 @@ local function firstRun()
   term.clear()
   local ccLabel = os.getComputerLabel()
   if ccLabel == nil or ccLabel == "" then
-    os.setComputerLabel("Gate Liaison - cc# " .. os.getComputerID())
+    os.setComputerLabel(thisGate .. " gate")
   end
   --if #thisGate == 7 then                              -- implement when iris control is introduced?
     -- Select shield/redstone output side
