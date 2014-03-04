@@ -3152,7 +3152,7 @@ end
 
 local function dhdKernel()
   if kernelState == true and secureStatus == "lockdown" then
-    parallel.waitForAny(secKernel) --,netReceive,bioScan,keyClick
+    parallel.waitForAny(secKernel,netReceive) --,bioScan,keyClick
   elseif kernelState == true and secureStatus == "allclear" and runState ~= "rCmd" and runState ~= "goPage" then
     parallel.waitForAny(mClick,mScroll,bioScan,monTouch,netReceive)  --,keyClick
   end
