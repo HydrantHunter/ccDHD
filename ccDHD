@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.65"
+local ccDHDVer = "1.0.67"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -3184,7 +3184,7 @@ local function firstRun()
     saveData(dhdSettings.gateData,"gate")
   end
   local ccLabel = os.getComputerLabel()
-  if tostring(ccLabel) == "nil" or ccLabel == "" then
+  if tostring(ccLabel) == "nil" or ccLabel == "" or ccLabel == "ccDHD" then
     os.setComputerLabel(dhdSettings.thisGate .. "DHD")
   end
 end
