@@ -26,15 +26,15 @@ end
 -- AUTOMATIC/STATIC CONFIGURATION
 -- Default Settings
 local settingsData = "/data/DHDsettings"
-local dhdSettings = { thisGate="GATEONE",
+local dhdSettings = { thisGate="--ERROR--",
                       password="password",
                       monA="none",
                       monB="none",
                       bio={lock="OFF",side="none",func="none",auth=4,},
                       net="C",
+                      ccnet="none",
                       rednet="none",
                       server=9999,
-                      ccnet="none",
                       channels={send=1776,recv=1787,},
                       ecShield="ON",
                       startShield="ON",
@@ -317,7 +317,7 @@ local function ingestLogData()
 end
 
 local function ingestData(fileName,fileType)
-  local dhdConfig = fs.open(tostring(fileName),"r") or error("Cannot open " .. fileName, 2)
+  local dhdConfig = fs.open(tostring(fileName),"r") or error("Cannot open " .. fileName .. " for reading", 2)
   local dhdCfg = dhdConfig.readAll()
   if fileType == "cfg" then
     dhdSettings = textutils.unserialize(dhdCfg)
@@ -397,8 +397,6 @@ function importGateData()
   numPages = math.ceil(#allGates / 24)
   listPages = math.ceil(#allGates / 8)
   gateChange = true
-  --saveData(dhdSettings.gateData,"gate")
-  return
 end
 
 function exportGateData()
@@ -406,7 +404,6 @@ function exportGateData()
   local gateData = fs.open("/disk/DHDgates","w") or error("Cannot open /disk/DHDgates for writing", 2)
   gateData.write(textutils.serialize(allGates))
   gateData.close()
-  return
 end
 
 local function localInventory()
@@ -416,17 +413,19 @@ local function localInventory()
   dhdSettings.bio.side="none"
   dhdSettings.bio.func="none"
   dhdSettings.net="C"
-  dhdSettings.rednet="none"
-  dhdSettings.server=9999
   dhdSettings.ccnet="none"
+  dhdSettings.rednet="none"
+  --[[
+  dhdSettings.server=9999
   dhdSettings.channels={send=1776,recv=1787,}
-  dhdSettings.ecShield="ON"
-  dhdSettings.startShield="ON"
-  dhdSettings.callEnd="OFF"
+  dhdSettings.ecShield="ON"      -- endCall shield
+  dhdSettings.startShield="ON"   -- startup shield
+  dhdSettings.callEnd="OFF"      -- initiator only
   dhdSettings.logs="OFF"
   dhdSettings.lastGate="/data/DHDlast"
   dhdSettings.gateHistory="/data/DHDhistory"
   dhdSettings.gateData="/data/DHDgates"
+  ]]--
   local side
   for _,side in pairs(rs.getSides()) do
     if peripheral.isPresent(tostring(side)) then
@@ -3153,9 +3152,9 @@ end
 
 local function dhdKernel()
   if kernelState == true and secureStatus == "lockdown" then
-    parallel.waitForAny(secKernel,netReceive) --,bioScan,keyClick
+    parallel.waitForAny(secKernel,netReceive)
   elseif kernelState == true and secureStatus == "allclear" and runState ~= "rCmd" and runState ~= "goPage" then
-    parallel.waitForAny(mClick,mScroll,bioScan,monTouch,netReceive)  --,keyClick
+    parallel.waitForAny(mClick,mScroll,bioScan,monTouch,netReceive)
   end
   if runState == "reset" then
     netSend("reset")
@@ -3169,10 +3168,6 @@ end
 
 local function firstRun()
   localInventory()
-  local ccLabel = os.getComputerLabel()
-  if tostring(ccLabel) == "nil" or ccLabel == "" then
-    os.setComputerLabel("ccDHD  cc# " .. os.getComputerID())
-  end
   netSend("1stRun")
   sleep(0.25)
   netSend(os.getComputerID())
@@ -3188,10 +3183,14 @@ local function firstRun()
   if not fs.exists(dhdSettings.gateData) then
     saveData(dhdSettings.gateData,"gate")
   end
+  local ccLabel = os.getComputerLabel()
+  if tostring(ccLabel) == "nil" or ccLabel == "" then
+    os.setComputerLabel(dhdSettings.thisGate .. "DHD")
+  end
 end
 
 local function initMe()
-  termX,termY = term.getSize()  -- standard 51x19 / cBang = 51x18
+  termX,termY = term.getSize()  -- standard 51x19 / cBang & OneOS = 51x18
   term.setBackgroundColor(black)
   term.setTextColor(white)
   term.clear()
