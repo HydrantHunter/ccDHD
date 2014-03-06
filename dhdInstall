@@ -1,5 +1,5 @@
 --[[ DHD/Gate Installer ]]--
---[[   version 1.0.04   ]]--
+--[[   version 1.0.05   ]]--
 --[[  by HydrantHunter  ]]--
 --[[      aka Dog       ]]--
 --[[ pastebin  A6uxKyCy ]]--
@@ -95,9 +95,9 @@ local function setCCLabel(whichType)
   local currentCCID = tostring(os.getComputerID())
   if currentCCLabel ~= "" and currentCCLabel ~= "nil" then return end
   if whichType == "gate" then
-    os.setComputerLabel("Gate - CC# " .. currentCCID)
+    os.setComputerLabel("Gate")
   elseif whichType == "dhd" then
-    os.setComputerLabel("DHD - CC# " .. currentCCID)
+    os.setComputerLabel("DHD")
   end
 end
 
