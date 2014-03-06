@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.67"
+local ccDHDVer = "1.0.68"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -3171,21 +3171,22 @@ local function firstRun()
   netSend("1stRun")
   sleep(0.25)
   netSend(os.getComputerID())
-  local myGate = { os.pullEvent("modem_message") }
-  if myGate[3] == dhdSettings.channels.recv and myGate[4] == dhdSettings.channels.send then
-    dhdSettings.thisGate = myGate[5]
-  end
-  local myServer = { os.pullEvent("modem_message") }
-  if myServer[3] == dhdSettings.channels.recv and myServer[4] == dhdSettings.channels.send then
-    dhdSettings.server = myServer[5]
+  while true do
+    local myGateInfo = { os.pullEvent("modem_message") }
+    if myGateInfo[3] == dhdSettings.channels.recv and myGateInfo[4] == dhdSettings.channels.send then
+      local tempSettings = myGateInfo[5]
+      dhdSettings.thisGate = tempSettings.gate
+      dhdSettings.server = tempSettings.server
+      break
+    end
   end
   saveData(settingsData,"cfg")
   if not fs.exists(dhdSettings.gateData) then
     saveData(dhdSettings.gateData,"gate")
   end
   local ccLabel = os.getComputerLabel()
-  if tostring(ccLabel) == "nil" or ccLabel == "" or ccLabel == "ccDHD" then
-    os.setComputerLabel(dhdSettings.thisGate .. "DHD")
+  if tostring(ccLabel) == "nil" or ccLabel == "" or ccLabel == "DHD" then
+    os.setComputerLabel(dhdSettings.thisGate .. " DHD")
   end
 end
 
