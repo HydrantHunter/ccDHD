@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.70"
+local ccDHDVer = "1.0.71"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -374,7 +374,7 @@ local function saveData(filename,filetype)
   dhdConfig.close()
 end
 
-function importGateData()
+local function importGateData()
   menuState = false
   if fs.exists("/disk/DHDgates") then
     local gateData = fs.open("/disk/DHDgates","r") or error("Cannot open /disk/DHDgates for reading", 2)
@@ -389,9 +389,11 @@ end
 
 function exportGateData()
   menuState = false
-  local gateData = fs.open("/disk/DHDgates","w") or error("Cannot open /disk/DHDgates for writing", 2)
-  gateData.write(textutils.serialize(allGates))
-  gateData.close()
+  if fs.exists("/disk/DHDgates") then
+    local gateData = fs.open("/disk/DHDgates","w") or error("Cannot open /disk/DHDgates for writing", 2)
+    gateData.write(textutils.serialize(allGates))
+    gateData.close()
+  end
 end
 
 local function localInventory()
@@ -2116,9 +2118,9 @@ local function mClick()
               flashChoice("new")
               gateChange = true
               if mButton == 1 then
-                editGateEntry("new")
+                viewGateEntry("new")
               elseif mButton == 2 then
-                editGateEntry("newFast")
+                viewGateEntry("newFast")
               end
             end
           end
