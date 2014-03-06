@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.71"
+local ccDHDVer = "1.0.72"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -285,6 +285,19 @@ local function netReceive()
   end
 end
 
+local function importGateData()
+  menuState = false
+  if fs.exists("/disk/DHDgates") then
+    local gateData = fs.open("/disk/DHDgates","r") or error("Cannot open /disk/DHDgates for reading", 2)
+    local gateList = gateData.readAll()
+    gateData.close()
+    allGates = textutils.unserialize(gateList)
+    numPages = math.ceil(#allGates / 24)
+    listPages = math.ceil(#allGates / 8)
+    gateChange = true
+  end
+end
+
 local function ingestLogData()
   if not fs.exists(dhdSettings.gateHistory) then
     local tmpHist = fs.open(dhdSettings.gateHistory,"w")
@@ -344,12 +357,12 @@ local function ingestData(fileName,fileType)
     else
       local tG = { }
       longName = ""
-      for i = 1,dhdSettings.thisGate:len(),1 do -- This spaces out the name for a 7 character home gate address
-        tG[i] = dhdSettings.thisGate:sub(i,i)
-        if i < dhdSettings.thisGate:len() then
-          longName = longName .. tG[i] .. " "
-        else
-          longName = longName .. tG[i]
+      for i = 1,dhdSettings.thisGate:len(),1 do --
+        tG[i] = dhdSettings.thisGate:sub(i,i)   --
+        if i < dhdSettings.thisGate:len() then  -- This spaces out the name for a 7 character home gate address
+          longName = longName .. tG[i] .. " "   --
+        else                                    --
+          longName = longName .. tG[i]          --
         end
       end
     end
@@ -372,28 +385,6 @@ local function saveData(filename,filetype)
     dhdConfig.write(textutils.serialize(allGates))
   end
   dhdConfig.close()
-end
-
-local function importGateData()
-  menuState = false
-  if fs.exists("/disk/DHDgates") then
-    local gateData = fs.open("/disk/DHDgates","r") or error("Cannot open /disk/DHDgates for reading", 2)
-    local gateList = gateData.readAll()
-    gateData.close()
-    allGates = textutils.unserialize(gateList)
-    numPages = math.ceil(#allGates / 24)
-    listPages = math.ceil(#allGates / 8)
-    gateChange = true
-  end
-end
-
-function exportGateData()
-  menuState = false
-  if fs.exists("/disk/DHDgates") then
-    local gateData = fs.open("/disk/DHDgates","w") or error("Cannot open /disk/DHDgates for writing", 2)
-    gateData.write(textutils.serialize(allGates))
-    gateData.close()
-  end
 end
 
 local function localInventory()
@@ -2159,7 +2150,7 @@ local function mClick()
             netSend(secureStatus)
           elseif runState == "Edit" then
             flashChoice("export")
-            exportGateData()
+            saveData("/disk/DHDgates","gate")
           elseif runState == "Trim" then
             flashChoice("commit")
             runState = "Edit"
