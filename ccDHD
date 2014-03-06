@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.72"
+local ccDHDVer = "1.0.73"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -285,19 +285,6 @@ local function netReceive()
   end
 end
 
-local function importGateData()
-  menuState = false
-  if fs.exists("/disk/DHDgates") then
-    local gateData = fs.open("/disk/DHDgates","r") or error("Cannot open /disk/DHDgates for reading", 2)
-    local gateList = gateData.readAll()
-    gateData.close()
-    allGates = textutils.unserialize(gateList)
-    numPages = math.ceil(#allGates / 24)
-    listPages = math.ceil(#allGates / 8)
-    gateChange = true
-  end
-end
-
 local function ingestLogData()
   if not fs.exists(dhdSettings.gateHistory) then
     local tmpHist = fs.open(dhdSettings.gateHistory,"w")
@@ -332,11 +319,12 @@ local function ingestLogData()
 end
 
 local function ingestData(fileName,fileType)
+  if not fs.exists(tostring(fileName)) then return end
   local dhdConfig = fs.open(tostring(fileName),"r") or error("Cannot open " .. fileName .. " for reading", 2)
   local dhdCfg = dhdConfig.readAll()
+  dhdConfig.close()
   if fileType == "cfg" then
     dhdSettings = textutils.unserialize(dhdCfg)
-    dhdConfig.close()
     gateLiaison = dhdSettings.server
     if dhdSettings.monA ~= "none" then
       monA = peripheral.wrap(dhdSettings.monA)
@@ -350,7 +338,7 @@ local function ingestData(fileName,fileType)
       modem = peripheral.wrap(dhdSettings.ccnet)
       modem.open(dhdSettings.channels.recv)
     end
-    if dhdSettings.bio.lock ~= "none" then
+    if dhdSettings.bio.lock ~= "none" then -- Why is this even here?
     end
     if #dhdSettings.thisGate > 7 then
       longName = dhdSettings.thisGate
@@ -368,10 +356,11 @@ local function ingestData(fileName,fileType)
     end
   elseif fileType == "gate" then
     allGates = textutils.unserialize(dhdCfg)
-    dhdConfig.close()
-    local iCount = 0
     numPages = math.ceil(#allGates / 24)
     listPages = math.ceil(#allGates / 8)
+    if fileName == "/disk/DHDgates" then
+      gateChange = true
+    end
   end
 end
 
@@ -2127,7 +2116,7 @@ local function mClick()
             end
           elseif runState == "Edit" then
             flashChoice("import")
-            importGateData()
+            ingestData("/disk/DHDgates","gate")
             term.setBackgroundColor(black)
             term.clear()
             drawCLI()
