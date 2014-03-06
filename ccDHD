@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.68"
+local ccDHDVer = "1.0.69"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -390,13 +390,15 @@ end
 
 function importGateData()
   menuState = false
-  local gateData = fs.open("/disk/DHDgates","r") or error("Cannot open /disk/DHDgates for reading", 2)
-  local gateList = gateData.readAll()
-  gateData.close()
-  allGates = textutils.unserialize(gateList)
-  numPages = math.ceil(#allGates / 24)
-  listPages = math.ceil(#allGates / 8)
-  gateChange = true
+  if fs.exists("/disk/DHDgates") then
+    local gateData = fs.open("/disk/DHDgates","r") or error("Cannot open /disk/DHDgates for reading", 2)
+    local gateList = gateData.readAll()
+    gateData.close()
+    allGates = textutils.unserialize(gateList)
+    numPages = math.ceil(#allGates / 24)
+    listPages = math.ceil(#allGates / 8)
+    gateChange = true
+  end
 end
 
 function exportGateData()
@@ -878,7 +880,7 @@ local function drawDialUI() -- Gate Address Book
   term.setBackgroundColor(black) -- I think this is here for rCmd and goPage boxes, not sure
 end
 
-local function drawEditUI()
+local function drawEditUI(editType)
   local xPos, yPos = 2, 4
   local j = ((pageNum - 1) * 23) + pageNum
   local k = ((pageNum - 1) * 24)
@@ -899,36 +901,11 @@ local function drawEditUI()
       break
     else
       if #allGates[i].addr < 10 then
-        term.write(string.rep("|",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep("|",math.floor((9-#allGates[i].addr)/2)))  -- Center the text.
-      else
-        term.write("ERROR #10")  -- ERROR #10 = address is 10 or more characters
-      end
-    end
-  end
-end
-
-local function drawTrimUI()
-  local xPos, yPos = 2, 4
-  local j = ((pageNum - 1) * 23) + pageNum
-  local k = ((pageNum - 1) * 24)
-  term.setBackgroundColor(black)
-  for i = j,#allGates,1 do
-    if i > k and i < k + 7 then           -- Column 1
-      xPos, yPos = 2, 4
-    elseif i > k + 6 and i < k + 13 then  -- Column 2
-      xPos, yPos = 12, -8
-    elseif i > k + 12 and i < k + 19 then -- Column 3
-      xPos, yPos = 22, -20
-    elseif i > k + 18 and i < k + 25 then -- Column 4
-      xPos, yPos = 32, -32
-    end
-    term.setCursorPos(xPos,yPos + ((i - ((pageNum - 1) * 24)) * 2))
-    term.setTextColor(assignColor(i))
-    if i > (pageNum * 24) or i > #allGates then
-      break
-    else
-      if #allGates[i].addr < 10 then
-        term.write(string.rep("/",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep("/",math.floor((9-#allGates[i].addr)/2)))  -- Center the text.
+        if editType == "edit" then
+          term.write(string.rep("|",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep("|",math.floor((9-#allGates[i].addr)/2)))  -- Center the text.
+        elseif editType == "trim" then
+          term.write(string.rep("/",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep("/",math.floor((9-#allGates[i].addr)/2)))  -- Center the text.
+        end
       else
         term.write("ERROR #10")  -- ERROR #10 = address is 10 or more characters
       end
@@ -1938,11 +1915,11 @@ function drawCLI()   -- Client Interface 'decider'
       elseif runState == "DialCfg" or runState == "EditCfg" then
         drawSettingsUI()
       elseif runState == "Edit" then
-        drawEditUI()
+        drawEditUI("edit")
         drawControlUI()
         drawNaviUI()
       elseif runState == "Trim" then
-        drawTrimUI()
+        drawEditUI("trim")
         drawControlUI()
         drawNaviUI()
       elseif runState == "DialHelp" or runState == "EditHelp" then
