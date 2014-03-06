@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.69"
+local ccDHDVer = "1.0.70"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -290,18 +290,20 @@ local function ingestLogData()
     local tmpHist = fs.open(dhdSettings.gateHistory,"w")
     tmpHist.close()
   end
-  local dhdHist = fs.open(dhdSettings.gateHistory,"r") or error("Cannot open /data/DHDhistory for reading", 2)
-  while true do
-    local timeDate = dhdHist.readLine()
-    local gateAddr = dhdHist.readLine()
-    if gateAddr == "" or gateAddr == nil then gateAddr = "No Data" end
-    if timeDate == nil or timeDate == "" then break end
-    local tTime = timeDate:sub(1,string.find(timeDate," / ")) -- separate time from time/day
-    local dDate = timeDate:sub(#tTime+7)                      -- separate day from time/day
-    if #tTime == 8 then tTime = " " .. tTime end  -- move single digit hour times to the right one space (this must happen after date so date doesn't get skewed by 1)
-    table.insert(callHistory,1,tTime .. string.rep(" ",termX-40-#tTime) .. dDate .. string.rep(" ",termX-41-#dDate) .. gateAddr)
+  if fs.exists(dhdSettings.gateHistory) then
+    local dhdHist = fs.open(dhdSettings.gateHistory,"r") or error("Cannot open /data/DHDhistory for reading", 2)
+    while true do
+      local timeDate = dhdHist.readLine()
+      local gateAddr = dhdHist.readLine()
+      if gateAddr == "" or gateAddr == nil then gateAddr = "No Data" end
+      if timeDate == nil or timeDate == "" then break end
+      local tTime = timeDate:sub(1,string.find(timeDate," / ")) -- separate time from time/day
+      local dDate = timeDate:sub(#tTime+7)                      -- separate day from time/day
+      if #tTime == 8 then tTime = " " .. tTime end  -- move single digit hour times to the right one space (this must happen after date so date doesn't get skewed by 1)
+      table.insert(callHistory,1,tTime .. string.rep(" ",termX-40-#tTime) .. dDate .. string.rep(" ",termX-41-#dDate) .. gateAddr)
+    end
+    dhdHist.close()
   end
-  dhdHist.close()
   histPages = math.ceil(#callHistory/10)  -- paginate call logs
   if histPages < 1 then histPages = 1 end -- probably not necessary with math.ceil
   if not fs.exists(dhdSettings.lastGate) then
@@ -357,22 +359,6 @@ local function ingestData(fileName,fileType)
     local iCount = 0
     numPages = math.ceil(#allGates / 24)
     listPages = math.ceil(#allGates / 8)
-  elseif fileType == "logs" then
-    local dhdHist = fs.open(dhdSettings.gateHistory,"r") or error("Cannot open /data/DHDhistory for reading", 2)
-    while true do
-      local timeDate = dhdHist.readLine()
-      local gateAddr = dhdHist.readLine()
-      if timeDate == nil or timeDate == "" then break end
-      table.insert(callHistory,timeDate .. " [" .. gateAddr .. "]")
-    end
-    dhdHist.close()
-    histPages = math.ceil(#callHistory/12)
-    local dhdLast = fs.open(dhdSettings.lastGate"r") or error("Cannot open /data/DHDlast for reading", 2)
-    for i = 1,2,1 do
-      local lastInfo = dhdLast.readLine()
-      table.insert(lastCall,lastInfo)
-    end
-    dhdLast.close()
   end
 end
 
@@ -417,17 +403,6 @@ local function localInventory()
   dhdSettings.net="C"
   dhdSettings.ccnet="none"
   dhdSettings.rednet="none"
-  --[[
-  dhdSettings.server=9999
-  dhdSettings.channels={send=1776,recv=1787,}
-  dhdSettings.ecShield="ON"      -- endCall shield
-  dhdSettings.startShield="ON"   -- startup shield
-  dhdSettings.callEnd="OFF"      -- initiator only
-  dhdSettings.logs="OFF"
-  dhdSettings.lastGate="/data/DHDlast"
-  dhdSettings.gateHistory="/data/DHDhistory"
-  dhdSettings.gateData="/data/DHDgates"
-  ]]--
   local side
   for _,side in pairs(rs.getSides()) do
     if peripheral.isPresent(tostring(side)) then
@@ -553,7 +528,7 @@ local function displayStatus()
   monB.setBackgroundColor(black)
   monB.clear()
   monB.setCursorPos(1,1)
-  if (gateStatus == "Dialing" or gateStatus == "Connected") and dialAddress ~= "" and dialAddress ~= nil then
+  if (gateStatus == "Dialing" or gateStatus == "Connected") and (dialAddress ~= "" and dialAddress ~= nil) then
     monB.setTextColor(lblue)
     if gateStatus == "Dialing" then
       monB.write("Dialing")
@@ -845,11 +820,10 @@ local function drawNaviUI()
   end
 end
 
-local function drawDialUI() -- Gate Address Book
+local function drawMainUI() -- Gate Address Book (Dial / Edit / Trim)
   local xPos, yPos = 2, 4
   local j = ((pageNum - 1) * 23) + pageNum
   local k = ((pageNum - 1) * 24)
-  term.setBackgroundColor(black)
   for i = j,#allGates,1 do
     if i > k and i < k + 7 then           -- Column 1
       xPos, yPos = 2, 4
@@ -860,57 +834,35 @@ local function drawDialUI() -- Gate Address Book
     elseif i > k + 18 and i < k + 25 then -- Column 4
       xPos, yPos = 32, -32
     end
-    term.setBackgroundColor(assignColor(i))
     term.setCursorPos(xPos,yPos + ((i - ((pageNum - 1) * 24)) * 2))
-    if dialAddress == allGates[i].addr and dhdSettings.thisGate ~= allGates[i].addr then -- Highlight the gate being dialed
-      term.setTextColor(black)
-    else
-      term.setTextColor(white)
-    end
-    if i > (pageNum * 24) or i > #allGates then
-      break
-    else
-      if #allGates[i].addr < 10 then
-        term.write(string.rep(" ",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep(" ",math.floor((9-#allGates[i].addr)/2)))  -- Center the text.
+    if runState == "Dial" then
+      term.setBackgroundColor(assignColor(i))
+      if dialAddress == allGates[i].addr and dhdSettings.thisGate ~= allGates[i].addr then -- Highlight the gate being dialed
+        term.setTextColor(black)
       else
-        term.write("ERROR #10")  -- ERROR #10 = address is 10 or more characters
+        term.setTextColor(white)
       end
+    else
+      term.setBackgroundColor(black)
+      term.setTextColor(assignColor(i))
     end
-  end
-  term.setBackgroundColor(black) -- I think this is here for rCmd and goPage boxes, not sure
-end
-
-local function drawEditUI(editType)
-  local xPos, yPos = 2, 4
-  local j = ((pageNum - 1) * 23) + pageNum
-  local k = ((pageNum - 1) * 24)
-  term.setBackgroundColor(black)
-  for i = j,#allGates,1 do
-    if i > k and i < k + 7 then           -- Column 1
-      xPos, yPos = 2, 4
-    elseif i > k + 6 and i < k + 13 then  -- Column 2
-      xPos, yPos = 12, -8
-    elseif i > k + 12 and i < k + 19 then -- Column 3
-      xPos, yPos = 22, -20
-    elseif i > k + 18 and i < k + 25 then -- Column 4
-      xPos, yPos = 32, -32
-    end
-    term.setCursorPos(xPos,yPos + ((i - ((pageNum - 1) * 24)) * 2))
-    term.setTextColor(assignColor(i))
     if i > (pageNum * 24) or i > #allGates then
       break
     else
       if #allGates[i].addr < 10 then
-        if editType == "edit" then
-          term.write(string.rep("|",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep("|",math.floor((9-#allGates[i].addr)/2)))  -- Center the text.
-        elseif editType == "trim" then
-          term.write(string.rep("/",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep("/",math.floor((9-#allGates[i].addr)/2)))  -- Center the text.
+        if runState == "Dial" then
+          term.write(string.rep(" ",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep(" ",math.floor((9-#allGates[i].addr)/2))) -- Dial
+        elseif runState == "Edit" then
+          term.write(string.rep("|",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep("|",math.floor((9-#allGates[i].addr)/2))) -- Edit
+        elseif runState == "Trim" then
+          term.write(string.rep("/",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep("/",math.floor((9-#allGates[i].addr)/2))) -- Trim
         end
       else
         term.write("ERROR #10")  -- ERROR #10 = address is 10 or more characters
       end
     end
   end
+  term.setBackgroundColor(black) -- I think this is here for rCmd and goPage boxes, not sure
 end
 
 local function viewLogs()
@@ -1716,52 +1668,9 @@ local function flashChoice(choice)
   end
 end
 
-local function viewGateEntry(dataEntry)
+local function viewGateEntry(dataBlock)
   tempState = runState
   if tempState ~= "GateEdit" then runState = "viewing" end
-  term.setBackgroundColor(black)
-  term.clear()
-  drawHeader()
-  term.setBackgroundColor(black)
-  local txtColor = assignColor(dataEntry)
-  term.setCursorPos(2,7)
-  term.setTextColor(txtColor)
-  term.write(allGates[dataEntry].addr)
-  term.setCursorPos(14,7)
-  term.setTextColor(gray)
-  local ratingWord = assignRating(dataEntry)
-  term.write(ratingWord)
-  term.setCursorPos(2,9)
-  term.setTextColor(white)
-  term.write(allGates[dataEntry].note)
-  term.setCursorPos(2,12)
-  term.setTextColor(lgray)
-  term.write("Dimension: ")
-  term.setTextColor(lblue)
-  term.write(allGates[dataEntry].loc.dim)
-  term.setCursorPos(2,13)
-  term.setTextColor(lgray)
-  term.write("x: ")
-  term.setTextColor(brown)
-  term.write(tostring(allGates[dataEntry].loc.x))
-  term.setCursorPos(2,14)
-  term.setTextColor(lgray)
-  term.write("y: ")
-  term.setTextColor(brown)
-  term.write(tostring(allGates[dataEntry].loc.y))
-  term.setCursorPos(2,15)
-  term.setTextColor(lgray)
-  term.write("z: ")
-  term.setTextColor(brown)
-  term.write(tostring(allGates[dataEntry].loc.z))
-  term.setCursorPos((termX/2)-8,termY-1)
-  term.setTextColor(black)
-  term.setBackgroundColor(gray)
-  term.write(" < < < CLOSE > > > ")
-end
-
-local function editGateEntry(dataBlock)
-  runState = "GateEdit"
   currentEdit = dataBlock
   if currentEdit == "new" or currentEdit == "newFast" then    -- If we're adding a new gate, create a generic gate to edit
     local newGate = { addr = "NEWGATE", rating = "U", note = "short note", loc = {x=99999,y=99999,z=99999,dim="0",}, }
@@ -1779,7 +1688,7 @@ local function editGateEntry(dataBlock)
   term.setBackgroundColor(black)
   term.clear()
   drawHeader()
-  -- Display data for editing
+  -- Display data for viewing/editing
   term.setBackgroundColor(black)
   if currentEdit <= #allGates then
     local tColor = assignColor(currentEdit)
@@ -1907,21 +1816,13 @@ function drawCLI()   -- Client Interface 'decider'
           displayGateList()
         end
       end
-      if runState == "Dial" then
-        drawDialUI()
+      if runState == "Dial" or runState == "Edit" or runState == "Trim" then
+        drawMainUI()
         drawControlUI()
         drawNaviUI()
         displayStatus()
       elseif runState == "DialCfg" or runState == "EditCfg" then
         drawSettingsUI()
-      elseif runState == "Edit" then
-        drawEditUI("edit")
-        drawControlUI()
-        drawNaviUI()
-      elseif runState == "Trim" then
-        drawEditUI("trim")
-        drawControlUI()
-        drawNaviUI()
       elseif runState == "DialHelp" or runState == "EditHelp" then
         drawHelpUI()
       end
@@ -2323,7 +2224,8 @@ local function mClick()
             end
           elseif runState == "Edit" then
             if mButton == 1 then
-              editGateEntry(i)
+              runState = "GateEdit"
+              viewGateEntry(i)
               return
             elseif mButton == 2 then
               runState = "Trim"
@@ -2353,7 +2255,8 @@ local function mClick()
             end
           elseif runState == "Edit" then
             if mButton == 1 then
-              editGateEntry(i + 6)
+              runState = "GateEdit"
+              viewGateEntry(i + 6)
               return
             elseif mButton == 2 then
               runState = "Trim"
@@ -2383,7 +2286,8 @@ local function mClick()
             end
           elseif runState == "Edit" then
             if mButton == 1 then
-              editGateEntry(i + 12)
+              runState = "GateEdit"
+              viewGateEntry(i + 12)
               return
             elseif mButton == 2 then
               runState = "Trim"
@@ -2412,7 +2316,8 @@ local function mClick()
             end
           elseif runState == "Edit" then
             if mButton == 1 then
-              editGateEntry(i + 18)
+              runState = "GateEdit"
+              viewGateEntry(i + 18)
               return
             elseif mButton == 2 then
               runState = "Trim"
