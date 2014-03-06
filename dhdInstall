@@ -77,27 +77,10 @@ local function drawCLI()
   term.write("Quit")
 end
 
-local function drawErrorScreen()
-  term.setBackgroundColor(colors.black)
-  term.setTextColor(colors.red)
-  term.clear()
-  term.setCursorPos(2,2)
-  term.write("D'oh! Stupid Errors!")
-  term.setCursorPos(2,6)
-  term.setTextColor(colors.lightGray)
-  term.write("Think of doughnuts and click to continue")
-  os.pullEvent("mouse_click")
-  return
-end
-
 local function setCCLabel(whichType)
   local currentCCLabel = os.getComputerLabel()
-  local currentCCID = tostring(os.getComputerID())
-  if currentCCLabel ~= "" and currentCCLabel ~= "nil" then return end
-  if whichType == "gate" then
-    os.setComputerLabel("Gate")
-  elseif whichType == "dhd" then
-    os.setComputerLabel("DHD")
+  if tostring(currentCCLabel) == "" or currentCCLabel == nil then
+    os.setComputerLabel(whichType)
   end
 end
 
@@ -126,7 +109,7 @@ while true do
   userInput = { os.pullEvent("mouse_click") }
   if userInput[3] > 1 and userInput[3] < 21 then
     if userInput[4] == 6 then
-      setCCLabel("dhd")
+      setCCLabel("DHD")
       if fs.exists("/logs") then fs.delete("/data/DHDsettings") end
       if not fs.exists("/data") then
         fs.makeDir("/data")
@@ -140,12 +123,10 @@ while true do
         if fs.exists("/startup") then fs.delete("/startup") end
         downloadFile("vMtcSz2e","/startup")
         startup = 2
-      else
-        drawErrorScreen()
       end
       drawCLI()
     elseif userInput[4] == 8 then
-      setCCLabel("gate")
+      setCCLabel("Gate")
       if fs.exists("/logs") then fs.delete("/data/gateSettings") end
       if not fs.exists("/data") then
         fs.makeDir("/data")
@@ -159,8 +140,6 @@ while true do
         if fs.exists("/startup") then fs.delete("/startup") end
         downloadFile("xSHHqL0h","/startup")
         startup = 4
-      else
-        drawErrorScreen()
       end
       drawCLI()
     elseif userInput[4] == 10 then
