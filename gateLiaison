@@ -6,7 +6,7 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.0.21"
+local gVer = "1.0.22"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -340,7 +340,6 @@ end
 
 local function recordSessionData()  -- Human readable log files (last gate & history)
   if not fs.exists("/data") then fs.makeDir("/data") end
-  if fs.exists("/data/DHDlast") then fs.delete("/data/DHDlast") end
   local dateStamp = textutils.formatTime(os.time(),false) .. " / Day " .. os.day()
   local lastCall = fs.open(gateSettings.last,"w")
   lastCall.writeLine(dateStamp)
@@ -397,27 +396,22 @@ end
 
 local function dialOut(targetAddress)
   dialAddress = tostring(targetAddress)
-  if dialAddress ~= thisGate and tostring(gate.isConnected()) == "false" and #dialAddress > 6 and # dialAddress < 10 then -- Is the stargate connected to another stargate?  isConnected()
-    local dialGate = gate.dial(dialAddress)
-    if dialGate then
-      gateStatus = "Dialing"
-      recordSessionData()
-      updateStatus()
-      return true
-    else
-      return false
-    end
-  else
-    return false
+  local dialGate, _ = pcall(gate.dial,dialAddress)
+  if dialGate then
+    gateStatus = "Dialing"
+    recordSessionData()
+    updateStatus()
   end
+  return dialGate
 end
 
 local function endCall()
-  local ok, _ = { pcall(gate.disconnect) }
-  if ok then
+  local hangUp, _ = pcall(gate.disconnect)
+  if hangUp then
     gateStatus = "Disconnected"
     dialAddress = "none"
   end
+  --return hangUp
 end
 
 local function doCommand(thisCommand)
@@ -430,7 +424,7 @@ local function doCommand(thisCommand)
     gateStatus = "allclear"
     dialAddress = "none"
     updateStatus()
-    return -- ?
+    return
   elseif thisCommand == "QRY" then
     updateStatus("QRY")
     return
@@ -448,33 +442,33 @@ local function doCommand(thisCommand)
     sleep(0.25)                        -- long waits to ensure ccDHD is ready to receive the data
     netSend(os.getComputerID())
     return
-  elseif thisCommand == "redNet" then
+  elseif thisCommand == "redNet" then -- change to redNet
     if gateSettings.net == "C" then modem.close(gateSettings.chan.recv) end
     modem = nil
     gateSettings.net = "R"
     rednet.open(modemSide)
     saveData()
     drawTermScreen()
-  elseif thisCommand == "ccNet" then
+  elseif thisCommand == "ccNet" then -- change to ccNet
     if gateSettings.net == "R" then rednet.close(modemSide) end
     gateSettings.net = "C"
     modem = peripheral.wrap(modemSide)
     modem.open(gateSettings.chan.recv)
     saveData()
     drawTermScreen()
-  elseif thisCommand == "CS" then
+  elseif thisCommand == "CS" then    -- change ccNet Receive Channel
     local newCR = { os.pullEvent("modem_message") }
     modem.close(gateSettings.chan.recv)
     gateSettings.chan.recv = newCR[5]
     modem.open(gateSettings.chan.recv)
     saveData()
     drawTermScreen()
-  elseif thisCommand == "CR" then
+  elseif thisCommand == "CR" then    -- change ccNet Send Channel
     local newCS = { os.pullEvent("modem_message") }
     gateSettings.chan.send = newCS[5]
     saveData()
     drawTermScreen()
-  end                                  -- replaced elseif with end/if - split these into two if/thens
+  end
   if gateStatus ~= "lockdown" then
     if thisCommand == "endCall" then
       endCall()
@@ -491,17 +485,15 @@ local function doCommand(thisCommand)
     elseif thisCommand == "restart" or thisCommand == "reset" then
       os.reboot()
     else
-      if #tostring(thisCommand) > 6 and #tostring(thisCommand) < 10 and thisCommand ~= "endCall" and thisCommand ~= "lockdown" and thisCommand ~= "allclear" then
-        if dialOut(thisCommand) == true then
-          gateStatus = "Dialing"
-          updateStatus()
-          return
-        else
-          gateStatus = "Disconnected"
-          dialAddress = "none"
-          updateStatus()
-          return
-        end
+      if dialOut(thisCommand) then
+        gateStatus = "Dialing"
+        updateStatus()
+        return
+      else
+        gateStatus = "Disconnected"
+        dialAddress = "none"
+        updateStatus()
+        return
       end
     end
   end
@@ -552,7 +544,7 @@ local function firstRun()
   -- Set DHD computer #
   term.clear()
   local ccLabel = os.getComputerLabel()
-  if ccLabel == nil or ccLabel == "" then
+  if ccLabel == nil or ccLabel == "" or ccLabel == "Gate" then
     os.setComputerLabel(thisGate .. " gate")
   end
   --if #thisGate == 7 then                              -- implement when iris control is introduced?
@@ -574,15 +566,15 @@ local function firstRun()
     end
     term.setBackgroundColor(colors.gray)
     term.setTextColor(colors.white)
-    if #thisGate == 7 then
-      for i = 4,16,1 do                                 --
-        term.setCursorPos(26,i)                         -- Draw blank menu (snapshot 82)
+    if #thisGate == 7 then                              --
+      for i = 4,16,1 do                                 -- Draw blank menu (snapshot 82)
+        term.setCursorPos(26,i)                         --
         term.write(string.rep(" ",8))                   --
       end
-    elseif #thisGate > 7 then
+    elseif #thisGate > 7 then                           --
       --for i = 4,18,1 do                               --
-      for i = 4,16,1 do                                 --
-        term.setCursorPos(26,i)                         -- Draw blank menu (RC1)
+      for i = 4,16,1 do                                 -- Draw blank menu (RC1)
+        term.setCursorPos(26,i)                         --
         term.write(string.rep(" ",8))                   --
       end
     end
