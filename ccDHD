@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.73"
+local ccDHDVer = "1.0.74"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -614,10 +614,10 @@ local function drawHeader()
     term.write("-DHD-")
   end
   term.setBackgroundColor(gray)
-  for i = 2,4,1 do                                -- Draw 'status' area
-    for h = 1,termX,1 do
-      term.setCursorPos(h,i)
-      term.write(" ")
+  for i = 2,4,1 do              --
+    for h = 1,termX,1 do        -- Draw 'status' area
+      term.setCursorPos(h,i)    --
+      term.write(" ")           --
     end
   end
   term.setTextColor(lgray)
@@ -683,6 +683,7 @@ local function drawHeader()
   end
   if runState == "rCmd" or runState == "goPage" then
     term.setCursorPos(((termX/2)-10),9) -- this repositions the cursor for the rCmd & Go to Page boxes after an update is received
+    term.setBackgroundColor(black)      -- this returns the background color to black after an update is received
     term.setTextColor(lime)             -- this returns the cursor to 'lime' after an update is received
   end
   if secureStatus == "allclear" then displayStatus() end
@@ -844,7 +845,7 @@ local function drawMainUI() -- Gate Address Book (Dial / Edit / Trim)
       end
     end
   end
-  term.setBackgroundColor(black) -- I think this is here for rCmd and goPage boxes, not sure
+  term.setBackgroundColor(black) -- not sure why this is here...
 end
 
 local function viewLogs()
@@ -932,13 +933,15 @@ local function viewEditHelp(pY)
   term.setCursorPos(2, pY + 4)
   term.write("             Right click '+ Entry' to quick-add")
   term.setCursorPos(2, pY + 5)
-  term.write("- Trim Mode: Left click an address to delete")
+  term.write("  'Import /    Load / save gate data")
   term.setCursorPos(2, pY + 6)
-  term.write("  '-COMMIT-' saves new gate data, exits Trim Mode")
+  term.write("     Export'   from / to diskette")
   term.setCursorPos(2, pY + 7)
-  term.write("  '- Undo -' cancels all deletions, exits")
+  term.write("- Trim Mode: Left click an address to delete")
   term.setCursorPos(2, pY + 8)
-  term.write("             Trim Mode")
+  term.write("  '-COMMIT-' saves new gate data, exits Trim Mode")
+  term.setCursorPos(2, pY + 9)
+  term.write("  '- Undo -' cancels deletions, exits Trim Mode")
 end
 
 local function drawHelpUI()
