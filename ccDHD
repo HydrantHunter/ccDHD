@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.74"
+local ccDHDVer = "1.0.75"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -25,15 +25,14 @@ if os.clock() < 5 then
 end
 -- AUTOMATIC/STATIC CONFIGURATION
 -- Default Settings
-local settingsData = "/data/DHDsettings"
+local settingsData = "/data/DHDconfig"
 local dhdSettings = { thisGate="--ERROR--",
                       password="password",
                       monA="none",
                       monB="none",
                       bio={lock="OFF",side="none",func="none",auth=4,},
                       net="C",
-                      ccnet="none",
-                      rednet="none",
+                      netSide="none",
                       server=9999,
                       channels={send=1776,recv=1787,},
                       ecShield="ON",
@@ -50,9 +49,9 @@ local fistAuth = false
 local longName, tY
 -- Peripherals
 local termX,termY = term.getSize()
-local modem = dhdSettings.ccnet -- Modem (for ccNet)
-local monA = dhdSettings.monA   -- List monitor
-local monB = dhdSettings.monB   -- Marque Monitor
+local modem = dhdSettings.netSide -- Modem (for ccNet)
+local monA = dhdSettings.monA     -- List monitor
+local monB = dhdSettings.monB     -- Marque Monitor
  -- Status Info
 local shieldStatus = "QRY"
 local gateStatus = "QRY"
@@ -332,10 +331,10 @@ local function ingestData(fileName,fileType)
     if dhdSettings.monB ~= "none" then
       monB = peripheral.wrap(dhdSettings.monB)
     end
-    if dhdSettings.net == "R" and dhdSettings.rednet ~= "none" then
-      rednet.open(dhdSettings.rednet)
-    elseif dhdSettings.net == "C" and dhdSettings.ccnet ~= "none" then
-      modem = peripheral.wrap(dhdSettings.ccnet)
+    if dhdSettings.net == "R" and dhdSettings.netSide ~= "none" then
+      rednet.open(dhdSettings.netSide)
+    elseif dhdSettings.net == "C" and dhdSettings.netSide ~= "none" then
+      modem = peripheral.wrap(dhdSettings.netSide)
       modem.open(dhdSettings.channels.recv)
     end
     if dhdSettings.bio.lock ~= "none" then -- Why is this even here?
@@ -383,8 +382,7 @@ local function localInventory()
   dhdSettings.bio.side="none"
   dhdSettings.bio.func="none"
   dhdSettings.net="C"
-  dhdSettings.ccnet="none"
-  dhdSettings.rednet="none"
+  dhdSettings.netSide="none"
   local side
   for _,side in pairs(rs.getSides()) do
     if peripheral.isPresent(tostring(side)) then
@@ -392,13 +390,11 @@ local function localInventory()
       if tostring(perp) == "modem" then
         if peripheral.call(tostring(side),"isWireless") == true and dhdSettings.net == "R" then
           rednet.open(side)
-          dhdSettings.rednet = side
-          dhdSettings.ccnet = side
+          dhdSettings.netSide = side
         elseif peripheral.call(tostring(side),"isWireless") == true and dhdSettings.net == "C" then
           modem = peripheral.wrap(side)
           modem.open(dhdSettings.channels.recv)
-          dhdSettings.ccnet = side
-          dhdSettings.rednet = side
+          dhdSettings.netSide = side
         end
       end
       if tostring(perp) == "monitor" then
@@ -1940,7 +1936,7 @@ local function wrapPerp(perp,side)
       if peripheral.getType(side) == "modem" then
         if peripheral.call(side,"isWireless") == true then
           modem = peripheral.wrap(side)
-          dhdSettings.ccnet = side
+          dhdSettings.netSide = side
           modem.open(dhdSettings.channels.recv)
           configChange = true
         end
@@ -1949,7 +1945,7 @@ local function wrapPerp(perp,side)
       if peripheral.getType(side) == "modem" then
         if peripheral.call(side,"isWireless") == true then
           rednet.open(side)
-          dhdSettings.rednet = side
+          dhdSettings.netSide = side
           configChange = true
         end
       end
@@ -2672,9 +2668,9 @@ local function mClick()
       elseif mcY == 10 and mcX > 16 and mcX < 21 then
         if dhdSettings.net == "R" then
           netSend("ccNet")
-          rednet.close(dhdSettings.rednet)
+          rednet.close(dhdSettings.netSide)
           dhdSettings.net = "C"
-          modem = peripheral.wrap(dhdSettings.ccnet)
+          modem = peripheral.wrap(dhdSettings.netSide)
           modem.open(dhdSettings.channels.recv)
           saveData(settingsData,"cfg")
         elseif dhdSettings.net == "C" then
@@ -2682,14 +2678,14 @@ local function mClick()
           modem.close(dhdSettings.channels.recv)
           modem = nil
           dhdSettings.net = "R"
-          rednet.open(dhdSettings.rednet)
+          rednet.open(dhdSettings.netSide)
           saveData(settingsData,"cfg")
         end
         drawSettingsUI()
         -- Select redNet Side
       elseif mcY == 10 and mcX > 22 and mcX < 24 then
         if dhdSettings.net == "R" then
-          drawSideList(dhdSettings.rednet)
+          drawSideList(dhdSettings.netSide)
           local netSide = { os.pullEvent("mouse_click") }
           if netSide[3] > 26 and netSide[2] < 35 then
             for jr,kr in pairs(cfgPos) do
@@ -2702,7 +2698,7 @@ local function mClick()
           drawSettingsUI()
         -- Select ccNet Side
         elseif dhdSettings.net == "C" then
-          drawSideList(dhdSettings.ccnet)
+          drawSideList(dhdSettings.netSide)
           local netSide = { os.pullEvent("mouse_click") }
           if netSide[3] > 26 and netSide[2] < 35 then
             for jc,kc in pairs(cfgPos) do
@@ -3047,6 +3043,7 @@ local function firstRun()
       break
     end
   end
+  if fs.exists("/data/DHDsettings") then fs.delete("/data/DHDsettings") end
   saveData(settingsData,"cfg")
   if not fs.exists(dhdSettings.gateData) then
     saveData(dhdSettings.gateData,"gate")
