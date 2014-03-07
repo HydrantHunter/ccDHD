@@ -369,8 +369,10 @@ local function saveData(filename,filetype)
   local dhdConfig = fs.open(tostring(filename),"w") or error("Cannot open " .. filename .. " for writing", 2)
   if filetype == "cfg" then
     dhdConfig.write(textutils.serialize(dhdSettings))
+    configChange = false
   elseif filetype == "gate" then
     dhdConfig.write(textutils.serialize(allGates))
+    gateChange = false
   end
   dhdConfig.close()
 end
