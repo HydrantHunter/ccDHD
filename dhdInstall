@@ -1,5 +1,5 @@
 --[[ DHD/Gate Installer ]]--
---[[   version 1.0.05   ]]--
+--[[   version 1.0.07   ]]--
 --[[  by HydrantHunter  ]]--
 --[[      aka Dog       ]]--
 --[[ pastebin  A6uxKyCy ]]--
@@ -96,7 +96,8 @@ end
 
 if fs.exists("/data/gateSettings") then startup = 4 end -- gateLiaison installed?
 if fs.exists("/gateLiaison") then startup = 3 end       -- gateLiaison installed as gateLiason (otherwise installed as startup)
-if fs.exists("/data/DHDsettings") then startup = 2 end  -- ccDHD installed?
+if fs.exists("/data/DHDsettings") then startup = 2 end  -- ccDHD 1.0.74- installed?
+if fs.exists("/data/DHDconfig") then startup = 2 end    -- ccDHD 1.0.75+ installed?
 if fs.exists("/DHD") then startup = 1 end               -- ccDHD installed as ccDHD (otherwise installed as startup)
 if startup == 0 then                                    -- neither is installed
   if fs.exists("/startup") then startup = 5 end         -- startup exists, install by name (otherwise install as startup)
