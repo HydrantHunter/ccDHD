@@ -6,7 +6,7 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.0.23"
+local gVer = "1.0.24"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -52,7 +52,7 @@ local function saveData()
   gateConfig.close()
 end
 
-local function displayMarque() -- Display the local address when there is no other information to display
+local function displayMarquee() -- Display the local address when there is no other information to display
   if mon == "none" then return end
   mon.setBackgroundColor(colors.black)
   mon.clear()
@@ -131,7 +131,7 @@ local function displayStatus(select)
       mon.setCursorPos(4,2)
       mon.write("Connection")
     else
-      displayMarque()          -- marque
+      displayMarquee()          -- marque
     end
   end
 end
@@ -331,7 +331,7 @@ local function updateStatus(special)
       pData = pData .. "1"
     end
   end
-  if gateStatus ~= "Dialing" and gateStatus ~= "Connected" and gateStatus ~= "lockdown" then displayMarque() end
+  if gateStatus ~= "Dialing" and gateStatus ~= "Connected" and gateStatus ~= "lockdown" then displayMarquee() end
   if currentState ~= pData or tostring(special) == "QRY" then
     netSend(pData)
     drawTermScreen()
@@ -419,7 +419,7 @@ local function doCommand(thisCommand)
     lockDown()
     return
   elseif thisCommand == "allclear" then
-    displayMarque()
+    displayMarquee()
     shieldControl("OFF")
     gateStatus = "allclear"
     dialAddress = "none"
@@ -541,14 +541,14 @@ local function gateKernel()
 end
 
 local function firstRun()
-  -- Set DHD computer #
-  term.clear()
+  -- Set computer label
   local ccLabel = os.getComputerLabel()
   if ccLabel == nil or ccLabel == "" or ccLabel == "Gate" then
     os.setComputerLabel(thisGate .. " gate")
   end
+  term.clear()
+  -- Select shield/redstone output side
   --if #thisGate == 7 then                              -- implement when iris control is introduced?
-    -- Select shield/redstone output side
     term.setCursorPos(2,2)
     term.setTextColor(colors.lightBlue)
     term.write("Please select the shield/redstone output side")
@@ -585,15 +585,10 @@ local function firstRun()
     while true do
       local newSide = { os.pullEvent("mouse_click") }   --
       if newSide[3] > 26 and newSide[3] < 34 then       --
-        for j,k in pairs(tSide) do                      --
-          if newSide[4] == tPos[j] then                 --
-            if k == "iris" then                         -- Select shield (redstone output) side
-              gateSettings.shield = "iris"              --          or internal iris
-              return false                              --
-            else                                        --
-              gateSettings.shield = k                   --
-              return false                              --
-            end
+        for j,k in pairs(tSide) do                      -- Select shield (redstone output) side
+          if newSide[4] == tPos[j] then                 --          or internal iris
+            gateSettings.shield = k                     --
+            return false                                --
           end
         end
       end
@@ -644,6 +639,7 @@ end
 
 local function initMe()
   initGate()
+  -- Check for first time install
   if not fs.exists("/data/gateSettings") then
     firstRun()
     term.setBackgroundColor(colors.black)
@@ -658,14 +654,14 @@ local function initMe()
         if gateSettings.net == "R" then
           modemSide = v
           rednet.open(v)
+        -- Network/ccNet
         elseif gateSettings.net == "C" then
           modemSide = v
           modem = peripheral.wrap(v)
           modem.open(gateSettings.chan.recv)
         end
-        -- Network/ccNet
-      elseif peripheral.call(tostring(v),"isWireless") == false then
         -- Monitor / Stargate
+      elseif peripheral.call(tostring(v),"isWireless") == false then
         local mPerps = peripheral.call(tostring(v),"getNamesRemote")
         for num,mPerp in pairs(mPerps) do
           if tostring(mPerp):sub(1,7) == "monitor" then
@@ -685,7 +681,7 @@ local function initMe()
     end
   end
   if mon ~= "none" then
-    displayMarque()
+    displayMarquee()
   end
   updateStatus()
 end
