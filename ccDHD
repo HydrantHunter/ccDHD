@@ -842,7 +842,8 @@ local function drawMainUI() -- Gate Address Book (Dial / Edit / Trim)
         term.setTextColor(white)
       end
       if dhdSettings.thisGate == allGates[i].addr and dhdSettings.highlight == "YES" then
-        term.setTextColor(gray)
+        term.setTextColor(lgray)
+        term.setBackgroundColor(gray)
       end
     else
       term.setBackgroundColor(black)
