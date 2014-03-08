@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.76"
+local ccDHDVer = "1.0.77"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -18,7 +18,7 @@ Tested with/requires:
     - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
     - gateLiaison running on an Advanced Computer (with 3 optional Advanced Monitors) or an Advanced Wireless Turtle (no monitors)
 
-  - ccDHD also supports the Biometric Lock (Fistprint Scanner) in GopherATL's Biolock MOD ver. 2.1.3 (updated for 1.6.4 by gamax92)
+  - ccDHD also supports the Biometric Lock (Fistprint Scanner) in GopherATL's Biolocks MOD ver. 2.1.3 (updated for 1.6.4 by gamax92)
 ]]--
 if os.clock() < 5 then
   sleep(2)
@@ -52,7 +52,7 @@ local longName, tY
 local termX,termY = term.getSize()
 local modem = dhdSettings.netSide -- Modem (for ccNet)
 local monA = dhdSettings.monA     -- List monitor
-local monB = dhdSettings.monB     -- Marque Monitor
+local monB = dhdSettings.monB     -- Marquee Monitor
  -- Status Info
 local shieldStatus = "QRY"
 local gateStatus = "QRY"
@@ -253,10 +253,10 @@ local function pSync() -- Sync allGates with a PDA running ccDialer
   if dhdSettings.net == "R" then
     if dhdSettings.server ~= 9999 then
       --rednet.send(gateLiaison,allGates,true)
-    end
+    end                                            -- Need a pSync channel
   elseif dhdSettings.net == "C" then
     if (dhdSettings.channels.recv > 0 and dhdSettings.channels.recv < 65536) and (dhdSettings.channels.send > 0 and dhdSettings.channels.send < 65536) then
-      modem.transmit(dhdSettings.channels.send+1,dhdSettings.channels.recv+1,allGates)
+      modem.transmit(dhdSettings.channels.recv,dhdSettings.channels.send,allGates)
     end
   end
 end
@@ -449,7 +449,7 @@ local function assignRating(gateNumber)
   end
 end
 
-local function displayMarque()
+local function displayMarquee()
   if dhdSettings.monB == "none" then return end
   monB.setTextScale(2)
   monB.setBackgroundColor(black)
@@ -559,7 +559,7 @@ local function displayStatus()
     monB.write("Connection")
   else
     if displayState == "list" then
-      displayMarque()
+      displayMarquee()
     elseif displayState == "info" then
       displayNotes(tY)
     end
@@ -867,7 +867,7 @@ local function drawMainUI() -- Gate Address Book (Dial / Edit / Trim)
       end
     end
   end
-  term.setBackgroundColor(black) -- not sure why this is here...
+  term.setBackgroundColor(black)
 end
 
 local function viewLogs()
@@ -955,9 +955,9 @@ local function viewEditHelp(pY)
   term.setCursorPos(2, pY + 4)
   term.write("             Right click '+ Entry' to quick-add")
   term.setCursorPos(2, pY + 5)
-  term.write("  'Import /    Load / save gate data")
+  term.write("  'Import /  Load gate data from diskette")
   term.setCursorPos(2, pY + 6)
-  term.write("     Export'   from / to diskette")
+  term.write("     Export' Save gate data to diskette")
   term.setCursorPos(2, pY + 7)
   term.write("- Trim Mode: Left click an address to delete")
   term.setCursorPos(2, pY + 8)
@@ -1022,8 +1022,8 @@ local function drawHelpUI()
   term.setBackgroundColor(gray)
   term.setTextColor(lgray)
   term.setCursorPos(2,termY)
-  term.write("ccDHD ver. " .. ccDHDVer)  -- Show ccDHD version in bottom pane
-  if runState == "DialHelp" then         -- Show either DHD or Edit help, depending on runState
+  term.write("ccDHD ver. " .. ccDHDVer) -- Show ccDHD version in bottom pane
+  if runState == "DialHelp" then        -- Show either DHD or Edit help, depending on runState
     viewDialHelp(colorCount)
   elseif runState == "EditHelp" then
     viewEditHelp(colorCount)
@@ -1034,7 +1034,7 @@ local function drawSettingsUI()
   term.setBackgroundColor(black)
   term.clear()
   term.setCursorPos(1,1)
-  term.setBackgroundColor(lblue)    -- Header
+  term.setBackgroundColor(lblue) -- Header
   for i = 1,termX,1 do
     term.setCursorPos(i,1)
     term.write(" ")
@@ -1058,10 +1058,10 @@ local function drawSettingsUI()
   elseif configChange == false then
     term.setTextColor(gray)
   end
-  term.write(" Save ")             -- Save / Close buttons
-  term.setCursorPos(45,2)
-  term.setTextColor(red)
-  term.write(" Close ")
+  term.write(" Save ")           --
+  term.setCursorPos(45,2)        -- Save / Close buttons
+  term.setTextColor(red)         --
+  term.write(" Close ")          --
    -- Settings 1st Column
   term.setCursorPos(2,4)
   term.setBackgroundColor(black)
@@ -1080,7 +1080,7 @@ local function drawSettingsUI()
   term.setTextColor(gray)
   term.write("Biolock Login")
   term.setCursorPos(17,8)
-  if dhdSettings.bio.lock == "OFF" then  -- Fistprint Authentication (Biolock mod)
+  if dhdSettings.bio.lock == "OFF" then -- Fistprint Authentication (Biolock mod)
     term.setBackgroundColor(gray)
     term.write("  ")
     term.setBackgroundColor(red)
@@ -1100,7 +1100,7 @@ local function drawSettingsUI()
   term.setCursorPos(2,10)
   term.write("Net:")
   term.setCursorPos(7,10)
-  if dhdSettings.net == "R" then   -- redNet (specify server #)
+  if dhdSettings.net == "R" then     -- redNet (specify server #)
     term.setTextColor(red)
     term.write("RedNet")
   elseif dhdSettings.net == "C" then -- ccNet (specify send/receive channels)
@@ -1108,12 +1108,12 @@ local function drawSettingsUI()
     term.write("ccNet")
   end
   term.setCursorPos(17,10)
-  if dhdSettings.net == "R" then   -- Red for redNet, Green for ccNet
+  if dhdSettings.net == "R" then     -- Red for redNet
     term.setBackgroundColor(gray)
     term.write("  ")
    term.setBackgroundColor(red)
     term.write("  ")
-  elseif dhdSettings.net == "C" then
+  elseif dhdSettings.net == "C" then -- Green for ccNet
     term.setBackgroundColor(green)
     term.write("  ")
     term.setBackgroundColor(gray)
@@ -1126,29 +1126,29 @@ local function drawSettingsUI()
   term.setBackgroundColor(black)
   term.setTextColor(gray)
   term.setCursorPos(2,12)
-  if dhdSettings.net == "R" then
+  if dhdSettings.net == "R" then     -- if redNet show "Gate Liaison"
     term.write("Gate Liaison")
-  elseif dhdSettings.net == "C" then
+  elseif dhdSettings.net == "C" then -- if ccNet show "Send/Rec"
     term.write("Send/Rec")
   end
-  if dhdSettings.net == "R" then   -- Gate Liaison (rNet) , Send Channel (ccNet)
+  if dhdSettings.net == "R" then
     term.setCursorPos(17,12)
     term.setTextColor(red)
-    term.write(tostring(dhdSettings.server))
+    term.write(tostring(dhdSettings.server)) -- Gate Liaison (redNet)
   elseif dhdSettings.net == "C" then
     term.setCursorPos(11,12)
-    term.setTextColor(green)
+    term.setTextColor(green) -- Send Channel (ccNet)
     term.write(string.rep(" ",5-#tostring(dhdSettings.channels.send)) .. tostring(dhdSettings.channels.send)) -- Send Channel (ccNet)
     term.setCursorPos(16,12)
     term.setTextColor(lgray)
     term.write("/")
     term.setCursorPos(17,12)
-    term.setTextColor(green)
+    term.setTextColor(green) -- Receive Channel (ccNet)
     term.write(string.rep(" ",5-#tostring(dhdSettings.channels.recv)) .. tostring(dhdSettings.channels.recv)) -- Receive Channel (ccNet)
   end
   term.setCursorPos(2,14)
   term.setTextColor(gray)
-  term.write("Marque")             -- Marque (monB)
+  term.write("Marquee")       -- Marquee (monB)
   term.setCursorPos(17,14)
   if dhdSettings.monB == "none" then
     term.setBackgroundColor(gray)
@@ -1168,7 +1168,7 @@ local function drawSettingsUI()
   term.setCursorPos(2,16)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
-  term.write("List Monitor")       -- List Monitor (monA)
+  term.write("List Monitor") -- List Monitor (monA)
   term.setCursorPos(17,16)
   if dhdSettings.monA == "none" then
     term.setBackgroundColor(gray)
@@ -1189,7 +1189,7 @@ local function drawSettingsUI()
   term.setCursorPos(28,4)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
-  term.write("Highlight gate")
+  term.write("Highlight gate") -- Whether or not to display the local gate in gray text
   term.setCursorPos(45,4)
   if dhdSettings.highlight == "YES" then
     term.setBackgroundColor(green)
@@ -1205,7 +1205,7 @@ local function drawSettingsUI()
   term.setCursorPos(28,8)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
-  term.write("Bio: ")              -- Whether Biolock controls shield or initiates lockdown or does nothing
+  term.write("Bio: ")         -- Whether Biolock controls shield or initiates lockdown or does nothing
   if dhdSettings.bio.func == "none" then
     term.setTextColor(lgray)
     term.write("No Function")
@@ -1243,7 +1243,7 @@ local function drawSettingsUI()
   term.setBackgroundColor(black)
   term.setTextColor(gray)
   if #dhdSettings.thisGate == 7 then
-    term.write("STARTUP Shield")     -- Shield ON/OFF @ startup
+    term.write("STARTUP Shield") -- Shield ON/OFF @ startup
   elseif #dhdSettings.thisGate > 7 then
     term.write("STARTUP Iris")
   end
@@ -1263,7 +1263,7 @@ local function drawSettingsUI()
   term.setBackgroundColor(black)
   term.setTextColor(gray)
   if #dhdSettings.thisGate == 7 then
-    term.write("END Call Shield")    -- END Call Shield (ON/OFF)
+    term.write("END Call Shield") -- END Call Shield (ON/OFF)
   elseif #dhdSettings.thisGate > 7 then
     term.write("END Call Iris")
   end
@@ -1282,7 +1282,7 @@ local function drawSettingsUI()
   term.setCursorPos(28,14)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
-  term.write("Call Logging")       -- ccDHD should/not log outbound calls
+  term.write("Call Logging")   -- ccDHD should/not log outbound calls
   term.setCursorPos(45,14)
   --term.setTextColor(lblue)
   if dhdSettings.logs == "OFF" then
@@ -1299,7 +1299,7 @@ local function drawSettingsUI()
   term.setCursorPos(28,16)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
-  term.write("Initiator Only")     -- Only call initiator can end call (ON/OFF)
+  term.write("Initiator Only") -- Only call initiator can end call (ON/OFF)
   term.setCursorPos(45,16)
   if dhdSettings.callEnd == "OFF" then
     term.setBackgroundColor(gray)
@@ -1757,7 +1757,7 @@ local function viewGateEntry(dataBlock)
   term.write(" < < < CLOSE > > > ")
 end
 
-local function clearGateEntryScreen()
+local function clearGateEntryScreen() -- Clean up select parts of the screen instead of clearing and redrawing the entire screen
   runState = tempState
   term.setBackgroundColor(black)
   term.setCursorPos(2,7)
@@ -2260,7 +2260,7 @@ local function mClick()
           elseif runState == "Trim" then
             if mButton == 1 then
               deleteGate(i)
-              term.clear()
+              term.clear() -- cheap out - should really clear just the space and redraw the list, but I'm lazy
               drawCLI()
               return
             end
@@ -2663,7 +2663,7 @@ local function mClick()
           elseif #newGate > 7 then
             longName = newGate
           end
-          if gateStatus == "Disconnected" then displayMarque() end
+          if gateStatus == "Disconnected" then displayMarquee() end
         end
         term.setCursorPos(16,4)
         term.write("         ")
@@ -2815,7 +2815,7 @@ local function mClick()
           term.write("     ")
           drawSettingsUI()
         end
-        -- Select Marque Side
+        -- Select Marquee Side
       elseif mcY == 14 and mcX < 24 then
         if mcX > 16 and mcX < 21  and dhdSettings.monB ~= "none" then
           monB.setBackgroundColor(black)
