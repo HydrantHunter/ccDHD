@@ -111,7 +111,8 @@ while true do
   if userInput[3] > 1 and userInput[3] < 21 then
     if userInput[4] == 6 then
       setCCLabel("DHD")
-      if fs.exists("/logs") then fs.delete("/data/DHDsettings") end
+      if fs.exists("/logs") and fs.exists("/data/DHDSettings") then fs.delete("/data/DHDsettings") end
+      if fs.exists("/data/DHDSettings") then fs.delete("/data/DHDsettings")
       if not fs.exists("/data") then
         fs.makeDir("/data")
       end
@@ -128,7 +129,7 @@ while true do
       drawCLI()
     elseif userInput[4] == 8 then
       setCCLabel("Gate")
-      if fs.exists("/logs") then fs.delete("/data/gateSettings") end
+      if fs.exists("/logs") and fs.exists("/data/gateSettings") then fs.delete("/data/gateSettings") end
       if not fs.exists("/data") then
         fs.makeDir("/data")
       end
