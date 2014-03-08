@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.75"
+local ccDHDVer = "1.0.76"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -27,6 +27,7 @@ end
 -- Default Settings
 local settingsData = "/data/DHDconfig"
 local dhdSettings = { thisGate="--ERROR--",
+                      highlight="YES",
                       password="password",
                       monA="none",
                       monB="none",
@@ -110,29 +111,29 @@ local function recordSessionData() -- Human readable log files (last gate & hist
 end
 
 local function updateStatus(newInfo)  -- Update status info
-  if tostring(newInfo) ==  "000" then -- bit/trit/bit
+  if tostring(newInfo) == "000" then  -- bit/trit/bit
     shieldStatus = "OFF"              -- 1st/bit = shield
     gateStatus = "Disconnected"       -- 2nd/trit = connection/dialing
     secureStatus = "allclear"
     fuelGauge = false                 -- 3rd/bit = fuel
     dialAddress = ""
-  elseif tostring(newInfo) ==  "001" then
+  elseif tostring(newInfo) == "001" then
     shieldStatus = "OFF"
     gateStatus = "Disconnected"
     secureStatus = "allclear"
     dialAddress = ""
     fuelGauge = true
-  elseif tostring(newInfo) ==  "010" then
+  elseif tostring(newInfo) == "010" then
     shieldStatus = "OFF"
     gateStatus = "Connected"
     secureStatus = "allclear"
     fuelGauge = false
-  elseif tostring(newInfo) ==  "011" then
+  elseif tostring(newInfo) == "011" then
     shieldStatus = "OFF"
     gateStatus = "Connected"
     secureStatus = "allclear"
     fuelGauge = true
-  elseif tostring(newInfo) ==  "020" then
+  elseif tostring(newInfo) == "020" then
     shieldStatus = "OFF"
     gateStatus = "Dialing"
     secureStatus = "allclear"
@@ -144,7 +145,7 @@ local function updateStatus(newInfo)  -- Update status info
     else
       recordSessionData()
     end
-  elseif tostring(newInfo) ==  "021" then
+  elseif tostring(newInfo) == "021" then
     shieldStatus = "OFF"
     gateStatus = "Dialing"
     secureStatus = "allclear"
@@ -156,29 +157,29 @@ local function updateStatus(newInfo)  -- Update status info
     else
       recordSessionData()
     end
-  elseif tostring(newInfo) ==  "100" then
+  elseif tostring(newInfo) == "100" then
     shieldStatus = "ON"
     gateStatus = "Disconnected"
     secureStatus = "allclear"
     dialAddress = ""
     fuelGauge = false
-  elseif tostring(newInfo) ==  "101" then
+  elseif tostring(newInfo) == "101" then
     shieldStatus = "ON"
     gateStatus = "Disconnected"
     secureStatus = "allclear"
     dialAddress = ""
     fuelGauge = true
-  elseif tostring(newInfo) ==  "110" then
+  elseif tostring(newInfo) == "110" then
     shieldStatus = "ON"
     gateStatus = "Connected"
     secureStatus = "allclear"
     fuelGauge = false
-  elseif tostring(newInfo) ==  "111" then
+  elseif tostring(newInfo) == "111" then
     shieldStatus = "ON"
     gateStatus = "Connected"
     secureStatus = "allclear"
     fuelGauge = true
-  elseif tostring(newInfo) ==  "120" then
+  elseif tostring(newInfo) == "120" then
     shieldStatus = "ON"
     gateStatus = "Dialing"
     secureStatus = "allclear"
@@ -190,7 +191,7 @@ local function updateStatus(newInfo)  -- Update status info
     else
       recordSessionData()
     end
-  elseif tostring(newInfo) ==  "121" then
+  elseif tostring(newInfo) == "121" then
     shieldStatus = "ON"
     gateStatus = "Dialing"
     secureStatus = "allclear"
@@ -202,7 +203,7 @@ local function updateStatus(newInfo)  -- Update status info
     else
       recordSessionData()
     end
-  elseif tostring(newInfo) ==  "Dialing" then
+  elseif tostring(newInfo) == "Dialing" then
     gateStatus = "Dialing"
     secureStatus = "allclear"
     if dialAddress == "" then
@@ -212,7 +213,9 @@ local function updateStatus(newInfo)  -- Update status info
     else
       recordSessionData()
     end
-  elseif tostring(newInfo) ==  "YY0" then
+  elseif tostring(newInfo) == "pSync" then -- PDA allGates sync
+    pSync()
+  elseif tostring(newInfo) == "YY0" then
     secureStatus = "allclear"
     shieldStatus = "OFF"
     gateStatus = "Disconnected"
@@ -220,7 +223,7 @@ local function updateStatus(newInfo)  -- Update status info
     dialAddress = ""
     term.setBackgroundColor(black)
     term.clear()
-  elseif tostring(newInfo) ==  "YY1" then
+  elseif tostring(newInfo) == "YY1" then
     secureStatus = "allclear"
     shieldStatus = "OFF"
     gateStatus = "Disconnected"
@@ -228,22 +231,34 @@ local function updateStatus(newInfo)  -- Update status info
     dialAddress = ""
     term.setBackgroundColor(black)
     term.clear()
-  elseif tostring(newInfo) ==  "XX0" then
+  elseif tostring(newInfo) == "XX0" then
     secureStatus = "lockdown"
     shieldStatus = "ON"
     gateStatus = "Disconnected"
     fuelGauge = false
     dialAddress = ""
-  elseif tostring(newInfo) ==  "XX1" then
+  elseif tostring(newInfo) == "XX1" then
     secureStatus = "lockdown"
     shieldStatus = "ON"
     gateStatus = "Disconnected"
     fuelGauge = true
     dialAddress = ""
   end
-  currentState = tostring(newInfo)
+  if tostring(newInfo) ~= "pSync" then currentState = tostring(newInfo) end
   drawCLI()
   return
+end
+
+local function pSync() -- Sync allGates with a PDA running ccDialer
+  if dhdSettings.net == "R" then
+    if dhdSettings.server ~= 9999 then
+      --rednet.send(gateLiaison,allGates,true)
+    end
+  elseif dhdSettings.net == "C" then
+    if (dhdSettings.channels.recv > 0 and dhdSettings.channels.recv < 65536) and (dhdSettings.channels.send > 0 and dhdSettings.channels.send < 65536) then
+      modem.transmit(dhdSettings.channels.send+1,dhdSettings.channels.recv+1,allGates)
+    end
+  end
 end
 
 local function netSend(dataPack)
@@ -465,6 +480,9 @@ local function displayGateList()
     if #allGates[i].addr > 7 then tmX = 4 end
     monA.setCursorPos(tmX,tmY)
     monA.setTextColor(assignColor(i))
+    if dhdSettings.thisGate == allGates[i].addr and dhdSettings.highlight == "YES" then
+      monA.setTextColor(gray)
+    end
     monA.write(allGates[i].addr)
     tmY = tmY + 1
   end
@@ -823,9 +841,15 @@ local function drawMainUI() -- Gate Address Book (Dial / Edit / Trim)
       else
         term.setTextColor(white)
       end
+      if dhdSettings.thisGate == allGates[i].addr and dhdSettings.highlight == "YES" then
+        term.setTextColor(gray)
+      end
     else
       term.setBackgroundColor(black)
       term.setTextColor(assignColor(i))
+      if dhdSettings.thisGate == allGates[i].addr and dhdSettings.highlight == "YES" then
+        term.setTextColor(gray)
+      end
     end
     if i > (pageNum * 24) or i > #allGates then
       break
@@ -1054,7 +1078,7 @@ local function drawSettingsUI()
   term.write(dhdSettings.password) -- superSecretPassword
   term.setCursorPos(2,8)
   term.setTextColor(gray)
-  term.write("BioLock")
+  term.write("Biolock Login")
   term.setCursorPos(17,8)
   if dhdSettings.bio.lock == "OFF" then  -- Fistprint Authentication (Biolock mod)
     term.setBackgroundColor(gray)
@@ -1072,7 +1096,10 @@ local function drawSettingsUI()
   term.setTextColor(black)
   term.write("#")
   term.setBackgroundColor(black)
+  term.setTextColor(gray)
   term.setCursorPos(2,10)
+  term.write("Net:")
+  term.setCursorPos(7,10)
   if dhdSettings.net == "R" then   -- redNet (specify server #)
     term.setTextColor(red)
     term.write("RedNet")
@@ -1159,6 +1186,22 @@ local function drawSettingsUI()
   term.setTextColor(black)
   term.write("#")
   -- Settings 2nd column
+  term.setCursorPos(28,4)
+  term.setBackgroundColor(black)
+  term.setTextColor(gray)
+  term.write("Highlight gate")
+  term.setCursorPos(45,4)
+  if dhdSettings.highlight == "YES" then
+    term.setBackgroundColor(green)
+    term.write("  ")
+    term.setBackgroundColor(gray)
+    term.write("  ")
+  elseif dhdSettings.highlight == "NO" then
+    term.setBackgroundColor(gray)
+    term.write("  ")
+    term.setBackgroundColor(red)
+    term.write("  ")
+  end
   term.setCursorPos(28,8)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
@@ -1205,7 +1248,6 @@ local function drawSettingsUI()
     term.write("STARTUP Iris")
   end
   term.setCursorPos(45,10)
-  --term.setTextColor(lblue)
   if dhdSettings.startShield == "OFF" then
     term.setBackgroundColor(gray)
     term.write("  ")
@@ -2816,6 +2858,17 @@ local function mClick()
         end
         drawSettingsUI()
         -- Settings Column 2
+        -- Highlight thisGate in Dial/Edit/Trim modes & on List monitor
+      elseif mcY == 4 and mcX > 44 and mcX < 49 then
+        if dhdSettings.highlight == "YES" then
+          dhdSettings.highlight = "NO"
+          configChange = true
+        elseif dhdSettings.highlight == "NO" then
+          dhdSettings.highlight = "YES"
+          configChange = true
+        end
+        drawSettingsUI()
+        -- Bioscanner function (shield/lockdown)
       elseif mcY == 8 and mcX > 44 and mcX < 49 then
         if dhdSettings.bio.func == "none" then
           dhdSettings.bio.func = "shield"
@@ -3066,6 +3119,10 @@ local function initMe()
   term.setCursorPos(1,4)
   if not fs.exists(settingsData) then firstRun() end
   ingestData(settingsData,"cfg")
+  if tostring(dhdSettings.highlight) == "" or dhdSettings.highlight == nil then
+    dhdSettings.highlight = "YES"
+    saveData(settingsData,"cfg")
+  end
   if dhdSettings.monA ~= "none" then
     monA.setBackgroundColor(black)
     monA.clear()
@@ -3074,6 +3131,8 @@ local function initMe()
     monB.setBackgroundColor(black)
     monB.clear()
   end
+  term.setCursorPos(2,4)
+  term.write("Hardware Discovery . . .")
   for _,bSide in pairs(rs.getSides()) do
     if peripheral.isPresent(bSide) then
       if peripheral.getType(bSide) == "biolock" then
@@ -3088,17 +3147,17 @@ local function initMe()
     end
   end
   if dhdSettings.bio.lock == "ON" and dhdSettings.bio.side ~= "none" then bioLogin() end -- Biolock login
-  term.setCursorPos(2,4)
+  term.setCursorPos(2,6)
   term.write("Setting Shield . . .")
   if dhdSettings.startShield == "ON" then
     netSend("sON")
   elseif dhdSettings.startShield == "OFF" then
     netSend("sOFF")
   end
-  term.setCursorPos(2,6)
+  term.setCursorPos(2,8)
   term.write("Querying Gate . . .")
   netSend("QRY")
-  term.setCursorPos(2,8)
+  term.setCursorPos(2,10)
   term.write("Awaiting response . . .")
   if dhdSettings.net == "R" then
     local senderID, message = rednet.receive()
@@ -3111,7 +3170,7 @@ local function initMe()
       updateStatus(netEvent[5])
     end
   end
-  term.setCursorPos(2,10)
+  term.setCursorPos(2,12)
   term.write("Ingesting gate data . . .")
   ingestData(dhdSettings.gateData,"gate")
   term.setBackgroundColor(black)
