@@ -298,7 +298,7 @@ local function netReceive()
           if netEvent[5] == "pSync" then
             pSync()
           else
-            if #tostring(netEvent[5]) > 6 and #tostring(netEvent[5] < 10 then
+            if #tostring(netEvent[5]) > 6 and #tostring(netEvent[5]) < 10 then
               dialAddress = netEvent[5]
               netSend(dialAddress)
               --return
