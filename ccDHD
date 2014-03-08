@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.78"
+local ccDHDVer = "1.0.79"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -110,6 +110,29 @@ local function recordSessionData() -- Human readable log files (last gate & hist
     gateArchive.writeLine(dateStamp)
     gateArchive.writeLine(dialAddress)
     gateArchive.close()
+  end
+end
+
+local function pSync() -- Sync allGates with a PDA running ccDialer
+  if dhdSettings.net == "R" then
+    if dhdSettings.server ~= 9999 then         -- use broadcast for discovery, then communicate?
+      --rednet.send(gateLiaison,allGates,true)
+    end
+  elseif dhdSettings.net == "C" then
+    sleep(0.25)
+    modem.transmit(dhdSettings.pChannels.send,dhdSettings.pChannels.recv,allGates)
+  end
+end
+
+local function netSend(dataPack)
+  if dhdSettings.net == "R" then
+    if dhdSettings.server ~= 9999 then
+      rednet.send(gateLiaison,dataPack,true)
+    end
+  elseif dhdSettings.net == "C" then
+    if (dhdSettings.channels.recv > 0 and dhdSettings.channels.recv < 65536) and (dhdSettings.channels.send > 0 and dhdSettings.channels.send < 65536) then
+      modem.transmit(dhdSettings.channels.send,dhdSettings.channels.recv,dataPack)
+    end
   end
 end
 
@@ -244,32 +267,13 @@ local function updateStatus(newInfo)  -- Update status info
     gateStatus = "Disconnected"
     fuelGauge = true
     dialAddress = ""
+  elseif tostring(newInfo) == "pSync" then
+    pSync()
+    return
   end
-  currentState = tostring(newInfo)
+  if tostring(newInfo) ~= "pSync" then currentState = tostring(newInfo) end
   drawCLI()
   return
-end
-
-local function pSync() -- Sync allGates with a PDA running ccDialer
-  if dhdSettings.net == "R" then
-    if dhdSettings.server ~= 9999 then         -- use broadcast for discovery, then communicate?
-      --rednet.send(gateLiaison,allGates,true)
-    end
-  elseif dhdSettings.net == "C" then
-    modem.transmit(dhdSettings.pChannels.send,dhdSettings.pChannels.recv,allGates)
-  end
-end
-
-local function netSend(dataPack)
-  if dhdSettings.net == "R" then
-    if dhdSettings.server ~= 9999 then
-      rednet.send(gateLiaison,dataPack,true)
-    end
-  elseif dhdSettings.net == "C" then
-    if (dhdSettings.channels.recv > 0 and dhdSettings.channels.recv < 65536) and (dhdSettings.channels.send > 0 and dhdSettings.channels.send < 65536) then
-      modem.transmit(dhdSettings.channels.send,dhdSettings.channels.recv,dataPack)
-    end
-  end
 end
 
 local function netReceive()
@@ -2266,134 +2270,134 @@ local function mClick()
     local k = ((pageNum - 1) * 23)
     local l = ((pageNum - 1) * 24)
     if menuState == false then
-    if mcY > 5 and mcY < 17 then
-      for i = j,#allGates,1 do
-          -- Addresses Column 1
-        if mcX > 1 and mcX < 11 and mcY == 4 + ((i - l) * 2) and i <= #allGates then
-          if runState == "Dial" then
-            if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
-              if allGates[i].addr ~= dhdSettings.thisGate then
-                dialAddress = allGates[i].addr
-                netSend(dialAddress)
+      if mcY > 5 and mcY < 17 then
+        for i = j,#allGates,1 do
+            -- Addresses Column 1
+          if mcX > 1 and mcX < 11 and mcY == 4 + ((i - l) * 2) and i <= #allGates then
+            if runState == "Dial" then
+              if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
+                if allGates[i].addr ~= dhdSettings.thisGate then
+                  dialAddress = allGates[i].addr
+                  netSend(dialAddress)
+                  return
+                end
+              elseif mButton == 2 then
+                viewGateEntry(i)
                 return
               end
-            elseif mButton == 2 then
-              viewGateEntry(i)
-              return
-            end
-          elseif runState == "Edit" then
-            if mButton == 1 then
-              runState = "GateEdit"
-              viewGateEntry(i)
-              return
-            elseif mButton == 2 then
-              runState = "Trim"
-              drawCLI()
-              return
-            end
-          elseif runState == "Trim" then
-            if mButton == 1 then
-              deleteGate(i)
-              term.clear() -- cheap out - should really clear just the space and redraw the list, but I'm lazy
-              drawCLI()
-              return
-            end
-          end
-          -- Addresses Column 2
-        elseif mcX > 11 and mcX < 21 and mcY == 4 + ((i - l) * 2) and (i + 6) <= #allGates then
-          if runState == "Dial" then
-            if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
-              if allGates[i + 6].addr ~= dhdSettings.thisGate then
-                dialAddress = allGates[i + 6].addr
-                netSend(dialAddress)
+            elseif runState == "Edit" then
+              if mButton == 1 then
+                runState = "GateEdit"
+                viewGateEntry(i)
+                return
+              elseif mButton == 2 then
+                runState = "Trim"
+                drawCLI()
                 return
               end
-            elseif mButton == 2 then
-              viewGateEntry(i + 6)
-              return
-            end
-          elseif runState == "Edit" then
-            if mButton == 1 then
-              runState = "GateEdit"
-              viewGateEntry(i + 6)
-              return
-            elseif mButton == 2 then
-              runState = "Trim"
-              drawCLI()
-              return
-            end
-          elseif runState == "Trim" then
-            if mButton == 1 then
-              deleteGate(i + 6)
-              term.clear()
-              drawCLI()
-              return
-            end
-          end
-          -- Addresses Column 3
-        elseif mcX > 21 and mcX < 31 and mcY == 4 + ((i - l) * 2) and (i + 12) <= #allGates then
-          if runState == "Dial" then
-            if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
-              if allGates[i + 12].addr ~= dhdSettings.thisGate then
-                dialAddress = allGates[i + 12].addr
-                netSend(dialAddress)
+            elseif runState == "Trim" then
+              if mButton == 1 then
+                deleteGate(i)
+                term.clear() -- cheap out - should really clear just the space and redraw the list, but I'm lazy
+                drawCLI()
                 return
               end
-            elseif mButton == 2 then
-              viewGateEntry(i + 12)
-              return
             end
-          elseif runState == "Edit" then
-            if mButton == 1 then
-              runState = "GateEdit"
-              viewGateEntry(i + 12)
-              return
-            elseif mButton == 2 then
-              runState = "Trim"
-              drawCLI()
-              return
-            end
-          elseif runState == "Trim" then
-            if mButton == 1 then
-              deleteGate(i + 12)
-              term.clear()
-              drawCLI()
-              return
-            end
-          end
-          -- Addresses Column 4
-        elseif mcX > 31 and mcX < 41 and mcY == 4 + ((i - l) * 2) and (i + 18) <= #allGates then
-          if runState == "Dial" then
-            if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
-              if allGates[i + 18].addr ~= dhdSettings.thisGate then
-                dialAddress = allGates[i + 18].addr
-                netSend(dialAddress)
+            -- Addresses Column 2
+          elseif mcX > 11 and mcX < 21 and mcY == 4 + ((i - l) * 2) and (i + 6) <= #allGates then
+            if runState == "Dial" then
+              if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
+                if allGates[i + 6].addr ~= dhdSettings.thisGate then
+                  dialAddress = allGates[i + 6].addr
+                  netSend(dialAddress)
+                  return
+                end
+              elseif mButton == 2 then
+                viewGateEntry(i + 6)
+                return
               end
-            elseif mButton == 2 then
-              viewGateEntry(i + 18)
-              return
+            elseif runState == "Edit" then
+              if mButton == 1 then
+                runState = "GateEdit"
+                viewGateEntry(i + 6)
+                return
+              elseif mButton == 2 then
+                runState = "Trim"
+                drawCLI()
+                return
+              end
+            elseif runState == "Trim" then
+              if mButton == 1 then
+                deleteGate(i + 6)
+                term.clear()
+                drawCLI()
+                return
+              end
             end
-          elseif runState == "Edit" then
-            if mButton == 1 then
-              runState = "GateEdit"
-              viewGateEntry(i + 18)
-              return
-            elseif mButton == 2 then
-              runState = "Trim"
-              drawCLI()
-              return
+            -- Addresses Column 3
+          elseif mcX > 21 and mcX < 31 and mcY == 4 + ((i - l) * 2) and (i + 12) <= #allGates then
+            if runState == "Dial" then
+              if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
+                if allGates[i + 12].addr ~= dhdSettings.thisGate then
+                  dialAddress = allGates[i + 12].addr
+                  netSend(dialAddress)
+                  return
+                end
+              elseif mButton == 2 then
+                viewGateEntry(i + 12)
+                return
+              end
+            elseif runState == "Edit" then
+              if mButton == 1 then
+                runState = "GateEdit"
+                viewGateEntry(i + 12)
+                return
+              elseif mButton == 2 then
+                runState = "Trim"
+                drawCLI()
+                return
+              end
+            elseif runState == "Trim" then
+              if mButton == 1 then
+                deleteGate(i + 12)
+                term.clear()
+                drawCLI()
+                return
+              end
             end
-          elseif runState == "Trim" then
-            if mButton == 1 then
-              deleteGate(i + 18)
-              term.clear()
-              drawCLI()
-              return
+            -- Addresses Column 4
+          elseif mcX > 31 and mcX < 41 and mcY == 4 + ((i - l) * 2) and (i + 18) <= #allGates then
+            if runState == "Dial" then
+              if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
+                if allGates[i + 18].addr ~= dhdSettings.thisGate then
+                  dialAddress = allGates[i + 18].addr
+                  netSend(dialAddress)
+                end
+              elseif mButton == 2 then
+                viewGateEntry(i + 18)
+                return
+              end
+            elseif runState == "Edit" then
+              if mButton == 1 then
+                runState = "GateEdit"
+                viewGateEntry(i + 18)
+                return
+              elseif mButton == 2 then
+                runState = "Trim"
+                drawCLI()
+                return
+              end
+            elseif runState == "Trim" then
+              if mButton == 1 then
+                deleteGate(i + 18)
+                term.clear()
+                drawCLI()
+                return
+              end
             end
           end
         end
       end
-    end
     end
     -- Gate Editing
     if runState == "GateEdit" then
