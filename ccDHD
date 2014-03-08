@@ -294,8 +294,14 @@ local function netReceive()
             updateStatus(netEvent[5])
             --return
           end
-        elseif netEvent[3] == dhdSettings.pChannels.recv and netEvent[4] == dhdSettings.pChannels.send and netEvent[5] == "pSync" and dhdSettings.pSync == "YES" then
-          pSync()
+        elseif netEvent[3] == dhdSettings.pChannels.recv and netEvent[4] == dhdSettings.pChannels.send and dhdSettings.pSync == "YES" then
+          if netEvent[5] == "pSync" then
+            pSync()
+          else
+            dialAddress = netEvent[5]
+            netSend(dialAddress)
+            return
+          end
         end
       end
     end
@@ -1217,7 +1223,7 @@ local function drawSettingsUI()
   term.setCursorPos(28,6)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
-  term.write("pSync (ccDialer)") -- Whether or not to display the local gate in gray text
+  term.write("pSync (ccDialer)") -- Enable/Disable ccDialer pSync
   term.setCursorPos(45,6)
   if dhdSettings.pSync == "YES" then
     term.setBackgroundColor(green)
