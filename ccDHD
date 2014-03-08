@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.77"
+local ccDHDVer = "1.0.78"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -36,6 +36,8 @@ local dhdSettings = { thisGate="--ERROR--",
                       netSide="none",
                       server=9999,
                       channels={send=1776,recv=1787,},
+                      pSync="NO",
+                      pChannels={send=24747,recv=24242,},
                       ecShield="ON",
                       startShield="ON",
                       callEnd="OFF",
@@ -66,6 +68,7 @@ local configChange = false
 local gateChange = false
 local tempState, currentEdit
 local fuelGauge, dialAddress
+local i,j,k,l,m,n,v,w
  -- Gate List
 local numPages,pageNum = 1,1
 local listPages,listPage = 1,1
@@ -251,13 +254,11 @@ end
 
 local function pSync() -- Sync allGates with a PDA running ccDialer
   if dhdSettings.net == "R" then
-    if dhdSettings.server ~= 9999 then
+    if dhdSettings.server ~= 9999 then         -- use broadcast for discovery, then communicate?
       --rednet.send(gateLiaison,allGates,true)
-    end                                            -- Need a pSync channel
-  elseif dhdSettings.net == "C" then
-    if (dhdSettings.channels.recv > 0 and dhdSettings.channels.recv < 65536) and (dhdSettings.channels.send > 0 and dhdSettings.channels.send < 65536) then
-      modem.transmit(dhdSettings.channels.recv,dhdSettings.channels.send,allGates)
     end
+  elseif dhdSettings.net == "C" then
+    modem.transmit(dhdSettings.pChannels.send,dhdSettings.pChannels.recv,allGates)
   end
 end
 
@@ -293,6 +294,8 @@ local function netReceive()
             updateStatus(netEvent[5])
             --return
           end
+        elseif netEvent[3] == dhdSettings.pChannels.recv and netEvent[4] == dhdSettings.pChannels.send and netEvent[5] == "pSync" and dhdSettings.pSync == "YES" then
+          pSync()
         end
       end
     end
@@ -351,6 +354,7 @@ local function ingestData(fileName,fileType)
     elseif dhdSettings.net == "C" and dhdSettings.netSide ~= "none" then
       modem = peripheral.wrap(dhdSettings.netSide)
       modem.open(dhdSettings.channels.recv)
+      if dhdSettings.pSync == "YES" then modem.open(dhdSettings.pChannels.recv) end
     end
     if dhdSettings.bio.lock ~= "none" then -- Why is this even here?
     end
@@ -862,13 +866,14 @@ local function drawMainUI() -- Gate Address Book (Dial / Edit / Trim)
       break
     else
       if #allGates[i].addr < 10 then
-        if runState == "Dial" then
-          term.write(string.rep(" ",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep(" ",math.floor((9-#allGates[i].addr)/2))) -- Dial
-        elseif runState == "Edit" then
-          term.write(string.rep("|",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep("|",math.floor((9-#allGates[i].addr)/2))) -- Edit
-        elseif runState == "Trim" then
-          term.write(string.rep("/",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep("/",math.floor((9-#allGates[i].addr)/2))) -- Trim
+        local spacer
+        local spacerSet = { Dial = " ", Edit = "|", Trim = "/", }
+        for l,m in pairs(spacerSet) do
+          if runState == tostring(l) then
+            spacer = m
+          end
         end
+        term.write(string.rep(spacer,math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep(spacer,math.floor((9-#allGates[i].addr)/2))) -- Address
       else
         term.write("ERROR #10")  -- ERROR #10 = address is 10 or more characters
       end
@@ -1204,6 +1209,22 @@ local function drawSettingsUI()
     term.setBackgroundColor(gray)
     term.write("  ")
   elseif dhdSettings.highlight == "NO" then
+    term.setBackgroundColor(gray)
+    term.write("  ")
+    term.setBackgroundColor(red)
+    term.write("  ")
+  end
+  term.setCursorPos(28,6)
+  term.setBackgroundColor(black)
+  term.setTextColor(gray)
+  term.write("pSync (ccDialer)") -- Whether or not to display the local gate in gray text
+  term.setCursorPos(45,6)
+  if dhdSettings.pSync == "YES" then
+    term.setBackgroundColor(green)
+    term.write("  ")
+    term.setBackgroundColor(gray)
+    term.write("  ")
+  elseif dhdSettings.pSync == "NO" then
     term.setBackgroundColor(gray)
     term.write("  ")
     term.setBackgroundColor(red)
@@ -1872,7 +1893,7 @@ local function remoteCommand()
   term.setCursorPos((termX/2)-11,9)
   term.write(" ")
   term.setBackgroundColor(black)     --
-  term.setCursorPos((termX/2)-10,9) -- These three lines kept in case ccDHD bg is changed
+  term.setCursorPos((termX/2)-10,9)  -- These three lines kept in case ccDHD bg is changed
   term.write(string.rep(" ",15))     --
   term.setCursorPos((termX/2)+3,9)
   term.setBackgroundColor(gray)
@@ -2875,6 +2896,18 @@ local function mClick()
           configChange = true
         end
         drawSettingsUI()
+        -- pSync ON/OFF for ccDialer
+      elseif mcY == 6 and mcX > 44 and mcX < 49 then
+        if dhdSettings.pSync == "YES" then
+          dhdSettings.pSync = "NO"
+          modem.close(dhdSettings.pChannels.recv)
+          saveData(settingsData,"cfg")
+        elseif dhdSettings.pSync == "NO" then
+          dhdSettings.pSync = "YES"
+          modem.open(dhdSettings.pChannels.recv)
+          saveData(settingsData,"cfg")
+        end
+        drawSettingsUI()
         -- Bioscanner function (shield/lockdown)
       elseif mcY == 8 and mcX > 44 and mcX < 49 then
         if dhdSettings.bio.func == "none" then
@@ -3101,6 +3134,7 @@ local function firstRun()
     if myGateInfo[3] == dhdSettings.channels.recv and myGateInfo[4] == dhdSettings.channels.send then
       local tempSettings = myGateInfo[5]
       dhdSettings.thisGate = tempSettings.gate
+      if allGates[1].addr == "NEWGATE" then allGates[1].addr = tempSettings.gate end
       dhdSettings.server = tempSettings.server
       break
     end
@@ -3128,6 +3162,11 @@ local function initMe()
   ingestData(settingsData,"cfg")
   if tostring(dhdSettings.highlight) == "" or dhdSettings.highlight == nil then
     dhdSettings.highlight = "YES"
+    saveData(settingsData,"cfg")
+  end
+  if tostring(dhdSettings.pSync) == "" or dhdSettings.pSync == nil then
+    dhdSettings.pSync = "NO"
+    dhdSettings.pChannels = { send = 24747, recv = 24242, }
     saveData(settingsData,"cfg")
   end
   if dhdSettings.monA ~= "none" then
