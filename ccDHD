@@ -3252,6 +3252,8 @@ repeat
     term.setTextColor(white)
     term.clear()
     term.setCursorPos(1,1)
+    modem.close(dhdSettings.channels.recv)
+    if dhdSettings.pSync == "YES" then modem.close(dhdSettings.pChannels.recv) end
     if runState == "reboot" or runState == "reset" then os.reboot() end
     return
   end
