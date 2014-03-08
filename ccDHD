@@ -216,8 +216,6 @@ local function updateStatus(newInfo)  -- Update status info
     else
       recordSessionData()
     end
-  elseif tostring(newInfo) == "pSync" then -- PDA allGates sync
-    pSync()
   elseif tostring(newInfo) == "YY0" then
     secureStatus = "allclear"
     shieldStatus = "OFF"
@@ -247,7 +245,7 @@ local function updateStatus(newInfo)  -- Update status info
     fuelGauge = true
     dialAddress = ""
   end
-  if tostring(newInfo) ~= "pSync" then currentState = tostring(newInfo) end
+  currentState = tostring(newInfo)
   drawCLI()
   return
 end
@@ -2909,11 +2907,13 @@ local function mClick()
         if dhdSettings.pSync == "YES" then
           dhdSettings.pSync = "NO"
           modem.close(dhdSettings.pChannels.recv)
-          saveData(settingsData,"cfg")
+          configChange = true
+          --saveData(settingsData,"cfg")
         elseif dhdSettings.pSync == "NO" then
           dhdSettings.pSync = "YES"
           modem.open(dhdSettings.pChannels.recv)
-          saveData(settingsData,"cfg")
+          configChange = true
+          --saveData(settingsData,"cfg")
         end
         drawSettingsUI()
         -- Bioscanner function (shield/lockdown)
