@@ -113,14 +113,26 @@ local function recordSessionData() -- Human readable log files (last gate & hist
   end
 end
 
-local function pSync() -- Sync allGates with a PDA running ccDialer
+local function pSync(pushpull) -- Sync allGates with a PDA running ccDialer
   if dhdSettings.net == "R" then
     if dhdSettings.server ~= 9999 then         -- use broadcast for discovery, then communicate?
       --rednet.send(gateLiaison,allGates,true)
     end
   elseif dhdSettings.net == "C" then
-    sleep(0.25)
-    modem.transmit(dhdSettings.pChannels.send,dhdSettings.pChannels.recv,allGates)
+    if pushpull == "pPull" then
+      sleep(0.25)
+      local pGateData = textutils.serialize(allGates)
+      modem.transmit(dhdSettings.pChannels.send,dhdSettings.pChannels.recv,pGateData)
+    elseif pushpull == "pPush" then
+      local newGates = { os.pullEvent("modem_message") }
+      if newGates[3] == dhdSettings.pChannels.recv and newGates[4] == dhdSettings.pChannels.send then
+        allGates = { }
+        local newGateData = newGates[5]
+        allGates = textutils.unserialize(newGateData)
+        gateChange = true
+        drawCLI()
+      end
+    end
   end
 end
 
@@ -267,11 +279,11 @@ local function updateStatus(newInfo)  -- Update status info
     gateStatus = "Disconnected"
     fuelGauge = true
     dialAddress = ""
-  elseif tostring(newInfo) == "pSync" then
-    pSync()
+  elseif tostring(newInfo) == "pPull" or tostring(newInfo) == "pPush" then
+    pSync(tostring(newInfo))
     return
   end
-  if tostring(newInfo) ~= "pSync" then currentState = tostring(newInfo) end
+  if tostring(newInfo) ~= "pPush" and tostring(newInfo) ~= "pPull" then currentState = tostring(newInfo) end
   drawCLI()
   return
 end
@@ -297,8 +309,10 @@ local function netReceive()
             --return
           end
         elseif netEvent[3] == dhdSettings.pChannels.recv and netEvent[4] == dhdSettings.pChannels.send and dhdSettings.pSync == "YES" then
-          if netEvent[5] == "pSync" then
-            pSync()
+          if netEvent[5] == "pPull" then
+            pSync("pPull")
+          elseif netEvent[5] == "pPush" then
+            pSync("pPush")
           else
             if #tostring(netEvent[5]) > 6 and #tostring(netEvent[5]) < 10 then
               dialAddress = netEvent[5]
