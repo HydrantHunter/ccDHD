@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.79"
+local ccDHDVer = "1.0.80"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -309,16 +309,14 @@ local function netReceive()
             --return
           end
         elseif netEvent[3] == dhdSettings.pChannels.recv and netEvent[4] == dhdSettings.pChannels.send and dhdSettings.pSync == "YES" then
-          if netEvent[5] == "pPull" then
-            pSync("pPull")
-          elseif netEvent[5] == "pPush" then
-            pSync("pPush")
+          if netEvent[5] == "pPull" or netEvent[5] == "pPush" then
+            pSync(netEvent[5])
           else
-            if #tostring(netEvent[5]) > 6 and #tostring(netEvent[5]) < 10 then
+            --if #tostring(netEvent[5]) > 6 and #tostring(netEvent[5]) < 10 then
               dialAddress = netEvent[5]
               netSend(dialAddress)
               --return
-            end
+            --end
           end
         end
       end
@@ -400,7 +398,8 @@ local function ingestData(fileName,fileType)
     allGates = textutils.unserialize(dhdCfg)
     numPages = math.ceil(#allGates / 24)
     listPages = math.ceil(#allGates / 8)
-    if fileName == "/disk/DHDgates" then
+    if fs.exists("/disk/DHDgates") then fs.delete("/disk/DHDgates") end
+    if fileName == "/disk/data/DHDgates" then
       gateChange = true
     end
   end
@@ -409,13 +408,17 @@ end
 local function saveData(filename,filetype)
   menuState = false
   if not fs.exists("/data") then fs.makeDir("/data") end
+  if fs.exists("/disk") and filename == ("/disk/data/DHDgates") then
+    if not fs.exists("/disk/data") then fs.makeDir("/disk/data") end
+  end
   local dhdConfig = fs.open(tostring(filename),"w") or error("Cannot open " .. filename .. " for writing", 2)
   if filetype == "cfg" then
     dhdConfig.write(textutils.serialize(dhdSettings))
     configChange = false
   elseif filetype == "gate" then
     dhdConfig.write(textutils.serialize(allGates))
-    gateChange = false
+    if fs.exists("/disk/DHDgates") then fs.delete("/disk/DHDgates") end
+    if filename == dhdSettings.gateData then gateChange = false end
   end
   dhdConfig.close()
 end
@@ -874,16 +877,16 @@ local function drawMainUI() -- Gate Address Book (Dial / Edit / Trim)
         term.setBackgroundColor(gray)
       end
     elseif runState == "Edit" then
-      term.setBackgroundColor(gray)
-      term.setTextColor(assignColor(i))
-      if dhdSettings.thisGate == allGates[i].addr and dhdSettings.highlight == "YES" then
-        term.setTextColor(black)
-      end
-    elseif runState == "Trim" then
       term.setBackgroundColor(black)
       term.setTextColor(assignColor(i))
       if dhdSettings.thisGate == allGates[i].addr and dhdSettings.highlight == "YES" then
         term.setTextColor(gray)
+      end
+    elseif runState == "Trim" then
+      term.setBackgroundColor(gray)
+      term.setTextColor(assignColor(i))
+      if dhdSettings.thisGate == allGates[i].addr and dhdSettings.highlight == "YES" then
+        term.setTextColor(black)
       end
     end
     if i > (pageNum * 24) or i > #allGates then
@@ -2211,7 +2214,7 @@ local function mClick()
             end
           elseif runState == "Edit" then
             flashChoice("import")
-            ingestData("/disk/DHDgates","gate")
+            ingestData("/disk/data/DHDgates","gate")
             term.setBackgroundColor(black)
             term.clear()
             drawCLI()
@@ -2234,7 +2237,7 @@ local function mClick()
             netSend(secureStatus)
           elseif runState == "Edit" then
             flashChoice("export")
-            saveData("/disk/DHDgates","gate")
+            saveData("/disk/data/DHDgates","gate")
           elseif runState == "Trim" then
             flashChoice("commit")
             runState = "Edit"
@@ -2425,7 +2428,7 @@ local function mClick()
           term.setTextColor(yellow)
           term.setCursorPos(2,7)
           local newGate = string.upper(tostring(read()))
-          if newGate ~= "" and newGate ~= "nil" and newGate:len() > 6 and newGate:len() < 10 then
+          if newGate ~= "" and newGate ~= "NIL" and newGate:len() > 6 and newGate:len() < 10 then
             allGates[currentEdit].addr = newGate
             gateChange = true
           end
@@ -2698,7 +2701,7 @@ local function mClick()
         term.setTextColor(cyan)
         term.setCursorPos(17,4)
         local newGate = string.upper(tostring(read()))
-        if newGate ~= "" and newGate ~= "nil" and newGate ~= dhdSettings.thisGate and newGate:len() > 6 and newGate:len() < 10 then
+        if newGate ~= "" and newGate ~= "NIL" and newGate ~= dhdSettings.thisGate and newGate:len() > 6 and newGate:len() < 10 then
           configChange = true
           dhdSettings.thisGate = newGate
           longName = ""
