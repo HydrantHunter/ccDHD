@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.80"
+local ccDHDVer = "1.0.81"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -71,6 +71,7 @@ local fuelGauge, dialAddress
 local i,j,k,l,m,n,v,w
  -- Gate List
 local numPages,pageNum = 1,1
+local pNum = "001"
 local listPages,listPage = 1,1
  -- Call History
 local histPages,histPage = 1,1
@@ -312,11 +313,11 @@ local function netReceive()
           if netEvent[5] == "pPull" or netEvent[5] == "pPush" then
             pSync(netEvent[5])
           else
-            --if #tostring(netEvent[5]) > 6 and #tostring(netEvent[5]) < 10 then
+            if #tostring(netEvent[5]) > 6 and #tostring(netEvent[5]) < 10 then
               dialAddress = netEvent[5]
               netSend(dialAddress)
               --return
-            --end
+            end
           end
         end
       end
@@ -330,7 +331,7 @@ local function ingestLogData()
     tmpHist.close()
   end
   if fs.exists(dhdSettings.gateHistory) then
-    local dhdHist = fs.open(dhdSettings.gateHistory,"r") or error("Cannot open /data/DHDhistory for reading", 2)
+    local dhdHist = fs.open(dhdSettings.gateHistory,"r") or error("333: Cannot open /data/DHDhistory for reading", 2)
     while true do
       local timeDate = dhdHist.readLine()
       local gateAddr = dhdHist.readLine()
@@ -349,7 +350,7 @@ local function ingestLogData()
     local tmpLast = fs.open(dhdSettings.lastGate,"w")
     tmpLast.close()
   end
-  local dhdLast = fs.open(dhdSettings.lastGate,"r") or error("Cannot open /data/DHDlast for reading", 2)
+  local dhdLast = fs.open(dhdSettings.lastGate,"r") or error("352: Cannot open /data/DHDlast for reading", 2)
   for i = 1,2,1 do
     local lastInfo = dhdLast.readLine()
     table.insert(lastCall,lastInfo)
@@ -359,7 +360,7 @@ end
 
 local function ingestData(fileName,fileType)
   if not fs.exists(tostring(fileName)) then return end
-  local dhdConfig = fs.open(tostring(fileName),"r") or error("Cannot open " .. fileName .. " for reading", 2)
+  local dhdConfig = fs.open(tostring(fileName),"r") or error("362: Cannot open " .. fileName .. " for reading", 2)
   local dhdCfg = dhdConfig.readAll()
   dhdConfig.close()
   if fileType == "cfg" then
@@ -411,7 +412,7 @@ local function saveData(filename,filetype)
   if fs.exists("/disk") and filename == ("/disk/data/DHDgates") then
     if not fs.exists("/disk/data") then fs.makeDir("/disk/data") end
   end
-  local dhdConfig = fs.open(tostring(filename),"w") or error("Cannot open " .. filename .. " for writing", 2)
+  local dhdConfig = fs.open(tostring(filename),"w") or error("414: Cannot open " .. filename .. " for writing", 2)
   if filetype == "cfg" then
     dhdConfig.write(textutils.serialize(dhdSettings))
     configChange = false
@@ -826,7 +827,8 @@ local function drawControlUI()
 end
 
 local function drawNaviUI()
-  local pNum = tostring(pageNum)
+  pNum = ""
+  pNum = tostring(pageNum)
   if pageNum < 100 then pNum = "0" .. pNum end -- Add a "0" before double digit page numbers
   if pageNum < 10 then pNum = "0" .. pNum end  -- Add another "0" before single digit page numbers
   term.setCursorPos(((termX/2) - (math.floor(pNum:len()/4))) - 5,termY)
@@ -1745,6 +1747,13 @@ local function flashChoice(choice)
     term.write("Save     ")
     sleep(0.1)
     drawControlUI()
+  elseif choice == "page" then
+    term.setCursorPos(((termX/2) - (math.floor(#tostring(pNum)/4))) - 5,termY)
+    term.setBackgroundColor(white)
+    term.setTextColor(black)
+    term.write(pNum)
+    sleep(0.1)
+    drawCLI()
   end
 end
 
@@ -2052,6 +2061,190 @@ local function wrapPerp(perp,side)
   end
 end
 
+local function keyClick()
+  while true do
+    local keyEvent = { os.pullEvent("key") }
+    if runState == "Dial" or runState == "Edit" then
+      if menuState == true then       -- Menu OPEN
+        if keyEvent[2] == 50 then -- m (Menu CLOSE)
+          menuState = false
+          term.setBackgroundColor(black)
+          for i = 5,10,1 do
+            term.setCursorPos(2,i)
+            term.write("           ")
+          end
+          drawCLI()
+        elseif keyEvent[2] == 31 then -- s (Settings)
+          if runState == "Dial" then
+            runState = "DialCfg"
+            flashChoice("cfg")
+            menuState = false
+            drawSettingsUI()
+          elseif runState == "Edit" then
+            runState = "EditCfg"
+            flashChoice("cfg")
+            menuState = false
+            drawSettingsUI()
+          end
+        elseif keyEvent[2] == 38 or keyEvent[2] == 47 then -- l / v (View Logs)
+          tempState = runState
+          runState = "logs"
+          flashChoice("logs")
+          menuState = false
+          ingestLogData()
+          term.setBackgroundColor(black)
+          term.clear()
+          drawHeader()
+          viewLogs()
+        elseif keyEvent[2] == 35 then -- h (Help)
+          if runState == "Dial" then
+            flashChoice("dhelp")
+            runState = "DialHelp"
+            menuState = false
+            drawHelpUI()
+          elseif runState == "Edit" then
+            flashChoice("ehelp")
+            runState = "EditHelp"
+            menuState = false
+            drawHelpUI()
+          end
+        elseif keyEvent[2] == 16 or keyEvent[2] == 18 or keyEvent[2] == 45 then -- q / e / x (Exit)
+          flashChoice("exit")
+          runState = "exit"
+          kernelState = false
+          break
+        end
+      elseif menuState == false then  -- MENU closed
+        if keyEvent[2] == 59 then     -- F1 (Help)
+          if runState == "Dial" then
+            runState = "DialHelp"
+            drawHelpUI()
+          elseif runState == "Edit" then
+            runState = "EditHelp"
+            drawHelpUI()
+          end
+        elseif keyEvent[2] == 50 then -- m (Menu OPEN)
+          menuState = true
+          drawMenu()
+        elseif (keyEvent[2] == 25 or keyEvent[2] == 34) and (runState == "Dial" or runState == "Edit") then -- p / g (goPage)
+          flashChoice("page")
+          goToPage()
+        elseif keyEvent[2] == 18 and runState == "Dial" then -- e (endCall)
+          if dhdSettings.ecShield == "ON" then
+            netSend("sON")
+          end
+          if dhdSettings.callEnd == "OFF" or (dhdSettings.callEnd == "ON" and dialAddress ~= "") then
+            flashChoice("end")
+            netSend("endCall")
+            dialAddress = ""
+          end
+        elseif keyEvent[2] == 13 and runState == "Edit" then -- +/= (+ Entry)
+          if #allGates < 23976 then
+            flashChoice("new")
+            gateChange = true
+            viewGateEntry("new")
+          end
+        elseif keyEvent[2] == 18 and runState == "Edit" then -- e (Export)
+          flashChoice("export")
+          saveData("/disk/data/DHDgates","gate")
+        elseif keyEvent[2] == 23 and runState == "Edit" then -- i (Import)
+          flashChoice("import")
+          ingestData("/disk/data/DHDgates","gate")
+          term.setBackgroundColor(black)
+          term.clear()
+          drawCLI()
+        elseif keyEvent[2] == 31 and runState == "Edit" then -- s (Save)
+          flashChoice("save")
+          gateChange = false
+          saveData(dhdSettings.gateData,"gate")
+          drawControlUI()
+        elseif keyEvent[2] == 38 and runState == "Dial" then -- l (Lockdown)
+          flashChoice("lock")
+          secureStatus = "lockdown"
+          netSend(secureStatus)
+        elseif keyEvent[2] == 19 or keyEvent[2]== 46 and runState == "Dial" then -- r/c (rCmd)
+          flashChoice("rcmd")
+          remoteCommand()
+        elseif keyEvent[2] == 23 or keyEvent[2] == 31 and runState == "Dial" then -- i / s (Iris / Shield)
+          if shieldStatus == "OFF" then
+            netSend("sON")
+            return
+          elseif shieldStatus == "ON" then
+            netSend("sOFF")
+            return
+          end
+        elseif keyEvent[2] == 32 then -- d (Dial/Edit mode)
+          if runState == "Dial" then
+            runState = "Edit"
+          elseif runState == "Edit" then
+            runState = "Dial"
+          end
+          drawCLI()
+        end
+      end
+    elseif runState == "DialHelp" or runState == "EditHelp" or runState == "DialCfg" or runState == "EditCfg" or runState == "viewing" or runState == "GateEdit" or runState == "logs" then
+      if keyEvent[2] == 46 then -- c (Close)
+        if runState == "DialHelp" or runState == "EditHelp" or runState == "DialCfg" or runState == "EditCfg" or runState == "logs" then
+          flashChoice("close")
+        end
+        if runState == "viewing" or runState == "logs" then
+          runState = tempState
+        elseif runState == "DialHelp" or runState == "DialCfg" then
+          runState = "Dial"
+        elseif runState == "EditHelp" or runState == "EditCfg" then
+          runState = "Edit"
+        end
+        term.setBackgroundColor(black)
+        term.clear()
+        callHistory = { }
+        lastCall = { }
+        drawCLI()
+        return
+      elseif keyEvent[2] == 31 then -- s (Save)
+        if runState == "DialCfg" or runState == "EditCfg" and menuState == false then
+          flashChoice("cfgsave")
+          settingsChange = false
+          saveData(settingsData,"cfg")
+          drawCLI()
+        end
+      elseif keyEvent[2] == 38 then -- l (cLear logs)
+        if runState == "logs" and menuState == false then
+          flashChoice("clear")
+          local clearLog = fs.open("/data/DHDhistory","w")
+          clearLog.close()
+          callHistory = { }
+          lastCall = { }
+          histPages = 1
+          histPage = 1
+          viewLogs()
+          return
+        end
+      end
+    elseif runState == "Trim" and menuState == false then
+      if keyEvent[2] == 22 then -- u (Undo)
+        flashChoice("undo")
+        runState = "Edit"
+        ingestData(dhdSettings.gateData,"gate")
+        if gateChange == true then
+          term.setBackgroundColor(black)
+          term.clear()
+        end
+        gateChange = false
+        drawCLI()
+      elseif keyEvent[2] == 28 or keyEvent[2] == 46 then -- c, <enter> (Commit)
+        flashChoice("commit")
+        runState = "Edit"
+        saveData(dhdSettings.gateData,"gate")
+        gateChange = false
+        drawCLI()
+      elseif (keyEvent[2] == 25 or keyEvent[2] == 34) then -- p / g (goPage)
+        flashChoice("page")
+        goToPage()
+      end
+    end
+  end
+end
+
 local function mClick()
   while true do
     local clickEvent = {os.pullEvent("mouse_click")}
@@ -2271,6 +2464,7 @@ local function mClick()
             return
           end
         elseif mcX > 19 and mcX < 23 and mcY == termY then -- Bottom row of screen - Page Numbers (Go To Page dialogue)
+          flashChoice("page")
           goToPage()
         elseif mcX > 22 and mcY == termY then -- Bottom row of screen - Forward
           if pageNum < numPages then
@@ -3141,7 +3335,7 @@ local function dhdKernel()
   if kernelState == true and secureStatus == "lockdown" then
     parallel.waitForAny(secKernel,netReceive)
   elseif kernelState == true and secureStatus == "allclear" and runState ~= "rCmd" and runState ~= "goPage" then
-    parallel.waitForAny(mClick,mScroll,bioScan,monTouch,netReceive)
+    parallel.waitForAny(keyClick,mClick,mScroll,bioScan,monTouch,netReceive)
   end
   if runState == "reset" then
     netSend("reset")
