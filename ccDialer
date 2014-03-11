@@ -1,0 +1,613 @@
+--[[   LanteaCraft     ]]--
+--[[        ccDialer   ]]--
+--[[  core ver. 1.0.0  ]]--
+--[[   ui ver. 1.0.0   ]]--
+--[[     by Dog        ]]--
+--[[ aka HydrantHunter ]]--
+--[[ pastebin WN9wLUnu ]]--
+--[[      GPL v3       ]]--
+local ccDialVer = "1.0.00"
+--[[
+Tested with/requires:
+  - Mincraft 1.6.4
+  - LanteaCraft (snapshot 82 and RC1)
+  - ComputerCraft ver. 1.57+ for MC 1.6.4
+    - HTTP API enabled (for pastebin installer - not required for ccDHD)
+    - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
+    - gateLiaison running on an Advanced Computer (with 3 optional Advanced Monitors) or an Advanced Wireless Turtle (no monitors)
+
+  - ccDHD also supports the Biometric Lock (Fistprint Scanner) in GopherATL's Biolock MOD ver. 2.1.3 (updated for 1.6.4 by gamax92)
+]]--
+if os.clock() < 5 then
+  sleep(2)
+end
+-- AUTOMATIC/STATIC CONFIGURATION
+-- Default Settings
+local settingsData = "/data/DialCfg"
+local dialSettings = { net="C",
+                       netSide="none",
+                       server=9999,
+                       channels={send=24242,recv=24747,},
+                       gateData="/data/DHDgates",
+                       thisGate="ccDialer",
+                     }
+local allGates = { {addr="NEWGATE",rating="U",note="short note",loc={x=99999,y=99999,z=99999,dim="0",},}, }
+local ccDHD = dialSettings.server
+local longName, tY
+-- Peripherals
+local termX,termY = term.getSize() -- portable 26x20 / standard 51x19 / cBang & OneOS = 51x18
+local modem = dialSettings.netSide -- Modem (for ccNet)
+ -- Status Info
+local kernelState = true
+local runState = "init"
+local currentState = "ZZ"
+local tempState, currentEdit
+ -- Gate List
+local numPages,pageNum = 1,1
+ -- Color Definitions
+local white = colors.white
+local lgray = colors.lightGray
+local gray = colors.gray
+local black = colors.black
+local brown = colors.brown
+local yellow = colors.yellow
+local orange = colors.orange
+local red = colors.red
+local magenta = colors.magenta
+local purple = colors.purple
+local blue = colors.blue
+local lblue = colors.lightBlue
+local cyan = colors.cyan
+local lime = colors.lime
+local green = colors.green
+-- END AUTOMATIC/STATIC CONFIGURATION
+
+local function pSync(pushpull) -- Sync allGates with a Portable Advanced Computer running ccDialer
+  if dialSettings.net == "R" then
+    if dialSettings.server ~= 9999 then
+      rednet.send(ccDHD,pushpull,true)
+      if pushpull == "pPull" then
+        local netEvent = { os.pullEvent("modem_message") }
+        if netEvent[1] == ccDHD then
+          local newGateData = netEvent[2]
+          allGates = textutils.unserialize(newGateData)
+          numPages = math.ceil(#allGates / 14)
+          return
+        end
+      elseif pushpull == "pPush" then
+        sleep(0.25)
+        local pGateData = textutils.serialize(allGates)
+        rednet.send(ccDHD,pGateData,true)
+        return
+      end
+    end
+  elseif dialSettings.net == "C" then
+    if (dialSettings.channels.recv > 0 and dialSettings.channels.recv < 65536) and (dialSettings.channels.send > 0 and dialSettings.channels.send < 65536) then
+      modem.transmit(dialSettings.channels.send,dialSettings.channels.recv,pushpull)
+      if pushpull == "pPull" then
+        local netEvent = { os.pullEvent("modem_message") }
+        if netEvent[3] == dialSettings.channels.recv and netEvent[4] == dialSettings.channels.send then
+          local newGateData = netEvent[5]
+          allGates = textutils.unserialize(newGateData)
+          numPages = math.ceil(#allGates / 14)
+          return
+        end
+      elseif pushpull == "pPush" then
+        sleep(0.25)
+        local pGateData = textutils.serialize(allGates)
+        modem.transmit(dialSettings.channels.send,dialSettings.channels.recv,pGateData)
+        return
+      end
+    end
+  end
+end
+
+local function drawPsyncMenu()
+  term.setBackgroundColor(green)
+  for i = 4,6,1 do
+    term.setCursorPos(2,i)
+    term.write(string.rep(" ",termX-2))
+  end
+  term.setCursorPos(termX/2 - 5,5)
+  term.write("I m p o r t")
+  term.setBackgroundColor(orange)
+  for i = 8,10,1 do
+    term.setCursorPos(2,i)
+    term.write(string.rep(" ",termX-2))
+  end
+  term.setCursorPos(termX/2 - 5,9)
+  term.write("E x p o r t")
+
+  term.setBackgroundColor(red)
+  for i = 12,14,1 do
+    term.setCursorPos(2,i)
+    term.write(string.rep(" ",termX-2))
+  end
+  term.setCursorPos(termX/2 - 5,13)
+  term.write("C A N C E L")
+end
+
+local function netSend(dataPack)
+  if dialSettings.net == "R" then
+    if dialSettings.server ~= 9999 then
+      rednet.send(ccDHD,dataPack,true)
+    end
+  elseif dialSettings.net == "C" then
+    if (dialSettings.channels.recv > 0 and dialSettings.channels.recv < 65536) and (dialSettings.channels.send > 0 and dialSettings.channels.send < 65536) then
+      modem.transmit(dialSettings.channels.send,dialSettings.channels.recv,dataPack)
+    end
+  end
+end
+
+local function saveData(filename,filetype)
+  if not fs.exists("/data") then fs.makeDir("/data") end
+  local dhdConfig = fs.open(tostring(filename),"w") or error("147: Cannot open " .. filename .. " for writing", 2)
+  if filetype == "cfg" then
+    dhdConfig.write(textutils.serialize(dialSettings))
+  elseif filetype == "gate" then
+    dhdConfig.write(textutils.serialize(allGates))
+  end
+  dhdConfig.close()
+end
+
+local function ingestData(fileName,fileType)
+  if not fs.exists(tostring(fileName)) then return end
+  local dhdConfig = fs.open(tostring(fileName),"r") or error("158: Cannot open " .. fileName .. " for reading", 2)
+  local dhdCfg = dhdConfig.readAll()
+  dhdConfig.close()
+  if fileType == "cfg" then
+    dialSettings = textutils.unserialize(dhdCfg)
+    local ccDHD = dialSettings.server
+    if dialSettings.net == "R" and dialSettings.netSide ~= "none" then
+      rednet.open(dialSettings.netSide)
+    elseif dialSettings.net == "C" and dialSettings.netSide ~= "none" then
+      modem = peripheral.wrap(dialSettings.netSide)
+      modem.open(dialSettings.channels.recv)
+    end
+  elseif fileType == "gate" then
+    allGates = textutils.unserialize(dhdCfg)
+    numPages = math.ceil(#allGates / 14)
+  end
+end
+
+local function assignColor(gateNumber)
+  local colorBurst = { B = blue, H = lblue, V = brown, M = purple, S = green, C = orange, D = red, U = lgray, X = magenta }
+  for v,w in pairs(colorBurst) do
+    if allGates[gateNumber].rating == tostring(v) then
+      return w
+    end
+  end
+end
+
+local function assignRating(gateNumber)
+  local ratingBurst = { B = "Base/Outpost/Hub", H = "Home/Camp", V = "Village", M = "Misc/Special", S = "Safe", C = "Caution", D = "Danger", U = "Unknown", Z = "Zog" }
+  for i,j in pairs(ratingBurst) do
+    if allGates[gateNumber].rating == i then
+      return j
+    end
+  end
+end
+
+local function drawHeader()
+  local title = "ccDialer"
+  term.setBackgroundColor(black)
+  term.clear()
+  term.setBackgroundColor(blue)
+  term.setTextColor(white)
+  term.setCursorPos(1,1)
+  term.write(string.rep(" ",termX))          -- Draw top/menu 'bar'
+  term.setCursorPos((termX/2)-(#title/2),1)  -- Set position for program name (depending on length)
+  term.write(title)                          -- Write program name
+  if runState == "Dial" then
+    term.setCursorPos(termX-2,1)
+    term.write("[ ]")
+    term.setTextColor(red)
+    term.setCursorPos(termX-1,1)
+    term.write("X")
+    term.setTextColor(white)
+    term.setCursorPos(1,2)
+    term.setBackgroundColor(cyan)
+    term.write(string.rep(" ",math.floor(termX/4 - #"Sync"/2)) .. "Sync" .. string.rep(" ",math.floor(termX/4 - #"Sync"/2)))
+    term.setBackgroundColor(red)
+    term.write(string.rep(" ",math.ceil(termX/4 - #"End Call"/2)) .. "End Call" .. string.rep(" ",math.ceil(termX/4 - #"End Call"/2)))
+  end
+end
+
+local function drawNaviUI()
+  local pNum = tostring(pageNum)
+  if pageNum < 100 then pNum = "0" .. pNum end -- Add a "0" before double digit page numbers
+  if pageNum < 10 then pNum = "0" .. pNum end  -- Add another "0" before single digit page numbers
+  term.setCursorPos((termX/2) - (math.floor(pNum:len()/2)),termY)
+  term.setBackgroundColor(black)
+  term.setTextColor(lgray)
+  term.write(pNum)
+  term.setTextColor(gray)
+  if pageNum > 1 then                         -- Show "BACK" option if page number is > 1
+    term.setCursorPos((termX/2) - 10,termY)
+    term.write("<< BACK")
+  elseif pageNum == 1 then
+    term.setCursorPos((termX/2) - 10,termY)   -- Overwrite "BACK" instead of clearing screen
+    term.write("       ")
+  end
+  if pageNum < numPages then                  -- Show "NEXT" option if page number is < numPages
+    term.setCursorPos((termX/2)+4,termY)
+    term.write("NEXT >>")
+  elseif pageNum == numPages then
+    term.setCursorPos((termX/2)+4,termY)      -- Overwrite "NEXT" instead of clearing screen
+    term.write("       ")
+  end
+end
+
+local function drawMainUI() -- Gate Address Book (Dial / Edit / Trim)
+  local xPos, yPos = 2, 2
+  local j = ((pageNum - 1) * 13) + pageNum
+  local k = ((pageNum - 1) * 14)
+  for i = j,#allGates,1 do
+    if i > k and i < k + 8 then           -- Column 1
+      xPos, yPos = 3, 2
+    elseif i > k + 6 and i < k + 13 then  -- Column 2
+      xPos, yPos = 15, -12
+    end
+    term.setCursorPos(xPos,yPos + (i - k) * 2)
+    if runState == "Dial" then
+      term.setBackgroundColor(assignColor(i))
+      term.setTextColor(white)
+    else
+      term.setBackgroundColor(black)
+      term.setTextColor(assignColor(i))
+    end
+    if i > (pageNum * 14) or i > #allGates then
+      break
+    else
+      if #allGates[i].addr < 10 then
+        term.write(string.rep(" ",math.ceil((9-#allGates[i].addr)/2)) .. allGates[i].addr .. string.rep(" ",math.floor((9-#allGates[i].addr)/2))) -- Dial
+      else
+        term.write("ERROR #10")  -- ERROR #10 = address is 10 or more characters
+      end
+    end
+  end
+  term.setBackgroundColor(black) -- not sure why this is here...
+end
+
+local function viewGateEntry(dataBlock)
+  tempState = runState
+  runState = "viewing"
+  currentEdit = dataBlock
+  term.setBackgroundColor(black)
+  term.clear()
+  drawHeader()
+  -- Display data for viewing/editing
+  term.setBackgroundColor(black)
+  if currentEdit <= #allGates then
+    local tColor = assignColor(currentEdit)
+    if tColor ~= nil then
+      term.setTextColor(tColor)
+      term.setCursorPos(2,5)
+      term.write(allGates[currentEdit].addr)
+      term.setCursorPos(2,7)
+      term.setTextColor(gray)
+      local ratingWord = assignRating(currentEdit)
+      term.write(ratingWord)
+      term.setTextColor(white)
+      term.setCursorPos(2,9)
+      term.setTextColor(white)
+      term.write(allGates[currentEdit].note)
+      term.setCursorPos(2,12)
+      term.setTextColor(lgray)
+      term.write("Dim: ")
+      term.setTextColor(lblue)
+      term.write(allGates[currentEdit].loc.dim)
+      term.setCursorPos(2,13)
+      term.setTextColor(lgray)
+      term.write("x: ")
+      term.setTextColor(brown)
+      term.write(tostring(allGates[currentEdit].loc.x))
+      term.setCursorPos(2,14)
+      term.setTextColor(lgray)
+      term.write("y: ")
+      term.setTextColor(brown)
+      term.write(tostring(allGates[currentEdit].loc.y))
+      term.setCursorPos(2,15)
+      term.setTextColor(lgray)
+      term.write("z: ")
+      term.setTextColor(brown)
+      term.write(tostring(allGates[currentEdit].loc.z))
+    end
+  end
+  term.setCursorPos((termX/2)-8,termY-1)
+  term.setTextColor(black)
+  term.setBackgroundColor(gray)
+  term.write(" < < < CLOSE > > > ")
+end
+
+function drawCLI()   -- Client Interface 'decider'
+  drawHeader()
+  if runState == "viewing" then return end
+  if runState == "Dial" then
+    drawMainUI()
+    drawNaviUI()
+  elseif runState == "pSync" then
+    drawPsyncMenu()
+  end
+end
+
+local function goToPage()
+  tempState = runState
+  runState = "goPage"
+  term.setCursorPos((termX/2)-7,8)
+  term.setTextColor(white)
+  term.setBackgroundColor(gray)
+  term.write("  Go to page:  ")
+  term.setCursorPos((termX/2)-7,9)
+  term.write(" ")
+  term.setBackgroundColor(black)     --
+  term.setCursorPos((termX/2)-6,9)   -- These three lines kept in case ccDialer bg is changed
+  term.write(string.rep(" ",13))     --
+  term.setBackgroundColor(gray)
+  term.write(" ")
+  term.setCursorPos((termX/2)-7,10)
+  term.write(string.rep(" ",15))
+  term.setCursorPos((termX/2)-6,9)
+  term.setTextColor(lime)
+  term.setBackgroundColor(black)
+  local newPage = tonumber(read())
+  for i = 8,10,1 do
+    term.setCursorPos((termX/2)-7,i)
+    term.write(string.rep(" ",15))
+  end
+  if newPage == nil or newPage < 1 then newPage = 1 end
+  if newPage > numPages then newPage = numPages end
+  if newPage == numPages then
+    term.setBackgroundColor(black)
+    term.clear()
+  end
+  pageNum = newPage
+  runState = tempState
+  drawCLI()
+end
+
+local function keyClick()
+  while true do
+    local keyEvent = { os.pullEvent("char") }
+    if runState == "Dial" then
+      if keyEvent[2] == "s" then
+        runState = "pSync"
+        drawCLI()
+      elseif keyEvent[2] == "e" then
+        netSend("endCall")
+      elseif keyEvent[2] == "q" or keyEvent[2] == "x" then
+        kernelState = false
+        runState = "exit"
+        break
+      end
+    elseif runState == "pSync" then
+      if keyEvent[2] == "i" then
+        pSync("pPull")
+        runState = "Dial"
+        term.setBackgroundColor(black)
+        term.clear()
+        saveData(dialSettings.gateData,"gate")
+        drawCLI()
+      elseif keyEvent[2] == "e" then
+        pSync("pPush")
+        runState = "Dial"
+        term.setBackgroundColor(black)
+        term.clear()
+        drawCLI()
+      elseif keyEvent[2] == "c" then
+        runState = "Dial"
+        term.setBackgroundColor(black)
+        term.clear()
+        drawCLI()
+      end
+    end
+  end
+end
+
+local function mClick()
+  while true do
+    local clickEvent = {os.pullEvent("mouse_click")}
+    local mButton = clickEvent[2]
+    local mcX = clickEvent[3]
+    local mcY = clickEvent[4]
+    if runState == "viewing" then
+      if mcX > 0 and mcX < termX and mcY == termY-1 then
+        runState = tempState
+        drawCLI()
+        return
+      end
+    elseif runState == "Dial" then
+      if mcY == 2 and mcX < termX/2 then
+        runState = "pSync"
+        drawCLI()
+      elseif mcY == 2 and mcX > termX/2 then
+        netSend("endCall")
+      elseif mcY == 1 and mcX > termX - 3 and mcX <= termX then
+        kernelState = false
+        runState = "exit"
+        break
+      end
+      -- Page Navigation via click
+      if mcY == termY then -- Bottom row of screen
+        if mcX < termX/2 - 3 then -- Back
+          if pageNum > 1 then
+            pageNum = pageNum - 1
+            term.clear()
+            drawCLI()
+            return
+          end
+        elseif mcX > termX/2 - 3 and mcX < termX/2 + 3 then -- Page Numbers (Go To Page dialogue)
+          goToPage()
+        elseif mcX > termX/2 + 3 then -- Forward
+          if pageNum < numPages then
+            pageNum = pageNum + 1
+            term.clear()
+            drawCLI()
+            return
+          end
+        end
+      end
+      -- Dial a listed address, view it's info, edit entry, or enter trim mode & delete gates
+      local j = ((pageNum - 1) * 23) + pageNum
+      local k = ((pageNum - 1) * 23)
+      local l = ((pageNum - 1) * 24)
+      if mcY > 3 and mcY < 17 then
+        for i = j,#allGates,1 do
+            -- Addresses Column 1
+          if mcX > 1 and mcX < 11 and mcY == 2 + ((i - l) * 2) and i <= #allGates then
+            if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
+              if allGates[i].addr ~= dialSettings.thisGate then
+                netSend(allGates[i].addr)
+                return
+              end
+            elseif mButton == 2 then
+              viewGateEntry(i)
+              return
+            end
+            -- Addresses Column 2
+          elseif mcX > 11 and mcX < 21 and mcY == 2 + ((i - l) * 2) and (i + 7) <= #allGates then
+            if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
+              if allGates[i + 7].addr ~= dialSettings.thisGate then
+                netSend(allGates[i + 7].addr)
+                return
+              end
+            elseif mButton == 2 then
+              viewGateEntry(i + 7)
+              return
+            end
+          end
+        end
+      end
+    elseif runState == "pSync" then
+      if mcX > 2 and mcX < termX - 2 then
+        if mcY > 3 and mcY < 7 then -- Import
+          pSync("pPull")
+          runState = "Dial"
+          term.setBackgroundColor(black)
+          term.clear()
+          saveData(dialSettings.gateData,"gate")
+          drawCLI()
+        elseif mcY > 7 and mcY < 11 then -- Export
+          pSync("pPush")
+          runState = "Dial"
+          term.setBackgroundColor(black)
+          term.clear()
+          drawCLI()
+        elseif mcY > 11 and mcY < 15 then -- Cancel
+          runState = "Dial"
+          term.setBackgroundColor(black)
+          term.clear()
+          drawCLI()
+        end
+      end
+    end
+  end
+end
+
+local function mScroll()
+  while true do
+    local scrollEvent = {os.pullEvent("mouse_scroll")}
+    if runState == "Dial" then
+      if scrollEvent[2] == -1 and pageNum > 1 then
+        pageNum = pageNum - 1
+      elseif scrollEvent[2] == 1 and pageNum < numPages then
+        pageNum = pageNum + 1
+        if pageNum == numPages then
+          term.setBackgroundColor(black)
+          term.clear()
+        end
+      end
+      drawCLI()
+    end
+  end
+end
+
+local function tResize()
+  while true do
+    local tX,tY = term.getSize()
+    if tX ~= termX or tY ~= termY then
+      termX, termY = tX, tY
+      drawCLI()
+    end
+    sleep(0.02)
+  end
+end
+
+local function dialerKernel()
+  if kernelState == true and runState ~= "goPage" then
+    parallel.waitForAny(mClick,mScroll,keyClick) --,tResize
+  end
+  if runState == "exit" then
+    kernelState = false
+  end
+  return kernelState
+end
+
+local function localInventory()
+  dialSettings.net="C"
+  dialSettings.netSide="none"
+  local side
+  for _,side in pairs(rs.getSides()) do
+    if peripheral.isPresent(tostring(side)) then
+      local perp = peripheral.getType(tostring(side))
+      if tostring(perp) == "modem" then
+        if peripheral.call(tostring(side),"isWireless") == true and dialSettings.net == "R" then
+          rednet.open(side)
+          dialSettings.netSide = side
+        elseif peripheral.call(tostring(side),"isWireless") == true and dialSettings.net == "C" then
+          dialSettings.netSide = side
+        end
+      end
+    end
+  end
+  saveData(settingsData,"cfg")
+end
+
+local function firstRun()
+  localInventory()
+  saveData(settingsData,"cfg")
+  if not fs.exists(dialSettings.gateData) then
+    saveData(dialSettings.gateData,"gate")
+  end
+  local ccLabel = os.getComputerLabel()
+  if tostring(ccLabel) == "nil" or ccLabel == "" or ccLabel == "Dialer" then
+    os.setComputerLabel(dialSettings.thisGate .. " Dialer")
+  end
+end
+
+local function initMe()
+
+  termX = 26
+
+  term.setBackgroundColor(black)
+  term.setTextColor(white)
+  term.clear()
+  term.setCursorPos(2,2)
+  term.write("Initializing . . .")
+  term.setCursorPos(1,4)
+  if not fs.exists(settingsData) then firstRun() end
+  ingestData(settingsData,"cfg")
+  term.setCursorPos(2,10)
+  term.write("Ingesting gate data . . .")
+  ingestData(dialSettings.gateData,"gate")
+  term.setBackgroundColor(black)
+  term.clear()
+  kernelState = true
+  runState = "Dial"
+  drawCLI()
+end
+
+initMe()
+
+repeat
+  dialerKernel()
+  if runState == "exit" then kernelState = false end
+  if kernelState == false then
+    term.setBackgroundColor(black)
+    term.setTextColor(white)
+    term.clear()
+    term.setCursorPos(1,1)
+    modem.close(dialSettings.channels.recv)
+    return
+  end
+until kernelState == false
