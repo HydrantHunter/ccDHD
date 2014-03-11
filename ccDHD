@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.82"
+local ccDHDVer = "1.0.83"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -68,7 +68,7 @@ local configChange = false
 local gateChange = false
 local tempState, currentEdit
 local fuelGauge, dialAddress
-local i,j,k,l,m,n,v,w
+local h,i,j,k,l,m,n,v,w
  -- Gate List
 local numPages,pageNum = 1,1
 local pNum = "001"
@@ -95,28 +95,9 @@ local lime = colors.lime
 local green = colors.green
 -- END AUTOMATIC/STATIC CONFIGURATION
 
-local function recordSessionData() -- Human readable log files (last gate & history)
-  if not fs.exists("/data") then fs.makeDir("/data") end
-  local dateStamp = tostring(textutils.formatTime(os.time(),false) .. " / Day " .. tostring(os.day()))
-  local lastCall = fs.open(dhdSettings.lastGate,"w")
-  lastCall.writeLine(dateStamp)
-  lastCall.writeLine(dialAddress)
-  lastCall.close()
-  if dhdSettings.logs == "ON" then
-    if not fs.exists(dhdSettings.gateHistory) then
-      local tmpHist = fs.open(dhdSettings.gateHistory,"w")
-      tmpHist.close()
-    end
-    local gateArchive = fs.open(dhdSettings.gateHistory,"a")
-    gateArchive.writeLine(dateStamp)
-    gateArchive.writeLine(dialAddress)
-    gateArchive.close()
-  end
-end
-
 local function pSync(pushpull) -- Sync allGates with a PDA running ccDialer
   if dhdSettings.net == "R" then
-    if dhdSettings.server ~= 9999 then         -- use broadcast for discovery, then communicate?
+    if dhdSettings.server ~= 9999 then -- use broadcast for discovery, then communicate?
       --rednet.send(gateLiaison,allGates,true)
     end
   elseif dhdSettings.net == "C" then
@@ -137,15 +118,22 @@ local function pSync(pushpull) -- Sync allGates with a PDA running ccDialer
   end
 end
 
-local function netSend(dataPack)
-  if dhdSettings.net == "R" then
-    if dhdSettings.server ~= 9999 then
-      rednet.send(gateLiaison,dataPack,true)
+local function recordSessionData() -- Human readable log files (last gate & history)
+  if not fs.exists("/data") then fs.makeDir("/data") end
+  local dateStamp = tostring(textutils.formatTime(os.time(),false) .. " / Day " .. tostring(os.day()))
+  local lastCall = fs.open(dhdSettings.lastGate,"w")
+  lastCall.writeLine(dateStamp)
+  lastCall.writeLine(dialAddress)
+  lastCall.close()
+  if dhdSettings.logs == "ON" then
+    if not fs.exists(dhdSettings.gateHistory) then
+      local tmpHist = fs.open(dhdSettings.gateHistory,"w")
+      tmpHist.close()
     end
-  elseif dhdSettings.net == "C" then
-    if (dhdSettings.channels.recv > 0 and dhdSettings.channels.recv < 65536) and (dhdSettings.channels.send > 0 and dhdSettings.channels.send < 65536) then
-      modem.transmit(dhdSettings.channels.send,dhdSettings.channels.recv,dataPack)
-    end
+    local gateArchive = fs.open(dhdSettings.gateHistory,"a")
+    gateArchive.writeLine(dateStamp)
+    gateArchive.writeLine(dialAddress)
+    gateArchive.close()
   end
 end
 
@@ -289,6 +277,18 @@ local function updateStatus(newInfo)  -- Update status info
   return
 end
 
+local function netSend(dataPack)
+  if dhdSettings.net == "R" then
+    if dhdSettings.server ~= 9999 then
+      rednet.send(gateLiaison,dataPack,true)
+    end
+  elseif dhdSettings.net == "C" then
+    if (dhdSettings.channels.recv > 0 and dhdSettings.channels.recv < 65536) and (dhdSettings.channels.send > 0 and dhdSettings.channels.send < 65536) then
+      modem.transmit(dhdSettings.channels.send,dhdSettings.channels.recv,dataPack)
+    end
+  end
+end
+
 local function netReceive()
   while true do
     if dhdSettings.net == "R" then
@@ -331,7 +331,7 @@ local function ingestLogData()
     tmpHist.close()
   end
   if fs.exists(dhdSettings.gateHistory) then
-    local dhdHist = fs.open(dhdSettings.gateHistory,"r") or error("333: Cannot open /data/DHDhistory for reading", 2)
+    local dhdHist = fs.open(dhdSettings.gateHistory,"r") or error("334: Cannot open /data/DHDhistory for reading", 2)
     while true do
       local timeDate = dhdHist.readLine()
       local gateAddr = dhdHist.readLine()
@@ -350,7 +350,7 @@ local function ingestLogData()
     local tmpLast = fs.open(dhdSettings.lastGate,"w")
     tmpLast.close()
   end
-  local dhdLast = fs.open(dhdSettings.lastGate,"r") or error("352: Cannot open /data/DHDlast for reading", 2)
+  local dhdLast = fs.open(dhdSettings.lastGate,"r") or error("353: Cannot open /data/DHDlast for reading", 2)
   for i = 1,2,1 do
     local lastInfo = dhdLast.readLine()
     table.insert(lastCall,lastInfo)
@@ -360,7 +360,7 @@ end
 
 local function ingestData(fileName,fileType)
   if not fs.exists(tostring(fileName)) then return end
-  local dhdConfig = fs.open(tostring(fileName),"r") or error("362: Cannot open " .. fileName .. " for reading", 2)
+  local dhdConfig = fs.open(tostring(fileName),"r") or error("363: Cannot open " .. fileName .. " for reading", 2)
   local dhdCfg = dhdConfig.readAll()
   dhdConfig.close()
   if fileType == "cfg" then
@@ -377,8 +377,15 @@ local function ingestData(fileName,fileType)
     elseif dhdSettings.net == "C" and dhdSettings.netSide ~= "none" then
       modem = peripheral.wrap(dhdSettings.netSide)
       modem.open(dhdSettings.channels.recv)
-      if dhdSettings.pSync == "YES" then modem.open(dhdSettings.pChannels.recv) end
     end
+    --[[
+    if dhdSettings.pSync == "YES" and dhdSettings.netSide ~= "none" then
+      if dhdSettings.net == "R" then
+        modem = peripheral.wrap(dhdSettings.netSide)
+      end
+      modem.open(dhdSettings.pChannels.recv)
+    end
+    ]]--
     if dhdSettings.bio.lock ~= "none" then -- Why is this even here?
     end
     if #dhdSettings.thisGate > 7 then
@@ -412,7 +419,7 @@ local function saveData(filename,filetype)
   if fs.exists("/disk") and filename == ("/disk/data/DHDgates") then
     if not fs.exists("/disk/data") then fs.makeDir("/disk/data") end
   end
-  local dhdConfig = fs.open(tostring(filename),"w") or error("414: Cannot open " .. filename .. " for writing", 2)
+  local dhdConfig = fs.open(tostring(filename),"w") or error("415: Cannot open " .. filename .. " for writing", 2)
   if filetype == "cfg" then
     dhdConfig.write(textutils.serialize(dhdSettings))
     configChange = false
@@ -437,12 +444,7 @@ local function localInventory()
     if peripheral.isPresent(tostring(side)) then
       local perp = peripheral.getType(tostring(side))
       if tostring(perp) == "modem" then
-        if peripheral.call(tostring(side),"isWireless") == true and dhdSettings.net == "R" then
-          rednet.open(side)
-          dhdSettings.netSide = side
-        elseif peripheral.call(tostring(side),"isWireless") == true and dhdSettings.net == "C" then
-          modem = peripheral.wrap(side)
-          modem.open(dhdSettings.channels.recv)
+        if peripheral.call(tostring(side),"isWireless") == true then
           dhdSettings.netSide = side
         end
       end
@@ -2323,7 +2325,7 @@ end
 
 local function mClick()
   while true do
-    local clickEvent = {os.pullEvent("mouse_click")}
+    local clickEvent = { os.pullEvent("mouse_click") }
     local mButton = clickEvent[2]
     local mcX = clickEvent[3]
     local mcY = clickEvent[4]
@@ -2391,55 +2393,57 @@ local function mClick()
         drawCLI()
         return
       end
-    elseif menuState == false and runState == "DialHelp" then
-      if mcX > 44 and mcY == 2 then
-        flashChoice("close")
-        term.setBackgroundColor(black)
-        term.clear()
-        runState = "Dial"
-        drawCLI()
-        return
-      end
-    elseif menuState == false and runState == "EditHelp" then
-      if mcX > 44 and mcY == 2 then
-        flashChoice("close")
-        term.setBackgroundColor(black)
-        term.clear()
-        runState = "Edit"
-        drawCLI()
-        return
-      end
-    elseif menuState == false and runState == "logs" then
-      if mcX > 44 and mcY == 2 then
-        flashChoice("close")
-        term.setBackgroundColor(black)
-        term.clear()
-        callHistory = { }
-        lastCall = { }
-        runState = tempState
-        drawCLI()
-        return
-      elseif mcX > 44 and mcY == 4 then
-        flashChoice("clear")
-        local clearLog = fs.open("/data/DHDhistory","w")
-        clearLog.close()
-        callHistory = { }
-        histPages = 1
-        histPage = 1
-        viewLogs()
-        return
-      end
-    elseif menuState == false and runState == "viewing" then
-      if mcX > 16 and mcX < 36 and mcY == termY-1 then
-        clearGateEntryScreen()
-        return
-      end
-    elseif menuState == false and runState ~= "DialCfg" and runState ~= "EditCfg" and runState ~= "GateEdit" and runState ~= "viewing" then
-      if mcY == 1 and runState ~= "Trim" then
-        if mcX > 1 and mcX < 9 then
-          menuState = true
-          drawMenu()
+    elseif menuState == false then
+      if runState == "DialHelp" then
+        if mcX > 44 and mcY == 2 then
+          flashChoice("close")
+          term.setBackgroundColor(black)
+          term.clear()
+          runState = "Dial"
+          drawCLI()
           return
+        end
+      elseif runState == "EditHelp" then
+        if mcX > 44 and mcY == 2 then
+          flashChoice("close")
+          term.setBackgroundColor(black)
+          term.clear()
+          runState = "Edit"
+          drawCLI()
+          return
+        end
+      elseif runState == "logs" then
+        if mcX > 44 and mcY == 2 then
+          flashChoice("close")
+          term.setBackgroundColor(black)
+          term.clear()
+          callHistory = { }
+          lastCall = { }
+          runState = tempState
+          drawCLI()
+          return
+        elseif mcX > 44 and mcY == 4 then
+          flashChoice("clear")
+          local clearLog = fs.open("/data/DHDhistory","w")
+          clearLog.close()
+          callHistory = { }
+          histPages = 1
+          histPage = 1
+          viewLogs()
+          return
+        end
+      elseif runState == "viewing" then
+        if mcX > 16 and mcX < 36 and mcY == termY-1 then
+          clearGateEntryScreen()
+          return
+        end
+      elseif runState ~= "DialCfg" and runState ~= "EditCfg" and runState ~= "GateEdit" and runState ~= "viewing" then
+        if mcY == 1 and runState ~= "Trim" then
+          if mcX > 1 and mcX < 9 then
+            menuState = true
+            drawMenu()
+            return
+          end
         end
       end
       -- Command Buttons (change modes, mode operation)
@@ -3089,7 +3093,7 @@ local function mClick()
           term.setCursorPos(17,12)
           term.setTextColor(red)
           local newServer = tonumber(read())
-          if tostring(newServer) ~= "" and newServer ~= nil and newServer ~= dhdSettings.server then
+          if tostring(newServer) ~= "" and newServer ~= nil and newServer ~= dhdSettings.server and newServer < 9999 and newServer >= 0 then
             dhdSettings.server = newServer
             configChange = true
           end
@@ -3102,16 +3106,14 @@ local function mClick()
           term.setCursorPos(17,12)
           term.setTextColor(green)
           local newChannel = tonumber(read())
-          if tostring(newChannel) ~= "" and newChannel ~= nil and tonumber(newChannel) ~= dhdSettings.channels.recv then
-            if newChannel > 0 and newChannel <= 65535 then
-              netSend("CR")
-              sleep(0.1)
-              netSend(newChannel)
-              modem.close(dhdSettings.channels.recv)
-              dhdSettings.channels.recv = newChannel
-              modem.open(dhdSettings.channels.recv)
-              saveData(settingsData,"cfg")
-            end
+          if tostring(newChannel) ~= "" and newChannel ~= nil and newChannel ~= dhdSettings.channels.recv and newChannel < 65536 and newChannel > 0 then
+            netSend("CR")
+            sleep(0.1)
+            netSend(newChannel)
+            modem.close(dhdSettings.channels.recv)
+            dhdSettings.channels.recv = newChannel
+            modem.open(dhdSettings.channels.recv)
+            saveData(settingsData,"cfg")
           end
           term.setCursorPos(17,12)
           term.write("     ")
@@ -3126,15 +3128,13 @@ local function mClick()
           term.write(tostring(dhdSettings.channels.send) .. string.rep(" ",5-#tostring(dhdSettings.channels.send)))
           term.setCursorPos(11,12)
           term.setTextColor(green)
-          local newServer = tonumber(read())
-          if tostring(newServer) ~= "" and newServer ~= nil and newServer ~= dhdSettings.channels.send then
-            if newServer >= 0 and newServer <= 65535 then
-              netSend("CS")
-              sleep(0.1)
-              netSend(newServer)
-              dhdSettings.channels.send = newServer
-              saveData(settingsData,"cfg")
-            end
+          local newSend = tonumber(read())
+          if tostring(newSend) ~= "" and newSend ~= nil and newSend ~= dhdSettings.channels.send and newSend < 65536 and newSend > 0 then
+            netSend("CS")
+            sleep(0.1)
+            netSend(newSend)
+            dhdSettings.channels.send = newSend
+            saveData(settingsData,"cfg")
           end
           term.setCursorPos(11,12)
           term.write("     ")
@@ -3267,7 +3267,7 @@ end
 
 local function mScroll()
   while true do
-    local scrollEvent = {os.pullEvent("mouse_scroll")}
+    local scrollEvent = { os.pullEvent("mouse_scroll") }
     menuState = false
     if runState == "Dial" or runState == "Edit" or runState == "Trim" then
       if scrollEvent[2] == -1 and pageNum > 1 then
@@ -3292,7 +3292,7 @@ end
 
 local function monTouch()
   while true do
-    local touchEvent = {os.pullEvent("monitor_touch")}
+    local touchEvent = { os.pullEvent("monitor_touch") }
     if touchEvent[2] == dhdSettings.monA and displayState == "info" then
       displayState = "list"
       drawCLI()  -- Maybe change monitor events to displayStatus() or something separate from CLI
@@ -3468,6 +3468,12 @@ local function initMe()
     dhdSettings.pChannels = { send = 24747, recv = 24242, }
     saveData(settingsData,"cfg")
   end
+  if dhdSettings.pSync == "YES" then
+    if dhdSettings.netSide ~= "none" and dhdSettings.net == "R" then
+      modem = peripheral.wrap(dhdSettings.netSide)
+    end
+    modem.open(dhdSettings.pChannels.recv)
+  end
   if dhdSettings.monA ~= "none" then
     monA.setBackgroundColor(black)
     monA.clear()
@@ -3543,8 +3549,17 @@ repeat
     term.setTextColor(white)
     term.clear()
     term.setCursorPos(1,1)
-    modem.close(dhdSettings.channels.recv)
-    if dhdSettings.pSync == "YES" then modem.close(dhdSettings.pChannels.recv) end
+    if dhdSettings.netSide ~= "none" then
+      if dhdSettings.pSync == "YES" then
+        modem.close(dhdSettings.pChannels.recv)
+      end
+      if dhdSettings.net == "R" then
+        rednet.close(dhdSettings.netSide)
+      elseif dhdSettings.net == "C" then
+        modem.close(dhdSettings.channels.recv)
+      end
+      modem = nil
+    end
     if runState == "reboot" or runState == "reset" then os.reboot() end
     return
   end
