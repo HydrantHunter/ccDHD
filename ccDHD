@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.83"
+local ccDHDVer = "1.0.84"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -46,13 +46,14 @@ local dhdSettings = { thisGate="--ERROR--",
                       gateHistory="/data/DHDhistory",
                       gateData="/data/DHDgates",
                     }
-local allGates = { {addr="NEWGATE",rating="U",note="short note",loc={x=99999,y=99999,z=99999,dim="0",},}, }
+local allGates = { {addr="NEWGATE",rating="U",note="short note",loc={x=99999,y=99999,z=99999,dim="Overworld",},}, }
 local gateLiaison = dhdSettings.server
 local fistAuth = false
 local longName, tY
 -- Peripherals
-local termX,termY = term.getSize()
-local modem = dhdSettings.netSide -- Modem (for ccNet)
+local termX,termY = term.getSize() -- portable 26x20 / standard 51x19 / cBang & OneOS = 51x18
+local modem = nil
+--local modem = dhdSettings.netSide -- Modem (for ccNet)
 local monA = dhdSettings.monA     -- List monitor
 local monB = dhdSettings.monB     -- Marquee Monitor
  -- Status Info
@@ -70,8 +71,8 @@ local tempState, currentEdit
 local fuelGauge, dialAddress
 local h,i,j,k,l,m,n,v,w
  -- Gate List
-local numPages,pageNum = 1,1
 local pNum = "001"
+local numPages,pageNum = 1,1
 local listPages,listPage = 1,1
  -- Call History
 local histPages,histPage = 1,1
@@ -96,24 +97,18 @@ local green = colors.green
 -- END AUTOMATIC/STATIC CONFIGURATION
 
 local function pSync(pushpull) -- Sync allGates with a PDA running ccDialer
-  if dhdSettings.net == "R" then
-    if dhdSettings.server ~= 9999 then -- use broadcast for discovery, then communicate?
-      --rednet.send(gateLiaison,allGates,true)
-    end
-  elseif dhdSettings.net == "C" then
-    if pushpull == "pPull" then
-      sleep(0.25)
-      local pGateData = textutils.serialize(allGates)
-      modem.transmit(dhdSettings.pChannels.send,dhdSettings.pChannels.recv,pGateData)
-    elseif pushpull == "pPush" then
-      local newGates = { os.pullEvent("modem_message") }
-      if newGates[3] == dhdSettings.pChannels.recv and newGates[4] == dhdSettings.pChannels.send then
-        allGates = { }
-        local newGateData = newGates[5]
-        allGates = textutils.unserialize(newGateData)
-        gateChange = true
-        drawCLI()
-      end
+  if pushpull == "pPull" then
+    sleep(0.25)
+    local pGateData = textutils.serialize(allGates)
+    modem.transmit(dhdSettings.pChannels.send,dhdSettings.pChannels.recv,pGateData)
+  elseif pushpull == "pPush" then
+    local newGates = { os.pullEvent("modem_message") }
+    if newGates[3] == dhdSettings.pChannels.recv and newGates[4] == dhdSettings.pChannels.send then
+      allGates = { }
+      local newGateData = newGates[5]
+      allGates = textutils.unserialize(newGateData)
+      gateChange = true
+      drawCLI()
     end
   end
 end
@@ -279,45 +274,37 @@ end
 
 local function netSend(dataPack)
   if dhdSettings.net == "R" then
-    if dhdSettings.server ~= 9999 then
-      rednet.send(gateLiaison,dataPack,true)
-    end
+    rednet.send(gateLiaison,dataPack,true)
   elseif dhdSettings.net == "C" then
-    if (dhdSettings.channels.recv > 0 and dhdSettings.channels.recv < 65536) and (dhdSettings.channels.send > 0 and dhdSettings.channels.send < 65536) then
-      modem.transmit(dhdSettings.channels.send,dhdSettings.channels.recv,dataPack)
-    end
+    modem.transmit(dhdSettings.channels.send,dhdSettings.channels.recv,dataPack)
   end
 end
 
 local function netReceive()
   while true do
     if dhdSettings.net == "R" then
-      if dhdSettings.server ~= 9999 then
-        local netEvent = { rednet.receive() }
-        if tonumber(netEvent[1]) == gateLiaison then
-          if currentState ~= netEvent[2] then
-            updateStatus(netEvent[2])
-            --return
-          end
+      local netEvent = { rednet.receive() }
+      if tonumber(netEvent[1]) == gateLiaison then
+        if currentState ~= netEvent[2] then
+          updateStatus(netEvent[2])
+          --return
         end
       end
     elseif dhdSettings.net == "C" then
-      if (dhdSettings.channels.recv > 0 and dhdSettings.channels.recv < 65536) and (dhdSettings.channels.send > 0 and dhdSettings.channels.send < 65536) then
-        local netEvent = { os.pullEvent("modem_message") }
-        if netEvent[3] == dhdSettings.channels.recv and netEvent[4] == dhdSettings.channels.send then
-          if currentState ~= netEvent[5] then
-            updateStatus(netEvent[5])
+      local netEvent = { os.pullEvent("modem_message") }
+      if netEvent[3] == dhdSettings.channels.recv and netEvent[4] == dhdSettings.channels.send then
+        if currentState ~= netEvent[5] then
+          updateStatus(netEvent[5])
+          --return
+        end
+      elseif netEvent[3] == dhdSettings.pChannels.recv and netEvent[4] == dhdSettings.pChannels.send and dhdSettings.pSync == "YES" then
+        if netEvent[5] == "pPull" or netEvent[5] == "pPush" then
+          pSync(netEvent[5])
+        else
+          if #tostring(netEvent[5]) > 6 and #tostring(netEvent[5]) < 10 then
+            dialAddress = netEvent[5]
+            netSend(dialAddress)
             --return
-          end
-        elseif netEvent[3] == dhdSettings.pChannels.recv and netEvent[4] == dhdSettings.pChannels.send and dhdSettings.pSync == "YES" then
-          if netEvent[5] == "pPull" or netEvent[5] == "pPush" then
-            pSync(netEvent[5])
-          else
-            if #tostring(netEvent[5]) > 6 and #tostring(netEvent[5]) < 10 then
-              dialAddress = netEvent[5]
-              netSend(dialAddress)
-              --return
-            end
           end
         end
       end
@@ -331,7 +318,7 @@ local function ingestLogData()
     tmpHist.close()
   end
   if fs.exists(dhdSettings.gateHistory) then
-    local dhdHist = fs.open(dhdSettings.gateHistory,"r") or error("334: Cannot open /data/DHDhistory for reading", 2)
+    local dhdHist = fs.open(dhdSettings.gateHistory,"r") or error("ingestLogData(): Cannot open /data/DHDhistory for reading", 2)
     while true do
       local timeDate = dhdHist.readLine()
       local gateAddr = dhdHist.readLine()
@@ -350,7 +337,7 @@ local function ingestLogData()
     local tmpLast = fs.open(dhdSettings.lastGate,"w")
     tmpLast.close()
   end
-  local dhdLast = fs.open(dhdSettings.lastGate,"r") or error("353: Cannot open /data/DHDlast for reading", 2)
+  local dhdLast = fs.open(dhdSettings.lastGate,"r") or error("ingestLogData(): Cannot open /data/DHDlast for reading", 2)
   for i = 1,2,1 do
     local lastInfo = dhdLast.readLine()
     table.insert(lastCall,lastInfo)
@@ -360,7 +347,7 @@ end
 
 local function ingestData(fileName,fileType)
   if not fs.exists(tostring(fileName)) then return end
-  local dhdConfig = fs.open(tostring(fileName),"r") or error("363: Cannot open " .. fileName .. " for reading", 2)
+  local dhdConfig = fs.open(tostring(fileName),"r") or error("ingestData(): Cannot open " .. fileName .. " for reading", 2)
   local dhdCfg = dhdConfig.readAll()
   dhdConfig.close()
   if fileType == "cfg" then
@@ -375,18 +362,10 @@ local function ingestData(fileName,fileType)
     if dhdSettings.net == "R" and dhdSettings.netSide ~= "none" then
       rednet.open(dhdSettings.netSide)
     elseif dhdSettings.net == "C" and dhdSettings.netSide ~= "none" then
-      modem = peripheral.wrap(dhdSettings.netSide)
-      modem.open(dhdSettings.channels.recv)
-    end
-    --[[
-    if dhdSettings.pSync == "YES" and dhdSettings.netSide ~= "none" then
-      if dhdSettings.net == "R" then
+      if not modem then
         modem = peripheral.wrap(dhdSettings.netSide)
+        modem.open(dhdSettings.channels.recv)
       end
-      modem.open(dhdSettings.pChannels.recv)
-    end
-    ]]--
-    if dhdSettings.bio.lock ~= "none" then -- Why is this even here?
     end
     if #dhdSettings.thisGate > 7 then
       longName = dhdSettings.thisGate
@@ -419,7 +398,7 @@ local function saveData(filename,filetype)
   if fs.exists("/disk") and filename == ("/disk/data/DHDgates") then
     if not fs.exists("/disk/data") then fs.makeDir("/disk/data") end
   end
-  local dhdConfig = fs.open(tostring(filename),"w") or error("415: Cannot open " .. filename .. " for writing", 2)
+  local dhdConfig = fs.open(tostring(filename),"w") or error("saveData(): Cannot open " .. filename .. " for writing", 2)
   if filetype == "cfg" then
     dhdConfig.write(textutils.serialize(dhdSettings))
     configChange = false
@@ -429,6 +408,21 @@ local function saveData(filename,filetype)
     if filename == dhdSettings.gateData then gateChange = false end
   end
   dhdConfig.close()
+end
+
+local function missingHardware()
+  term.setTextColor(red)
+  term.setBackgroundColor(black)
+  term.clear()
+  term.setCursorPos(2,2)
+  term.write("No wireless modem detected!")
+  term.setCursorPos(2,4)
+  term.write("ccDHD REQUIRES a wireless modem.")
+  term.setCursorPos(2,8)
+  term.setTextColor(lgray)
+  term.write("<Click a mouse button to exit>")
+  os.pullEvent("mouse_click")
+  --return
 end
 
 local function localInventory()
@@ -446,6 +440,14 @@ local function localInventory()
       if tostring(perp) == "modem" then
         if peripheral.call(tostring(side),"isWireless") == true then
           dhdSettings.netSide = side
+          if dhdSettings.net == "R" then
+            rednet.open(side)
+          elseif dhdSettings.net == "C" then
+            if not modem then
+              modem = peripheral.wrap(side)
+              modem.open(dhdSettings.channels.recv)
+            end
+          end
         end
       end
       if tostring(perp) == "monitor" then
@@ -462,6 +464,7 @@ local function localInventory()
       end
     end
   end
+  if dhdSettings.netSide == "none" then return end
   saveData(settingsData,"cfg")
 end
 
@@ -545,10 +548,13 @@ local function displayNotes(pY)
   end
   if dhdSettings.monB ~= "none" then
     monB.setTextScale(1)
-    monB.setTextColor(white)
     monB.setBackgroundColor(black)
     monB.clear()
-    monB.setCursorPos(1,3)
+    monB.setCursorPos(1,2)
+    monB.setTextColor(lblue)
+    monB.write(allGates[listEntry].loc.dim)
+    monB.setCursorPos(1,4)
+    monB.setTextColor(white)
     monB.write(allGates[listEntry].note)
   end
 end
@@ -1764,7 +1770,7 @@ local function viewGateEntry(dataBlock)
   if tempState ~= "GateEdit" then runState = "viewing" end
   currentEdit = dataBlock
   if currentEdit == "new" or currentEdit == "newFast" then    -- If we're adding a new gate, create a generic gate to edit
-    local newGate = { addr = "NEWGATE", rating = "U", note = "short note", loc = {x=99999,y=99999,z=99999,dim="0",}, }
+    local newGate = { addr = "NEWGATE", rating = "U", note = "short note", loc = {x=99999,y=99999,z=99999,dim="Overworld",}, }
     table.insert(allGates,newGate)
     numPages = math.ceil(#allGates / 24) -- Re-paginate gates
     listPages = math.ceil(#allGates / 8)
@@ -2216,7 +2222,7 @@ local function keyClick()
           drawCLI()
         end
       end
-    elseif runState == "DialHelp" or runState == "EditHelp" or runState == "DialCfg" or runState == "EditCfg" or runState == "viewing" or runState == "GateEdit" or runState == "logs" then
+    elseif runState == "DialHelp" or runState == "EditHelp" or runState == "DialCfg" or runState == "EditCfg" or runState == "viewing" or runState == "logs" then
       if keyEvent[2] == 46 then -- c (Close)
         if runState == "DialHelp" or runState == "EditHelp" or runState == "DialCfg" or runState == "EditCfg" or runState == "logs" then
           flashChoice("close")
@@ -3425,6 +3431,7 @@ end
 
 local function firstRun()
   localInventory()
+  if dhdSettings.netSide == "none" then return end
   netSend("1stRun")
   sleep(0.25)
   netSend(os.getComputerID())
@@ -3450,7 +3457,6 @@ local function firstRun()
 end
 
 local function initMe()
-  termX,termY = term.getSize()  -- standard 51x19 / cBang & OneOS = 51x18
   term.setBackgroundColor(black)
   term.setTextColor(white)
   term.clear()
@@ -3458,7 +3464,8 @@ local function initMe()
   term.write("Initializing . . .")
   term.setCursorPos(1,4)
   if not fs.exists(settingsData) then firstRun() end
-  ingestData(settingsData,"cfg")
+  if fs.exists(settingsData) then ingestData(settingsData,"cfg") end
+  if dhdSettings.netSide == "none" then missingHardware() runState = "exit" kernelState = false return end
   if tostring(dhdSettings.highlight) == "" or dhdSettings.highlight == nil then
     dhdSettings.highlight = "YES"
     saveData(settingsData,"cfg")
@@ -3469,9 +3476,7 @@ local function initMe()
     saveData(settingsData,"cfg")
   end
   if dhdSettings.pSync == "YES" then
-    if dhdSettings.netSide ~= "none" and dhdSettings.net == "R" then
-      modem = peripheral.wrap(dhdSettings.netSide)
-    end
+    if not modem then modem = peripheral.wrap(dhdSettings.netSide) end
     modem.open(dhdSettings.pChannels.recv)
   end
   if dhdSettings.monA ~= "none" then
@@ -3492,8 +3497,8 @@ local function initMe()
         break
       end
     end
-    if dhdSettings.bio.side ~= "none" then
-      dhdSettings.bio.side = "none"
+    if dhdSettings.bio.side ~= "none" then -- This accounts for a removed scanner
+      dhdSettings.bio.side = "none"        --
       saveData(settingsData,"cfg")
     end
   end
