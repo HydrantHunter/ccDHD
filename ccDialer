@@ -28,7 +28,7 @@ local dialSettings = { netSide="none",
                        channels={send=24242,recv=24747,},
                        gateData="/data/DHDgates",
                      }
-local allGates = { {addr="NEWGATE",rating="U",note="short note",loc={x=99999,y=99999,z=99999,dim="0",},}, }
+local allGates = { {addr="NEWGATE",rating="U",note="short note",loc={x=99999,y=99999,z=99999,dim="Overworld",},}, }
 local longName, tY
 -- Peripherals
 local termX,termY = term.getSize() -- portable 26x20 / standard 51x19 / cBang & OneOS = 51x18
@@ -107,7 +107,7 @@ end
 
 local function saveData(filename,filetype)
   if not fs.exists("/data") then fs.makeDir("/data") end
-  local dhdConfig = fs.open(tostring(filename),"w") or error("114: Cannot open " .. filename .. " for writing", 2)
+  local dhdConfig = fs.open(tostring(filename),"w") or error("saveData(): Cannot open " .. filename .. " for writing", 2)
   if filetype == "cfg" then
     dhdConfig.write(textutils.serialize(dialSettings))
   elseif filetype == "gate" then
@@ -118,7 +118,7 @@ end
 
 local function ingestData(fileName,fileType)
   if not fs.exists(tostring(fileName)) then return end
-  local dhdConfig = fs.open(tostring(fileName),"r") or error("125: Cannot open " .. fileName .. " for reading", 2)
+  local dhdConfig = fs.open(tostring(fileName),"r") or error("ingestData(): Cannot open " .. fileName .. " for reading", 2)
   local dhdCfg = dhdConfig.readAll()
   dhdConfig.close()
   if fileType == "cfg" then
