@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.85"
+local ccDHDVer = "1.0.86"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -344,6 +344,24 @@ local function ingestLogData()
   dhdLast.close()
 end
 
+local function saveData(filename,filetype)
+  menuState = false
+  if not fs.exists("/data") then fs.makeDir("/data") end
+  if fs.exists("/disk") and filename == ("/disk/data/DHDgates") then
+    if not fs.exists("/disk/data") then fs.makeDir("/disk/data") end
+  end
+  local dhdConfig = fs.open(tostring(filename),"w") or error("saveData(): Cannot open " .. filename .. " for writing", 2)
+  if filetype == "cfg" then
+    dhdConfig.write(textutils.serialize(dhdSettings))
+    configChange = false
+  elseif filetype == "gate" then
+    dhdConfig.write(textutils.serialize(allGates))
+    if fs.exists("/disk/DHDgates") then fs.delete("/disk/DHDgates") end
+    if filename == dhdSettings.gateData then gateChange = false end
+  end
+  dhdConfig.close()
+end
+
 local function ingestData(fileName,fileType)
   if not fs.exists(tostring(fileName)) then return end
   local dhdConfig = fs.open(tostring(fileName),"r") or error("ingestData(): Cannot open " .. fileName .. " for reading", 2)
@@ -382,31 +400,14 @@ local function ingestData(fileName,fileType)
     end
   elseif fileType == "gate" then
     allGates = textutils.unserialize(dhdCfg)
+    if allGates[1].addr == "NEWGATE" then
+      allGates[1].addr = dhdSettings.thisGate
+    end
     numPages = math.ceil(#allGates / 24)
     listPages = math.ceil(#allGates / 8)
     if fs.exists("/disk/DHDgates") then fs.delete("/disk/DHDgates") end
-    if fileName == "/disk/data/DHDgates" then
-      gateChange = true
-    end
+    if fileName == "/disk/data/DHDgates" then gateChange = true end
   end
-end
-
-local function saveData(filename,filetype)
-  menuState = false
-  if not fs.exists("/data") then fs.makeDir("/data") end
-  if fs.exists("/disk") and filename == ("/disk/data/DHDgates") then
-    if not fs.exists("/disk/data") then fs.makeDir("/disk/data") end
-  end
-  local dhdConfig = fs.open(tostring(filename),"w") or error("saveData(): Cannot open " .. filename .. " for writing", 2)
-  if filetype == "cfg" then
-    dhdConfig.write(textutils.serialize(dhdSettings))
-    configChange = false
-  elseif filetype == "gate" then
-    dhdConfig.write(textutils.serialize(allGates))
-    if fs.exists("/disk/DHDgates") then fs.delete("/disk/DHDgates") end
-    if filename == dhdSettings.gateData then gateChange = false end
-  end
-  dhdConfig.close()
 end
 
 local function missingHardware()
@@ -2492,11 +2493,13 @@ local function mClick()
               dialAddress = ""
             end
           elseif runState == "Edit" then
-            flashChoice("import")
-            ingestData("/disk/data/DHDgates","gate")
-            term.setBackgroundColor(black)
-            term.clear()
-            drawCLI()
+            if fs.exists("/disk") then
+              flashChoice("import")
+              ingestData("/disk/data/DHDgates","gate")
+              term.setBackgroundColor(black)
+              term.clear()
+              drawCLI()
+            end
           elseif runState == "Trim" then
             flashChoice("undo")
             runState = "Edit"
@@ -2515,8 +2518,10 @@ local function mClick()
             secureStatus = "lockdown"
             netSend(secureStatus)
           elseif runState == "Edit" then
-            flashChoice("export")
-            saveData("/disk/data/DHDgates","gate")
+            if fs.exists("/disk") then
+              flashChoice("export")
+              saveData("/disk/data/DHDgates","gate")
+            end
           elseif runState == "Trim" then
             flashChoice("commit")
             runState = "Edit"
@@ -3440,7 +3445,7 @@ local function firstRun()
     if myGateInfo[3] == dhdSettings.channels.recv and myGateInfo[4] == dhdSettings.channels.send then
       local tempSettings = myGateInfo[5]
       dhdSettings.thisGate = tempSettings.gate
-      if allGates[1].addr == "NEWGATE" then allGates[1].addr = tempSettings.gate end
+      allGates[1].addr = dhdSettings.thisGate
       dhdSettings.server = tempSettings.server
       break
     end
