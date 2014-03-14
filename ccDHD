@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.86"
+local ccDHDVer = "1.0.87"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -611,18 +611,13 @@ local function drawHeader()
   term.setBackgroundColor(black)
   term.setTextColor(white)
   if secureStatus == "allclear" then
-    if runState == "Dial" or runState == "rCmd" or runState == "viewing" or runState == "goPage" then
-      term.setBackgroundColor(blue)
-    elseif runState == "Edit" or runState == "GateEdit" then
-      term.setBackgroundColor(brown)
-    elseif runState == "Trim" then
-      term.setBackgroundColor(orange)
-    elseif runState == "logs" then
-      term.setBackgroundColor(yellow)
-      term.setTextColor(black)
-    elseif runState == "exit" then
-      term.setBackgroundColor(purple)
+    local runStates = { Dial = blue, rCmd = blue, viewing = blue, goPage = blue, Edit = brown, GateEdit = brown, Trim = orange, logs = yellow, quit = purple }
+    for j,k in pairs(runStates) do
+      if tostring(j) == runState then
+        term.setBackgroundColor(k)
+      end
     end
+    if runState == "logs" then term.setTextColor(black) end
   elseif secureStatus == "lockdown" then
     term.setBackgroundColor(red)
   end
@@ -882,20 +877,20 @@ local function drawMainUI() -- Gate Address Book (Dial / Edit / Trim)
       else
         term.setTextColor(white)
       end
-      if dhdSettings.thisGate == allGates[i].addr and dhdSettings.highlight == "YES" then
+      if dhdSettings.thisGate == allGates[i].addr and dhdSettings.highlight == "YES" then -- Highlight this gate / Dial
         term.setTextColor(lgray)
         term.setBackgroundColor(gray)
       end
     elseif runState == "Edit" then
       term.setBackgroundColor(black)
       term.setTextColor(assignColor(i))
-      if dhdSettings.thisGate == allGates[i].addr and dhdSettings.highlight == "YES" then
+      if dhdSettings.thisGate == allGates[i].addr and dhdSettings.highlight == "YES" then -- Highlight this gate / Edit
         term.setTextColor(gray)
       end
     elseif runState == "Trim" then
       term.setBackgroundColor(gray)
       term.setTextColor(assignColor(i))
-      if dhdSettings.thisGate == allGates[i].addr and dhdSettings.highlight == "YES" then
+      if dhdSettings.thisGate == allGates[i].addr and dhdSettings.highlight == "YES" then -- Highlight this gate / Trim
         term.setTextColor(black)
       end
     end
@@ -961,10 +956,8 @@ local function viewDialHelp(pY)
   term.setCursorPos(1, pY)
   term.setBackgroundColor(gray)
   term.setTextColor(lgray)
-  for i = 1,termX,1 do
-    term.setCursorPos(i,pY)
-    term.write(" ")
-  end
+  term.setCursorPos(1,pY)
+  term.write(string.rep(" ",termX))
   term.setCursorPos(2,pY)
   term.write("-- Notes --")
   term.setBackgroundColor(black)
@@ -989,10 +982,8 @@ local function viewEditHelp(pY)
   term.setCursorPos(1, pY)
   term.setBackgroundColor(gray)
   term.setTextColor(lgray)
-  for i = 1,termX,1 do
-    term.setCursorPos(i,pY)
-    term.write(" ")
-  end
+  term.setCursorPos(1,pY)
+  term.write(string.rep(" ",termX))
   term.setCursorPos(2,pY)
   term.write("-- Notes --")
   term.setBackgroundColor(black)
@@ -1016,7 +1007,7 @@ local function viewEditHelp(pY)
 end
 
 local function drawHelpUI()
-  local colorDefs = { blue, green, magenta, lblue, orange, lgray, brown, red }
+  local colorDefs = { blue, green, purple, lblue, orange, lgray, brown, red }
   local colorDesc = { "Base/Outpost/Hub", "Secured/Safe", "Misc./Special", "Home/Camp", "Caution", "Unknown", "Village", "Danger" }
   local colorCount = #colorDesc
   local xMod = 2
@@ -1025,7 +1016,7 @@ local function drawHelpUI()
   term.setBackgroundColor(black)
   term.clear()
   term.setCursorPos(1,1)
-  if runState == "DialHelp" then    -- Header
+  if runState == "DialHelp" then -- Header
     term.setBackgroundColor(cyan)
   elseif runState == "EditHelp" then
     term.setBackgroundColor(brown)
@@ -1049,13 +1040,13 @@ local function drawHelpUI()
   end
   term.setTextColor(lgray)
   term.setCursorPos(2,2)
-  term.write("-- Key --")          -- Color key for gate classifications
+  term.write("-- Key --")
   term.setTextColor(red)
   term.setBackgroundColor(lgray)
   term.setCursorPos(termX-6,2)
   term.write(" Close ")
   term.setBackgroundColor(black)
-  for q,r in pairs(colorDefs) do
+  for q,r in pairs(colorDefs) do -- Color key for gate classifications
     term.setCursorPos(xMod,yMod)
     term.setTextColor(r)
     term.write(tostring(colorDesc[q]))
@@ -1143,7 +1134,7 @@ local function drawSettingsUI()
   term.setCursorPos(23,8)
   term.setBackgroundColor(gray)
   term.setTextColor(black)
-  term.write("#")
+  term.write("#")                    -- Biolock auth. level
   term.setBackgroundColor(black)
   term.setTextColor(gray)
   term.setCursorPos(2,10)
@@ -1171,7 +1162,7 @@ local function drawSettingsUI()
   term.setBackgroundColor(gray)
   term.setTextColor(black)
   term.setCursorPos(23,10)
-  term.write("#")
+  term.write("#")                    -- netSide
   term.setBackgroundColor(black)
   term.setTextColor(gray)
   term.setCursorPos(2,12)
@@ -1197,7 +1188,7 @@ local function drawSettingsUI()
   end
   term.setCursorPos(2,14)
   term.setTextColor(gray)
-  term.write("Marquee")       -- Marquee (monB)
+  term.write("Marquee")      -- Marquee (monB)
   term.setCursorPos(17,14)
   if dhdSettings.monB == "none" then
     term.setBackgroundColor(gray)
@@ -1213,7 +1204,7 @@ local function drawSettingsUI()
   term.setCursorPos(23,14)
   term.setBackgroundColor(gray)
   term.setTextColor(black)
-  term.write("#")
+  term.write("#")            -- Marquee side (monB)
   term.setCursorPos(2,16)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
@@ -1233,12 +1224,12 @@ local function drawSettingsUI()
   term.setCursorPos(23,16)
   term.setBackgroundColor(gray)
   term.setTextColor(black)
-  term.write("#")
+  term.write("#")            -- List Monitor side (monA)
   -- Settings 2nd column
   term.setCursorPos(28,4)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
-  term.write("Highlight gate") -- Whether or not to display the local gate in gray text
+  term.write("Highlight gate") -- Whether or not to display the local gate differently than the rest of the list
   term.setCursorPos(45,4)
   if dhdSettings.highlight == "YES" then
     term.setBackgroundColor(green)
@@ -1270,7 +1261,7 @@ local function drawSettingsUI()
   term.setCursorPos(28,8)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
-  term.write("Bio: ")         -- Whether Biolock controls shield or initiates lockdown or does nothing
+  term.write("Bio: ")         -- Whether Biolock controls shield or initiates lockdown or does nothing (this is separate from BioLogin)
   if dhdSettings.bio.func == "none" then
     term.setTextColor(lgray)
     term.write("No Function")
@@ -1349,7 +1340,6 @@ local function drawSettingsUI()
   term.setTextColor(gray)
   term.write("Call Logging")   -- ccDHD should/not log outbound calls
   term.setCursorPos(45,14)
-  --term.setTextColor(lblue)
   if dhdSettings.logs == "OFF" then
     term.setBackgroundColor(gray)
     term.write("  ")
@@ -1428,7 +1418,7 @@ local function drawRatingList(gRating,currentGate)
   term.setBackgroundColor(gray)
   for i = 6,13,1 do
     term.setCursorPos(14,i)
-    term.write("                   ")
+    term.write(string.rep(" ",19))
   end
   term.setTextColor(white)
   term.setCursorPos(14,6)
@@ -1953,7 +1943,7 @@ local function remoteCommand()
   term.write(string.rep(" ",15))
   end
   if commandLine == "quit" or commandLine == "exit" then
-    runState = "exit"
+    runState = "quit"
     kernelState = false
     return
   elseif commandLine == "reboot" then
@@ -2118,7 +2108,7 @@ local function keyClick()
           end
         elseif keyEvent[2] == 16 or keyEvent[2] == 18 or keyEvent[2] == 45 then -- q / e / x (Exit)
           flashChoice("exit")
-          runState = "exit"
+          runState = "quit"
           kernelState = false
           break
         end
@@ -2375,8 +2365,8 @@ local function mClick()
           drawHelpUI()
           return
         elseif mcY == 9 then
-          runState = "exit"
           flashChoice("exit")
+          runState = "quit"
           kernelState = false
           menuState = false
           break  -- required to exit properly
@@ -2540,7 +2530,7 @@ local function mClick()
             saveData(dhdSettings.gateData,"gate")
             drawControlUI()
           end
-          if runState == "reboot" or runState == "reset" or runState == "exit" then break end
+          if runState == "reboot" or runState == "reset" or runState == "quit" then break end
         end
       end
     end
@@ -3428,7 +3418,7 @@ local function dhdKernel()
     netSend("reset")
     kernelState = false
   end
-  if runState == "exit" then
+  if runState == "quit" then
     kernelState = false
   end
   return kernelState
@@ -3438,7 +3428,7 @@ local function firstRun()
   localInventory()
   if dhdSettings.netSide == "none" then return end
   netSend("1stRun")
-  sleep(0.25)
+  sleep(0.1)
   netSend(os.getComputerID())
   while true do
     local myGateInfo = { os.pullEvent("modem_message") }
@@ -3467,10 +3457,9 @@ local function initMe()
   term.clear()
   term.setCursorPos(2,2)
   term.write("Initializing . . .")
-  term.setCursorPos(1,4)
   if not fs.exists(settingsData) then firstRun() end
   if fs.exists(settingsData) then ingestData(settingsData,"cfg") end
-  if dhdSettings.netSide == "none" then missingHardware() runState = "exit" kernelState = false return end
+  if dhdSettings.netSide == "none" then missingHardware() runState = "quit" kernelState = false return end
   if tostring(dhdSettings.highlight) == "" or dhdSettings.highlight == nil then
     dhdSettings.highlight = "YES"
     saveData(settingsData,"cfg")
@@ -3516,7 +3505,7 @@ local function initMe()
     netSend("sOFF")
   end
   term.setCursorPos(2,8)
-  term.write("Querying Gate . . .")
+  term.write("Querying Gate " .. dhdSettings.thisGate .. " . . .")
   netSend("QRY")
   term.setCursorPos(2,10)
   term.write("Awaiting response . . .")
@@ -3545,7 +3534,7 @@ initMe()
 
 repeat
   dhdKernel()
-  if runState == "exit" then kernelState = false end
+  if runState == "quit" then kernelState = false end
   if kernelState == false then
     if monA ~= "none" then
        monA.setBackgroundColor(black)
