@@ -13,8 +13,9 @@ Tested with/requires:
   - LanteaCraft (snapshot 82 and RC1)
   - ComputerCraft ver. 1.57+ for MC 1.6.4
     - HTTP API enabled (for pastebin installer - not required for ccDHD)
-    - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
-    - gateLiaison running on an Advanced Computer (with 3 optional Advanced Monitors) or an Advanced Wireless Turtle (no monitors)
+    - 1 Advanced Portable Computer (color, mouse)
+    - ccDHD running on an Advanced Computer (with a wireless modem)
+    - gateLiaison running on an Advanced Computer (with a wireless modem) or an Advanced Wireless Turtle
 
   - ccDHD also supports the Biometric Lock (Fistprint Scanner) in GopherATL's Biolock MOD ver. 2.1.3 (updated for 1.6.4 by gamax92)
 ]]--
@@ -25,7 +26,7 @@ end
 -- Default Settings
 local settingsData = "/data/DialCfg"
 local dialSettings = { netSide="none",
-                       channels={send=24242,recv=24747,},
+                       pChannels={send=24242,recv=24747,},
                        gateData="/data/DHDgates",
                      }
 local allGates = { {addr="NEWGATE",rating="U",note="short note",loc={x=99999,y=99999,z=99999,dim="Overworld",},}, }
@@ -59,10 +60,10 @@ local green = colors.green
 -- END AUTOMATIC/STATIC CONFIGURATION
 
 local function pSync(pushpull) -- Sync allGates with a Portable Advanced Computer running ccDialer
-  modem.transmit(dialSettings.channels.send,dialSettings.channels.recv,pushpull)
+  modem.transmit(dialSettings.pChannels.send,dialSettings.pChannels.recv,pushpull)
   if pushpull == "pPull" then
     local netEvent = { os.pullEvent("modem_message") }
-    if netEvent[3] == dialSettings.channels.recv and netEvent[4] == dialSettings.channels.send then
+    if netEvent[3] == dialSettings.pChannels.recv and netEvent[4] == dialSettings.pChannels.send then
       local newGateData = netEvent[5]
       allGates = textutils.unserialize(newGateData)
       numPages = math.ceil(#allGates / 14)
@@ -71,7 +72,7 @@ local function pSync(pushpull) -- Sync allGates with a Portable Advanced Compute
   elseif pushpull == "pPush" then
     sleep(0.25)
     local pGateData = textutils.serialize(allGates)
-    modem.transmit(dialSettings.channels.send,dialSettings.channels.recv,pGateData)
+    modem.transmit(dialSettings.pChannels.send,dialSettings.pChannels.recv,pGateData)
     return
   end
 end
@@ -82,15 +83,15 @@ local function drawPsyncMenu()
     term.setCursorPos(2,i)
     term.write(string.rep(" ",termX-2))
   end
-  term.setCursorPos(termX/2 - 5,5)
-  term.write("I m p o r t")
+  term.setCursorPos(termX/2 - 6,5)
+  term.write("GET gate list")
   term.setBackgroundColor(orange)
   for i = 8,10,1 do
     term.setCursorPos(2,i)
     term.write(string.rep(" ",termX-2))
   end
-  term.setCursorPos(termX/2 - 5,9)
-  term.write("E x p o r t")
+  term.setCursorPos(termX/2 - 6,9)
+  term.write("SEND gate list")
 
   term.setBackgroundColor(red)
   for i = 12,14,1 do
@@ -102,7 +103,7 @@ local function drawPsyncMenu()
 end
 
 local function netSend(dataPack)
-  modem.transmit(dialSettings.channels.send,dialSettings.channels.recv,dataPack)
+  modem.transmit(dialSettings.pChannels.send,dialSettings.pChannels.recv,dataPack)
 end
 
 local function saveData(filename,filetype)
@@ -125,7 +126,7 @@ local function ingestData(fileName,fileType)
     dialSettings = textutils.unserialize(dhdCfg)
     if dialSettings.netSide ~= "none" then
       modem = peripheral.wrap(dialSettings.netSide)
-      modem.open(dialSettings.channels.recv)
+      modem.open(dialSettings.pChannels.recv)
     end
   elseif fileType == "gate" then
     allGates = textutils.unserialize(dhdCfg)
@@ -208,7 +209,7 @@ local function drawMainUI() -- Gate Address Book (Dial / Edit / Trim)
   local k = ((pageNum - 1) * 14)
   for i = j,#allGates,1 do
     if i > k and i < k + 8 then           -- Column 1
-      xPos, yPos = 3, 2
+      xPos, yPos = 4, 2
     elseif i > k + 6 and i < k + 13 then  -- Column 2
       xPos, yPos = 15, -12
     end
@@ -332,33 +333,41 @@ end
 
 local function keyClick()
   while true do
-    local keyEvent = { os.pullEvent("char") }
+    local keyEvent = { os.pullEvent("key") }
     if runState == "Dial" then
-      if keyEvent[2] == "s" then -- s - pSync
+      if keyEvent[2] == 31 then -- s - pSync
         runState = "pSync"
         drawCLI()
-      elseif keyEvent[2] == "e" then -- e - endCall
+      elseif keyEvent[2] == 18 then -- e - endCall
         netSend("endCall")
-      elseif keyEvent[2] == "q" or keyEvent[2] == "x" then -- q/x - Exit
+      elseif keyEvent[2] == 199 then -- HOME
+        pageNum = 1
+        drawCLI()
+      elseif keyEvent[2] == 207 then -- END
+        pageNum = numPages
+        term.setBackgroundColor(black)
+        term.clear()
+        drawCLI()
+      elseif keyEvent[2] == 16 or keyEvent[2] == 45 then -- q/x - Exit
         kernelState = false
         runState = "exit"
         break
       end
     elseif runState == "pSync" then
-      if keyEvent[2] == "i" then -- i - Import
+      if keyEvent[2] == 23 or keyEvent[2] == 34 then -- i/g - Import/Get
         pSync("pPull")
         runState = "Dial"
         term.setBackgroundColor(black)
         term.clear()
         saveData(dialSettings.gateData,"gate")
         drawCLI()
-      elseif keyEvent[2] == "e" then -- e - Export
+      elseif keyEvent[2] == 18 or keyEvent[2] == 31 or keyEvent[2] == 25 then -- e/s/p - Export/Send/Put
         pSync("pPush")
         runState = "Dial"
         term.setBackgroundColor(black)
         term.clear()
         drawCLI()
-      elseif keyEvent[2] == "c" then -- c - Cancel
+      elseif keyEvent[2] == 46 then -- c - Cancel
         runState = "Dial"
         term.setBackgroundColor(black)
         term.clear()
@@ -370,7 +379,7 @@ end
 
 local function mClick()
   while true do
-    local clickEvent = {os.pullEvent("mouse_click")}
+    local clickEvent = { os.pullEvent("mouse_click") }
     local mButton = clickEvent[2]
     local mcX = clickEvent[3]
     local mcY = clickEvent[4]
@@ -466,7 +475,7 @@ end
 
 local function mScroll()
   while true do
-    local scrollEvent = {os.pullEvent("mouse_scroll")}
+    local scrollEvent = { os.pullEvent("mouse_scroll") }
     if runState == "Dial" then
       if scrollEvent[2] == -1 and pageNum > 1 then
         pageNum = pageNum - 1
@@ -503,6 +512,21 @@ local function dialerKernel()
   return kernelState
 end
 
+local function missingHardware()
+  term.setTextColor(red)
+  term.setBackgroundColor(black)
+  term.clear()
+  term.setCursorPos(2,2)
+  term.write("No wireless modem detected!")
+  term.setCursorPos(2,4)
+  term.write("ccDialer REQUIRES a wireless modem.")
+  term.setCursorPos(2,8)
+  term.setTextColor(lgray)
+  term.write("<Click a mouse button to exit>")
+  os.pullEvent("mouse_click")
+  --return
+end
+
 local function localInventory()
   dialSettings.netSide="none"
   local side
@@ -516,12 +540,13 @@ local function localInventory()
       end
     end
   end
+  if dialSettings.netSide == "none" then return end
   saveData(settingsData,"cfg")
 end
 
 local function firstRun()
   localInventory()
-  saveData(settingsData,"cfg")
+  if dialSettings.netSide == "none" then return end
   if not fs.exists(dialSettings.gateData) then
     saveData(dialSettings.gateData,"gate")
   end
@@ -542,7 +567,8 @@ local function initMe()
   term.write("Initializing . . .")
   term.setCursorPos(1,4)
   if not fs.exists(settingsData) then firstRun() end
-  ingestData(settingsData,"cfg")
+  if fs.exists(settingsData) then ingestData(settingsData,"cfg") end
+  if dialSettings.netSide == "none" then missingHardware() runState = "exit" kernelState = false return end
   term.setCursorPos(2,10)
   term.write("Ingesting gate data . . .")
   ingestData(dialSettings.gateData,"gate")
@@ -563,7 +589,7 @@ repeat
     term.setTextColor(white)
     term.clear()
     term.setCursorPos(1,1)
-    modem.close(dialSettings.channels.recv)
+    modem.close(dialSettings.pChannels.recv)
     modem = nil
     return
   end
