@@ -6,7 +6,7 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.0.24"
+local gVer = "1.0.25"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -439,7 +439,7 @@ local function doCommand(thisCommand)
     end
     local me = os.getComputerID()
     local tempSettings = { gate = thisGate, server = me }
-    sleep(0.25)                       -- long waits to ensure ccDHD is ready to receive the data
+    sleep(0.1)
     netSend(tempSettings)
     return
   elseif thisCommand == "redNet" then -- change to redNet
