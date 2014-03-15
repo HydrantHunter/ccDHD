@@ -1,14 +1,14 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
 --[[  core ver. 4.4.2  ]]--
---[[   ui ver. 4.3.0   ]]--
+--[[   ui ver. 4.3.2   ]]--
 --[[     by Dog        ]]--
 --[[ aka HydrantHunter ]]--
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.87"
+local ccDHDVer = "1.0.88"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -68,7 +68,7 @@ local configChange = false
 local gateChange = false
 local tempState, currentEdit
 local fuelGauge, dialAddress
-local h,i,j,k,l,m,n,v,w
+local h,i,j,k,l,m,n,q,r,v,w
  -- Gate List
 local pNum = "001"
 local numPages,pageNum = 1,1
@@ -95,9 +95,9 @@ local lime = colors.lime
 local green = colors.green
 -- END AUTOMATIC/STATIC CONFIGURATION
 
-local function pSync(pushpull) -- Sync allGates with a PDA running ccDialer
+local function pSync(pushpull) -- Sync allGates with a portable advanced computer running ccDialer
   if pushpull == "pPull" then
-    sleep(0.25)
+    sleep(0.1)
     local pGateData = textutils.serialize(allGates)
     modem.transmit(dhdSettings.pChannels.send,dhdSettings.pChannels.recv,pGateData)
   elseif pushpull == "pPush" then
@@ -410,19 +410,30 @@ local function ingestData(fileName,fileType)
   end
 end
 
-local function missingHardware()
+local function missingComponent(id)
   term.setTextColor(red)
   term.setBackgroundColor(black)
   term.clear()
   term.setCursorPos(2,2)
-  term.write("No wireless modem detected!")
-  term.setCursorPos(2,4)
-  term.write("ccDHD REQUIRES a wireless modem.")
+  if id == "modem" then
+    term.write("No wireless modem detected!")
+    term.setCursorPos(2,4)
+    term.write("ccDHD REQUIRES a wireless modem.")
+  elseif id == "cfg" then
+    term.write("No configuration file found!")
+    term.setCursorPos(2,4)
+    term.write("Please restart ccDHD.")
+  else
+    term.write("Unknown component missing!")
+    term.setCursorPos(2,4)
+    term.write("ccDHD REQUIRES a something.")
+  end
   term.setCursorPos(2,8)
   term.setTextColor(lgray)
   term.write("<Click a mouse button to exit>")
   os.pullEvent("mouse_click")
-  --return
+  runState = "quit"
+  kernelState = false
 end
 
 local function localInventory()
@@ -443,10 +454,8 @@ local function localInventory()
           if dhdSettings.net == "R" then
             rednet.open(side)
           elseif dhdSettings.net == "C" then
-            if not modem then
-              modem = peripheral.wrap(side)
-              modem.open(dhdSettings.channels.recv)
-            end
+            modem = peripheral.wrap(side)
+            modem.open(dhdSettings.channels.recv)
           end
         end
       end
@@ -459,7 +468,6 @@ local function localInventory()
         end
       end
       if tostring(perp) == "biolock" then
-        dhdSettings.bio.lock = "OFF"
         dhdSettings.bio.side = side
       end
     end
@@ -757,19 +765,19 @@ local function drawControlUI()
     else
       term.setBackgroundColor(red)
     end
-    term.write(dhdCommandOptions[1] .. "     ") -- D I A L
+    term.write(dhdCommandOptions[1] .. "     ")  -- D I A L
   elseif runState == "Edit" then
     term.setBackgroundColor(brown)
-    term.write(dhdCommandOptions[2] .. "     ") -- E D I T
+    term.write(dhdCommandOptions[2] .. "     ")  -- E D I T
   elseif runState == "Trim" then
     term.setBackgroundColor(orange)
-    term.write(dhdCommandOptions[3] .. "     ") -- T R I M
+    term.write(dhdCommandOptions[3] .. "     ")  -- T R I M
   end
   if runState == "Dial" then
     term.setCursorPos(43,9)
     term.setBackgroundColor(lblue)
     if #dhdSettings.thisGate == 7 then
-      term.write(dhdCommandOptions[4] .. "   ") -- Shield
+      term.write(dhdCommandOptions[4] .. "   ")  -- Shield
     elseif #dhdSettings.thisGate > 7 then
       term.write(dhdCommandOptions[5] .. "    ") -- Iris
     end
@@ -2003,7 +2011,8 @@ local function goToPage()
     term.setCursorPos((termX/2)-11,i)
     term.write(string.rep(" ",15))
   end
-  if newPage == nil or newPage < 1 then newPage = 1 end
+  if newPage == nil then newPage = pageNum end
+  if newPage < 1 then newPage = 1 end
   if newPage > numPages then newPage = numPages end
   if newPage == numPages then
     term.setBackgroundColor(black)
@@ -2178,7 +2187,7 @@ local function keyClick()
             netSend("sOFF")
             return
           end
-        elseif keyEvent[2] == 32 then -- d (Dial/Edit mode)
+        elseif keyEvent[2] == 32 then  -- d (Dial/Edit mode)
           if runState == "Dial" then
             runState = "Edit"
           elseif runState == "Edit" then
@@ -2214,7 +2223,7 @@ local function keyClick()
         end
       end
     elseif runState == "DialHelp" or runState == "EditHelp" or runState == "DialCfg" or runState == "EditCfg" or runState == "viewing" or runState == "logs" then
-      if keyEvent[2] == 46 then -- c (Close)
+      if keyEvent[2] == 46 then     -- c (Close)
         if runState == "DialHelp" or runState == "EditHelp" or runState == "DialCfg" or runState == "EditCfg" or runState == "logs" then
           flashChoice("close")
         end
@@ -3426,7 +3435,7 @@ end
 
 local function firstRun()
   localInventory()
-  if dhdSettings.netSide == "none" then return end
+  if dhdSettings.netSide == "none" then missingComponent("modem") return end
   netSend("1stRun")
   sleep(0.1)
   netSend(os.getComputerID())
@@ -3458,8 +3467,9 @@ local function initMe()
   term.setCursorPos(2,2)
   term.write("Initializing . . .")
   if not fs.exists(settingsData) then firstRun() end
-  if fs.exists(settingsData) then ingestData(settingsData,"cfg") end
-  if dhdSettings.netSide == "none" then missingHardware() runState = "quit" kernelState = false return end
+  if not fs.exists(settingsData) then missingComponent("cfg") return end
+  ingestData(settingsData,"cfg")
+  if dhdSettings.netSide == "none" then missingComponent("modem") return end
   if tostring(dhdSettings.highlight) == "" or dhdSettings.highlight == nil then
     dhdSettings.highlight = "YES"
     saveData(settingsData,"cfg")
