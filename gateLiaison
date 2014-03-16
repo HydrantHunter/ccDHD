@@ -10,7 +10,7 @@ local gVer = "1.0.25"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
-  - LanteaCraft (snapshot 82 & RC1)
+  - LanteaCraft (snapshot 82+ & RC1_15+)
   - ComputerCraft ver. 1.57+ for MC 1.6.4
     - HTTP API enabled (for pastebin installer - not required for gateLiaison)
     - 1 Advanced Computer (color), 3 optional Advanced Monitors (color)
@@ -39,7 +39,7 @@ local gateSettings = { shield = "front",
 -- END AUTOMATIC/STATIC CONFIGURATION (Part 1)
 
 local function ingestData()
-  local gateConfig = fs.open("/data/gateSettings","r") or error("Unable to open /data/gateSettings for reading", 2)
+  local gateConfig = fs.open("/data/gateSettings","r") or error("ingestData(): Unable to open /data/gateSettings for reading", 2)
   local gateCfg = gateConfig.readAll()
   gateSettings = textutils.unserialize(gateCfg)
   gateConfig.close()
@@ -47,7 +47,7 @@ end
 
 local function saveData()
   if not fs.exists("/data") then fs.makeDir("/data") end
-  local gateConfig = fs.open("/data/gateSettings","w") or error("Unable to open /data/gateSettings for writing", 2)
+  local gateConfig = fs.open("/data/gateSettings","w") or error("saveData(): Unable to open /data/gateSettings for writing", 2)
   gateConfig.write(textutils.serialize(gateSettings))
   gateConfig.close()
 end
@@ -71,7 +71,7 @@ end
 
 local function displayStatus(select)
   if mon == "none" then return end
-  if select == "con" then -- Connection status - dialAddress or incoming
+  if select == "con" then       -- Connection status - dialAddress or incoming
     mon.clear()
     mon.setTextScale(2)
     mon.setCursorPos(1,1)
@@ -82,7 +82,7 @@ local function displayStatus(select)
       if #dialAddress > 7 then
         mon.setCursorPos(4,2)
         mon.write(dialAddress)
-      else                        -- incoming
+      else                      -- incoming
         mon.setCursorPos(1,2)
         local dA = { }
         for i = 1,#dialAddress do
@@ -96,7 +96,7 @@ local function displayStatus(select)
       mon.setCursorPos(4,2)
       mon.write("Connection")
     end
-  elseif select == "dial" then -- Dial status - dialAddress or incoming
+  elseif select == "dial" then  -- Dial status - dialAddress or incoming
     mon.clear()
     mon.setTextScale(2)
     mon.setCursorPos(1,1)
@@ -106,8 +106,8 @@ local function displayStatus(select)
       mon.setTextColor(colors.yellow)
       if #dialAddress > 7 then
         mon.setCursorPos(4,2)
-        mon.write(dialAddress) -- dialAddress (8+ symbols)
-      else                     -- or longName (7 symbols)
+        mon.write(dialAddress)  -- dialAddress (8+ symbols)
+      else                      -- or longName (7 symbols)
         mon.setCursorPos(1,2)
         local dA = { }
         for i = 1,#dialAddress do
@@ -115,7 +115,7 @@ local function displayStatus(select)
           mon.write(" " .. dA[i])
         end
       end
-    else                       -- incoming
+    else                        -- incoming
       mon.setTextColor(colors.yellow)
       mon.write(" Incoming")
       mon.setCursorPos(4,2)
@@ -270,7 +270,7 @@ end
 local function updateStatus(special)
   currentState = pData
   fuelGuage = gate.hasFuel()
-  if #thisGate == 7 then    -- snapshot 82 (7 symbols)
+  if #thisGate == 7 then    -- snapshot 82+ (7 symbols)
     shieldStatus = rs.getOutput(gateSettings.shield)
   elseif #thisGate > 7 then -- RC1 (8+ symbols)
     if gateSettings.shield == "iris" then
@@ -349,7 +349,7 @@ end
 
 local function shieldControl(state)
   if state == "ON" then
-    if #thisGate == 7 then    -- snapshot 82 (7 symbols)
+    if #thisGate == 7 then    -- snapshot 82+ (7 symbols)
       rs.setOutput(gateSettings.shield,true)
     elseif #thisGate > 7 then -- RC1 (8+ symbols)
       if gateSettings.shield == "iris" then
@@ -360,7 +360,7 @@ local function shieldControl(state)
     end
     return
   elseif state == "OFF" then
-    if #thisGate == 7 then    -- snapshot 82 (7 symbols)
+    if #thisGate == 7 then    -- snapshot 82+ (7 symbols)
       rs.setOutput(gateSettings.shield,false)
     elseif #thisGate > 7 then -- RC1 (8+ symbols)
       if gateSettings.shield == "iris" then
@@ -377,11 +377,11 @@ local function lockDown()
   gateStatus = "lockdown"
   shieldControl("ON")
   if #thisGate > 7 then     -- RC1 (8+ symbols)
-    local ok, _ = { pcall(gate.disconnect) }
-    if ok then
+    local onHook, _ = pcall(gate.disconnect)
+    if onHook then
       dialAddress = "none"
     end
-  elseif #thisGate == 7 then -- snapshot 82 (7 symbols)
+  elseif #thisGate == 7 then -- snapshot 82+ (7 symbols)
     gate.disconnect()
     dialAddress = "none"
   end
@@ -411,7 +411,6 @@ local function endCall()
     gateStatus = "Disconnected"
     dialAddress = "none"
   end
-  --return hangUp
 end
 
 local function doCommand(thisCommand)
@@ -567,7 +566,7 @@ local function firstRun()
     term.setBackgroundColor(colors.gray)
     term.setTextColor(colors.white)
     if #thisGate == 7 then                              --
-      for i = 4,16,1 do                                 -- Draw blank menu (snapshot 82)
+      for i = 4,16,1 do                                 -- Draw blank menu (snapshot 82+)
         term.setCursorPos(26,i)                         --
         term.write(string.rep(" ",8))                   --
       end
