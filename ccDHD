@@ -1,7 +1,7 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[  core ver. 4.4.2  ]]--
---[[   ui ver. 4.3.2   ]]--
+--[[  core ver. 4.5.4  ]]--
+--[[   ui ver. 4.4.2   ]]--
 --[[     by Dog        ]]--
 --[[ aka HydrantHunter ]]--
 --[[  with help from   ]]--
@@ -12,7 +12,7 @@ local ccDHDVer = "1.0.88"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
-  - LanteaCraft (snapshot 82 and RC1)
+  - LanteaCraft (snapshot 82+ and RC1_15+)
   - ComputerCraft ver. 1.57+ for MC 1.6.4
     - HTTP API enabled (for pastebin installer - not required for ccDHD)
     - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
@@ -568,8 +568,8 @@ local function displayNotes(pY)
 end
 
 local function displayStatus()
-  local longAddress = ""
   if dhdSettings.monB == "none" then return end
+  local longAddress = ""
   monB.setTextScale(2)
   monB.setBackgroundColor(black)
   monB.clear()
