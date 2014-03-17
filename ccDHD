@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.88"
+local ccDHDVer = "1.0.89"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -513,7 +513,7 @@ end
 
 local function displayGateList()
   local mX,mY = monA.getSize()
-  local firstGate = ((listPage - 1) * 8) + 1
+  local firstGate = (listPage - 1) * 8 + 1
   local tmY = 1
   monA.setTextScale(0.5)
   monA.setBackgroundColor(black)
@@ -543,6 +543,7 @@ local function displayNotes(pY)
   if listEntry < 1 then listEntry = 1 end
   if dhdSettings.monA ~= "none" then
     monA.setBackgroundColor(black)
+    monA.clear()
     if #allGates[listEntry].addr > 7 then
       monA.setTextScale(0.5)
       monA.setCursorPos(4,5)
@@ -550,7 +551,6 @@ local function displayNotes(pY)
       monA.setTextScale(1)
       monA.setCursorPos(1,3)
     end
-    monA.clear()
     monA.setTextColor(assignColor(listEntry))
     monA.write(allGates[listEntry].addr)
   end
@@ -2247,6 +2247,7 @@ local function keyClick()
           saveData(settingsData,"cfg")
           drawCLI()
         end
+        --[[
       elseif keyEvent[2] == 38 then -- l (cLear logs)
         if runState == "logs" and menuState == false then
           flashChoice("clear")
@@ -2259,6 +2260,7 @@ local function keyClick()
           viewLogs()
           return
         end
+        ]]--
       elseif keyEvent[2] == 199 then -- HOME
         histPage = 1
         viewLogs()
@@ -2433,6 +2435,7 @@ local function mClick()
           local clearLog = fs.open("/data/DHDhistory","w")
           clearLog.close()
           callHistory = { }
+          lastCall = { }
           histPages = 1
           histPage = 1
           viewLogs()
@@ -3508,16 +3511,9 @@ local function initMe()
   end
   if dhdSettings.bio.lock == "ON" and dhdSettings.bio.side ~= "none" then bioLogin() end -- Biolock login
   term.setCursorPos(2,6)
-  term.write("Setting Shield . . .")
-  if dhdSettings.startShield == "ON" then
-    netSend("sON")
-  elseif dhdSettings.startShield == "OFF" then
-    netSend("sOFF")
-  end
-  term.setCursorPos(2,8)
-  term.write("Querying Gate " .. dhdSettings.thisGate .. " . . .")
+  term.write("Querying gateLiaison @ " .. dhdSettings.thisGate .. " . . .")
   netSend("QRY")
-  term.setCursorPos(2,10)
+  term.setCursorPos(2,8)
   term.write("Awaiting response . . .")
   if dhdSettings.net == "R" then
     local senderID, message = rednet.receive()
@@ -3529,6 +3525,13 @@ local function initMe()
     if netEvent[3] == dhdSettings.channels.recv and netEvent[4] == dhdSettings.channels.send then
       updateStatus(netEvent[5])
     end
+  end
+  term.setCursorPos(2,10)
+  term.write("Setting Shield . . .")
+  if dhdSettings.startShield == "ON" then
+    netSend("sON")
+  elseif dhdSettings.startShield == "OFF" then
+    netSend("sOFF")
   end
   term.setCursorPos(2,12)
   term.write("Ingesting gate data . . .")
