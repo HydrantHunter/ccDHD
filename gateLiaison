@@ -6,7 +6,7 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.0.25"
+local gVer = "1.0.26"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -121,7 +121,7 @@ local function displayStatus(select)
       mon.setCursorPos(4,2)
       mon.write("Connection")
     end
-  elseif select == "" or select == nil then -- Non-specified status - incoming or marque
+  elseif select == "" or select == nil then -- Non-specified status - incoming or marquee
     if gate.isDialing() == true and dialAddress == "" then -- incoming
       mon.clear()
       mon.setTextScale(2)
@@ -131,7 +131,7 @@ local function displayStatus(select)
       mon.setCursorPos(4,2)
       mon.write("Connection")
     else
-      displayMarquee()          -- marque
+      displayMarquee()          -- marquee
     end
   end
 end
@@ -270,14 +270,10 @@ end
 local function updateStatus(special)
   currentState = pData
   fuelGuage = gate.hasFuel()
-  if #thisGate == 7 then    -- snapshot 82+ (7 symbols)
+  if gateSettings.shield == "iris" then
+    shieldStatus, _ = { pcall(gate.isIrisClosed) }
+  else
     shieldStatus = rs.getOutput(gateSettings.shield)
-  elseif #thisGate > 7 then -- RC1 (8+ symbols)
-    if gateSettings.shield == "iris" then
-      shieldStatus, _ = { pcall(gate.isIrisClosed) }
-    else
-      shieldStatus = rs.getOutput(gateSettings.shield)
-    end
   end
   if gateStatus == "allclear" then
     shieldState = false
@@ -287,48 +283,47 @@ local function updateStatus(special)
       gateStatus = "Disconnected"
       dialAddress = "none"
     end
-    if fuelGuage == false then
-      pData = "YY0"
-    elseif fuelGuage == true then
+    if fuelGuage then
       pData = "YY1"
+    else
+      pData = "YY0"
     end
   elseif gateStatus == "lockdown" then
-    if fuelGuage == false then
-      pData = "XX0"
-    elseif fuelGuage == true then
+    if fuelGuage then
       pData = "XX1"
+    else
+      pData = "XX0"
     end
     dialAddress = "none"
   else
-    if shieldStatus == true then
+    if shieldStatus then
       pData = "1"
     else
       pData = "0"
     end
-    if gate.isDialing() == true then
+    if gate.isDialing() then
       pData = pData .. "2"
       gateStatus = "Dialing"
       if mon ~= "none" then
         displayStatus("dial")
       end
-    elseif gate.isDialing() == false then
-      if gate.isConnected() == true then
+    else
+      if gate.isConnected() then
         pData = pData .. "1"
         gateStatus = "Connected"
         if mon ~= "none" then
           displayStatus("con")
         end
-      elseif gate.isConnected() == false then
+      else
         gateStatus = "Disconnected"
         dialAddress = "none"
         pData = pData .. "0"
       end
     end
-
-    if fuelGuage == false then
-      pData = pData .. "0"
-    elseif fuelGuage == true then
+    if fuelGuage then
       pData = pData .. "1"
+    else
+      pData = pData .. "0"
     end
   end
   if gateStatus ~= "Dialing" and gateStatus ~= "Connected" and gateStatus ~= "lockdown" then displayMarquee() end
@@ -349,25 +344,17 @@ end
 
 local function shieldControl(state)
   if state == "ON" then
-    if #thisGate == 7 then    -- snapshot 82+ (7 symbols)
+    if gateSettings.shield == "iris" then
+      pcall(gate.irisClose)
+    else
       rs.setOutput(gateSettings.shield,true)
-    elseif #thisGate > 7 then -- RC1 (8+ symbols)
-      if gateSettings.shield == "iris" then
-        pcall(gate.irisClose)
-      else
-        rs.setOutput(gateSettings.shield,true)
-      end
     end
     return
   elseif state == "OFF" then
-    if #thisGate == 7 then    -- snapshot 82+ (7 symbols)
+    if gateSettings.shield == "iris" then
+      pcall(gate.irisOpen)
+    else
       rs.setOutput(gateSettings.shield,false)
-    elseif #thisGate > 7 then -- RC1 (8+ symbols)
-      if gateSettings.shield == "iris" then
-        pcall(gate.irisOpen)
-      else
-        rs.setOutput(gateSettings.shield,false)
-      end
     end
     return
   end
@@ -548,9 +535,16 @@ local function firstRun()
   term.clear()
   -- Select shield/redstone output side
   --if #thisGate == 7 then                              -- implement when iris control is introduced?
-    term.setCursorPos(2,2)
     term.setTextColor(colors.lightBlue)
+    term.setCursorPos(2,2)
     term.write("Please select the shield/redstone output side")
+    term.setTextColor(colors.gray)
+    term.setCursorPos(2,4)
+    term.write("(select an unused side")
+    term.setCursorPos(2,5)
+    term.write("if not using redstone")
+    term.setCursorPos(2,6)
+    term.write("output)")
     -- Draw side list
     local tPos = { }
     local tSide = { }
@@ -670,14 +664,10 @@ local function initMe()
       end
     end
   end
-  if #thisGate == 7 then
+  if gateSettings.shield == "iris" then
+    shieldStatus, _ = pcall(gate.isIrisClosed)
+  else
     shieldStatus = rs.getOutput(gateSettings.shield)
-  elseif #thisGate > 7 then
-    if gateSettings.shield == "iris" then
-      shieldStatus, _ = { pcall(gate.isIrisClosed) }
-    else
-      shieldStatus = rs.getOutput(gateSettings.shield)
-    end
   end
   if mon ~= "none" then
     displayMarquee()
