@@ -411,52 +411,53 @@ local function doCommand(thisCommand)
     dialAddress = "none"
     updateStatus()
     return
-  elseif thisCommand == "QRY" then
-    updateStatus("QRY")
-    return
-  elseif thisCommand == "1stRun" then -- When ccDHD signifies its first run...
-    while true do
-      local myBoss = { os.pullEvent("modem_message") }  -- ...it then sends it's cc# and waits for the gate's address & cc #
-      if myBoss[3] == gateSettings.chan.recv and myBoss[4] == gateSettings.chan.send then
-        gateSettings.DHD = myBoss[5]
-        saveData()
-        break
-      end
-    end
-    local me = os.getComputerID()
-    local tempSettings = { gate = thisGate, server = me }
-    sleep(0.1)
-    netSend(tempSettings)
-    return
-  elseif thisCommand == "redNet" then -- change to redNet
-    if gateSettings.net == "C" then modem.close(gateSettings.chan.recv) end
-    modem = nil
-    gateSettings.net = "R"
-    rednet.open(modemSide)
-    saveData()
-    drawTermScreen()
-  elseif thisCommand == "ccNet" then  -- change to ccNet
-    if gateSettings.net == "R" then rednet.close(modemSide) end
-    gateSettings.net = "C"
-    modem = peripheral.wrap(modemSide)
-    modem.open(gateSettings.chan.recv)
-    saveData()
-    drawTermScreen()
-  elseif thisCommand == "CS" then     -- change ccNet Receive Channel
-    local newCR = { os.pullEvent("modem_message") }
-    modem.close(gateSettings.chan.recv)
-    gateSettings.chan.recv = newCR[5]
-    modem.open(gateSettings.chan.recv)
-    saveData()
-    drawTermScreen()
-  elseif thisCommand == "CR" then     -- change ccNet Send Channel
-    local newCS = { os.pullEvent("modem_message") }
-    gateSettings.chan.send = newCS[5]
-    saveData()
-    drawTermScreen()
   end
+
   if gateStatus ~= "lockdown" then
-    if thisCommand == "endCall" then
+    if thisCommand == "QRY" then
+      updateStatus("QRY")
+      return
+    elseif thisCommand == "1stRun" then -- When ccDHD signifies its first run...
+      while true do
+        local myBoss = { os.pullEvent("modem_message") }  -- ...it then sends it's cc# and waits for the gate's address & cc #
+        if myBoss[3] == gateSettings.chan.recv and myBoss[4] == gateSettings.chan.send then
+          gateSettings.DHD = myBoss[5]
+          saveData()
+          break
+        end
+      end
+      local me = os.getComputerID()
+      local tempSettings = { gate = thisGate, server = me }
+      sleep(0.1)
+      netSend(tempSettings)
+      return
+    elseif thisCommand == "redNet" then -- change to redNet
+      if gateSettings.net == "C" then modem.close(gateSettings.chan.recv) end
+      modem = nil
+      gateSettings.net = "R"
+      rednet.open(modemSide)
+      saveData()
+      drawTermScreen()
+    elseif thisCommand == "ccNet" then  -- change to ccNet
+      if gateSettings.net == "R" then rednet.close(modemSide) end
+      gateSettings.net = "C"
+      modem = peripheral.wrap(modemSide)
+      modem.open(gateSettings.chan.recv)
+      saveData()
+      drawTermScreen()
+    elseif thisCommand == "CS" then     -- change ccNet Receive Channel
+      local newCR = { os.pullEvent("modem_message") }
+      modem.close(gateSettings.chan.recv)
+      gateSettings.chan.recv = newCR[5]
+      modem.open(gateSettings.chan.recv)
+      saveData()
+      drawTermScreen()
+    elseif thisCommand == "CR" then     -- change ccNet Send Channel
+      local newCS = { os.pullEvent("modem_message") }
+      gateSettings.chan.send = newCS[5]
+      saveData()
+      drawTermScreen()
+    elseif thisCommand == "endCall" then
       endCall()
       updateStatus()
       return
