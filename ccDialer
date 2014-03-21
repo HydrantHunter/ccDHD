@@ -33,7 +33,7 @@ local allGates = { {addr="NEWGATE",rating="U",note="short note",loc={x=99999,y=9
 local longName, tY
 -- Peripherals
 local termX,termY = term.getSize() -- portable 26x20 / standard 51x19 / cBang & OneOS = 51x18
-local modem = dialSettings.netSide -- Modem (for ccNet)
+local modem = nil                  -- Modem (for ccNet)
  -- Status Info
 local kernelState = true
 local runState = "init"
@@ -59,7 +59,7 @@ local lime = colors.lime
 local green = colors.green
 -- END AUTOMATIC/STATIC CONFIGURATION
 
-local function pSync(pushpull) -- Sync allGates with a Portable Advanced Computer running ccDialer
+local function pSync(pushpull) -- Sync allGates with an advanced computer running ccDHD
   modem.transmit(dialSettings.pChannels.send,dialSettings.pChannels.recv,pushpull)
   if pushpull == "pPull" then
     local netEvent = { os.pullEvent("modem_message") }
@@ -67,10 +67,11 @@ local function pSync(pushpull) -- Sync allGates with a Portable Advanced Compute
       local newGateData = netEvent[5]
       allGates = textutils.unserialize(newGateData)
       numPages = math.ceil(#allGates / 14)
+      if pageNum > numPages then pageNum = numPages end
       return
     end
   elseif pushpull == "pPush" then
-    sleep(0.25)
+    sleep(0.1)
     local pGateData = textutils.serialize(allGates)
     modem.transmit(dialSettings.pChannels.send,dialSettings.pChannels.recv,pGateData)
     return
@@ -106,6 +107,25 @@ local function netSend(dataPack)
   modem.transmit(dialSettings.pChannels.send,dialSettings.pChannels.recv,dataPack)
 end
 
+local function missingComponent()
+  term.setTextColor(red)
+  term.setBackgroundColor(black)
+  term.clear()
+  term.setCursorPos(2,2)
+  term.write("No wireless")
+  term.setCursorPos(2,3)
+  term.write("modem detected!")
+  term.setCursorPos(2,5)
+  term.write("ccDialer REQUIRES")
+  term.setCursorPos(2,6)
+  term.write("a wireless modem.")
+  term.setCursorPos(2,9)
+  term.setTextColor(lgray)
+  term.write("<Click to exit>")
+  os.pullEvent("mouse_click")
+  --return
+end
+
 local function saveData(filename,filetype)
   if not fs.exists("/data") then fs.makeDir("/data") end
   local dhdConfig = fs.open(tostring(filename),"w") or error("saveData(): Cannot open " .. filename .. " for writing", 2)
@@ -126,6 +146,7 @@ local function ingestData(fileName,fileType)
     dialSettings = textutils.unserialize(dhdCfg)
     if dialSettings.netSide ~= "none" then
       modem = peripheral.wrap(dialSettings.netSide)
+      if not modem then missingComponent() runState = "quit" kernelState = false return end
       modem.open(dialSettings.pChannels.recv)
     end
   elseif fileType == "gate" then
@@ -172,9 +193,9 @@ local function drawHeader()
     term.setTextColor(white)
     term.setCursorPos(1,2)
     term.setBackgroundColor(cyan)
-    term.write(string.rep(" ",math.floor(termX/4 - #"Sync"/2)) .. "Sync" .. string.rep(" ",math.floor(termX/4 - #"Sync"/2)))
+    term.write(string.rep(" ",math.floor(termX/4 - 2)) .. "Sync" .. string.rep(" ",math.floor(termX/4 - 2)))
     term.setBackgroundColor(red)
-    term.write(string.rep(" ",math.ceil(termX/4 - #"End Call"/2)) .. "End Call" .. string.rep(" ",math.ceil(termX/4 - #"End Call"/2)))
+    term.write(string.rep(" ",math.ceil(termX/4 - 4)) .. "End Call" .. string.rep(" ",math.ceil(termX/4 - 4)))
   end
 end
 
@@ -187,19 +208,19 @@ local function drawNaviUI()
   term.setTextColor(lgray)
   term.write(pNum)
   term.setTextColor(gray)
-  if pageNum > 1 then                         -- Show "BACK" option if page number is > 1
+  if pageNum > 1 then                          -- Show "BACK" option if page number is > 1
     term.setCursorPos((termX/2) - 10,termY)
     term.write("<< BACK")
   elseif pageNum == 1 then
-    term.setCursorPos((termX/2) - 10,termY)   -- Overwrite "BACK" instead of clearing screen
-    term.write("       ")
+    term.setCursorPos((termX/2) - 10,termY)    -- Overwrite "BACK" instead of clearing screen
+    term.write(string.rep(" ",7))
   end
-  if pageNum < numPages then                  -- Show "NEXT" option if page number is < numPages
-    term.setCursorPos((termX/2)+4,termY)
+  if pageNum < numPages then                   -- Show "NEXT" option if page number is < numPages
+    term.setCursorPos((termX/2) + 4,termY)
     term.write("NEXT >>")
   elseif pageNum == numPages then
-    term.setCursorPos((termX/2)+4,termY)      -- Overwrite "NEXT" instead of clearing screen
-    term.write("       ")
+    term.setCursorPos((termX/2) + 4,termY)     -- Overwrite "NEXT" instead of clearing screen
+    term.write(string.rep(" ",7))
   end
 end
 
@@ -231,7 +252,7 @@ local function drawMainUI() -- Gate Address Book (Dial / Edit / Trim)
       end
     end
   end
-  term.setBackgroundColor(black) -- not sure why this is here...
+  term.setBackgroundColor(black)
 end
 
 local function viewGateEntry(dataBlock)
@@ -350,7 +371,7 @@ local function keyClick()
         drawCLI()
       elseif keyEvent[2] == 16 or keyEvent[2] == 45 then -- q/x - Exit
         kernelState = false
-        runState = "exit"
+        runState = "quit"
         break
       end
     elseif runState == "pSync" then
@@ -393,11 +414,11 @@ local function mClick()
       if mcY == 2 and mcX < termX/2 then
         runState = "pSync"
         drawCLI()
-      elseif mcY == 2 and mcX > termX/2 then
+      elseif mcY == 2 and mcX >= termX/2 then
         netSend("endCall")
       elseif mcY == 1 and mcX > termX - 3 and mcX <= termX then
         kernelState = false
-        runState = "exit"
+        runState = "quit"
         break
       end
       -- Page Navigation via click
@@ -421,13 +442,13 @@ local function mClick()
         end
       end
       -- Dial a listed address or view it's info
-      local j = ((pageNum - 1) * 23) + pageNum
-      local k = ((pageNum - 1) * 23)
-      local l = ((pageNum - 1) * 24)
+      local j = ((pageNum - 1) * 13) + pageNum
+      --local k = ((pageNum - 1) * 13)
+      local l = ((pageNum - 1) * 14)
       if mcY > 3 and mcY < 17 then
         for i = j,#allGates,1 do
             -- Addresses Column 1
-          if mcX > 1 and mcX < 11 and mcY == 2 + ((i - l) * 2) and i <= #allGates then
+          if mcX > 3 and mcX < 13 and mcY == 2 + ((i - l) * 2) and i <= #allGates then
             if mButton == 1 then
               netSend(allGates[i].addr)
               return
@@ -436,7 +457,7 @@ local function mClick()
               return
             end
             -- Addresses Column 2
-          elseif mcX > 11 and mcX < 21 and mcY == 2 + ((i - l) * 2) and (i + 7) <= #allGates then
+          elseif mcX > 14 and mcX < 24 and mcY == 2 + ((i - l) * 2) and (i + 7) <= #allGates then
             if mButton == 1 then
               netSend(allGates[i + 7].addr)
               return
@@ -506,25 +527,10 @@ local function dialerKernel()
   if kernelState == true and runState ~= "goPage" then
     parallel.waitForAny(mClick,mScroll,keyClick) --,tResize
   end
-  if runState == "exit" then
+  if runState == "quit" then
     kernelState = false
   end
   return kernelState
-end
-
-local function missingHardware()
-  term.setTextColor(red)
-  term.setBackgroundColor(black)
-  term.clear()
-  term.setCursorPos(2,2)
-  term.write("No wireless modem detected!")
-  term.setCursorPos(2,4)
-  term.write("ccDialer REQUIRES a wireless modem.")
-  term.setCursorPos(2,8)
-  term.setTextColor(lgray)
-  term.write("<Click a mouse button to exit>")
-  os.pullEvent("mouse_click")
-  --return
 end
 
 local function localInventory()
@@ -568,7 +574,7 @@ local function initMe()
   term.setCursorPos(1,4)
   if not fs.exists(settingsData) then firstRun() end
   if fs.exists(settingsData) then ingestData(settingsData,"cfg") end
-  if dialSettings.netSide == "none" then missingHardware() runState = "exit" kernelState = false return end
+  if dialSettings.netSide == "none" then missingComponent() runState = "quit" kernelState = false return end
   term.setCursorPos(2,10)
   term.write("Ingesting gate data . . .")
   ingestData(dialSettings.gateData,"gate")
@@ -583,13 +589,13 @@ initMe()
 
 repeat
   dialerKernel()
-  if runState == "exit" then kernelState = false end
+  if runState == "quit" then kernelState = false end
   if kernelState == false then
     term.setBackgroundColor(black)
     term.setTextColor(white)
     term.clear()
     term.setCursorPos(1,1)
-    modem.close(dialSettings.pChannels.recv)
+    if modem then modem.close(dialSettings.pChannels.recv) end
     modem = nil
     return
   end
