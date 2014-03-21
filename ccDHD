@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.90"
+local ccDHDVer = "1.0.91"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -39,7 +39,7 @@ local dhdSettings = { thisGate="--ERROR--",
                       pSync="NO",
                       pChannels={send=24747,recv=24242,},
                       ecShield="ON",
-                      startShield="ON",
+                      startShield="OFF",
                       callEnd="OFF",
                       logs="OFF",
                       lastGate="/data/DHDlast",
@@ -132,29 +132,29 @@ local function recordSessionData() -- Human readable log files (last gate & hist
 end
 
 local function updateStatus(newInfo)  -- Update status info
-  if tostring(newInfo) == "000" then  -- bit/trit/bit
+  if newInfo == "000" then            -- bit/trit/bit
     shieldStatus = "OFF"              -- 1st/bit = shield
     gateStatus = "Disconnected"       -- 2nd/trit = connection/dialing
     secureStatus = "allclear"
     fuelGauge = false                 -- 3rd/bit = fuel
     dialAddress = ""
-  elseif tostring(newInfo) == "001" then
+  elseif newInfo == "001" then
     shieldStatus = "OFF"
     gateStatus = "Disconnected"
     secureStatus = "allclear"
     dialAddress = ""
     fuelGauge = true
-  elseif tostring(newInfo) == "010" then
+  elseif newInfo == "010" then
     shieldStatus = "OFF"
     gateStatus = "Connected"
     secureStatus = "allclear"
     fuelGauge = false
-  elseif tostring(newInfo) == "011" then
+  elseif newInfo == "011" then
     shieldStatus = "OFF"
     gateStatus = "Connected"
     secureStatus = "allclear"
     fuelGauge = true
-  elseif tostring(newInfo) == "020" then
+  elseif newInfo == "020" then
     shieldStatus = "OFF"
     gateStatus = "Dialing"
     secureStatus = "allclear"
@@ -166,7 +166,7 @@ local function updateStatus(newInfo)  -- Update status info
     else
       recordSessionData()
     end
-  elseif tostring(newInfo) == "021" then
+  elseif newInfo == "021" then
     shieldStatus = "OFF"
     gateStatus = "Dialing"
     secureStatus = "allclear"
@@ -178,29 +178,29 @@ local function updateStatus(newInfo)  -- Update status info
     else
       recordSessionData()
     end
-  elseif tostring(newInfo) == "100" then
+  elseif newInfo == "100" then
     shieldStatus = "ON"
     gateStatus = "Disconnected"
     secureStatus = "allclear"
     dialAddress = ""
     fuelGauge = false
-  elseif tostring(newInfo) == "101" then
+  elseif newInfo == "101" then
     shieldStatus = "ON"
     gateStatus = "Disconnected"
     secureStatus = "allclear"
     dialAddress = ""
     fuelGauge = true
-  elseif tostring(newInfo) == "110" then
+  elseif newInfo == "110" then
     shieldStatus = "ON"
     gateStatus = "Connected"
     secureStatus = "allclear"
     fuelGauge = false
-  elseif tostring(newInfo) == "111" then
+  elseif newInfo == "111" then
     shieldStatus = "ON"
     gateStatus = "Connected"
     secureStatus = "allclear"
     fuelGauge = true
-  elseif tostring(newInfo) == "120" then
+  elseif newInfo == "120" then
     shieldStatus = "ON"
     gateStatus = "Dialing"
     secureStatus = "allclear"
@@ -212,7 +212,7 @@ local function updateStatus(newInfo)  -- Update status info
     else
       recordSessionData()
     end
-  elseif tostring(newInfo) == "121" then
+  elseif newInfo == "121" then
     shieldStatus = "ON"
     gateStatus = "Dialing"
     secureStatus = "allclear"
@@ -224,7 +224,7 @@ local function updateStatus(newInfo)  -- Update status info
     else
       recordSessionData()
     end
-  elseif tostring(newInfo) == "Dialing" then
+  elseif newInfo == "Dialing" then
     gateStatus = "Dialing"
     secureStatus = "allclear"
     if dialAddress == "" then
@@ -234,7 +234,7 @@ local function updateStatus(newInfo)  -- Update status info
     else
       recordSessionData()
     end
-  elseif tostring(newInfo) == "YY0" then
+  elseif newInfo == "YY0" then
     secureStatus = "allclear"
     shieldStatus = "OFF"
     gateStatus = "Disconnected"
@@ -242,7 +242,7 @@ local function updateStatus(newInfo)  -- Update status info
     dialAddress = ""
     term.setBackgroundColor(black)
     term.clear()
-  elseif tostring(newInfo) == "YY1" then
+  elseif newInfo == "YY1" then
     secureStatus = "allclear"
     shieldStatus = "OFF"
     gateStatus = "Disconnected"
@@ -250,23 +250,23 @@ local function updateStatus(newInfo)  -- Update status info
     dialAddress = ""
     term.setBackgroundColor(black)
     term.clear()
-  elseif tostring(newInfo) == "XX0" then
+  elseif newInfo == "XX0" then
     secureStatus = "lockdown"
     shieldStatus = "ON"
     gateStatus = "Disconnected"
     fuelGauge = false
     dialAddress = ""
-  elseif tostring(newInfo) == "XX1" then
+  elseif newInfo == "XX1" then
     secureStatus = "lockdown"
     shieldStatus = "ON"
     gateStatus = "Disconnected"
     fuelGauge = true
     dialAddress = ""
-  elseif tostring(newInfo) == "pPull" or tostring(newInfo) == "pPush" then
-    pSync(tostring(newInfo))
+  elseif newInfo == "pPull" or newInfo == "pPush" then
+    pSync(newInfo)
     return
   end
-  if tostring(newInfo) ~= "pPush" and tostring(newInfo) ~= "pPull" then currentState = tostring(newInfo) end
+  if newInfo ~= "pPush" and newInfo ~= "pPull" then currentState = newInfo end
   drawCLI()
   return
 end
@@ -286,7 +286,7 @@ local function netReceive()
       if tonumber(netEvent[1]) == gateLiaison then
         if currentState ~= netEvent[2] then
           updateStatus(netEvent[2])
-          --return
+          return
         end
       end
     elseif dhdSettings.net == "C" then
@@ -294,7 +294,7 @@ local function netReceive()
       if netEvent[3] == dhdSettings.channels.recv and netEvent[4] == dhdSettings.channels.send then
         if currentState ~= netEvent[5] then
           updateStatus(netEvent[5])
-          --return
+          return
         end
       elseif netEvent[3] == dhdSettings.pChannels.recv and netEvent[4] == dhdSettings.pChannels.send and dhdSettings.pSync == "YES" then
         if netEvent[5] == "pPull" or netEvent[5] == "pPush" then
@@ -1856,6 +1856,8 @@ local function deleteGate(tGate) -- TRIM mode: delete gate
     table.remove(allGates,tGate)
     numPages = math.ceil(#allGates / 24) -- Re-paginate gates
     listPages = math.ceil(#allGates / 8)
+    if pageNum > numPages then pageNum = numPages end
+    if listPage > listPages then listPage = listPages end
   end
 end
 
@@ -1931,7 +1933,6 @@ end
 
 local function readInput(cX,cY,cO)
   local word = ""
-  --local curX, curY = term.getCursorPos()
   local curX, curY = cX, cY
   term.setCursorPos(curX, curY)
   term.setTextColor(cO)
@@ -2278,27 +2279,11 @@ local function keyClick()
           saveData(settingsData,"cfg")
           drawCLI()
         end
-        --[[
-      elseif keyEvent[2] == 38 then -- l (cLear logs)
-        if runState == "logs" and menuState == false then
-          flashChoice("clear")
-          local clearLog = fs.open("/data/DHDhistory","w")
-          clearLog.close()
-          callHistory = { }
-          lastCall = { }
-          histPages = 1
-          histPage = 1
-          viewLogs()
-          return
-        end
-        ]]--
       elseif keyEvent[2] == 199 then -- HOME
         histPage = 1
         viewLogs()
       elseif keyEvent[2] == 207 then -- END
         histPage = histPages
-        --term.setBackgroundColor(black)
-        --term.clear()
         viewLogs()
       elseif keyEvent[2] == 201 then -- PageUP
         if runState == "logs" then
@@ -2316,23 +2301,7 @@ local function keyClick()
         end
       end
     elseif runState == "Trim" and menuState == false then
-      if keyEvent[2] == 22 then -- u (Undo)
-        flashChoice("undo")
-        runState = "Edit"
-        ingestData(dhdSettings.gateData,"gate")
-        if gateChange == true then
-          term.setBackgroundColor(black)
-          term.clear()
-        end
-        gateChange = false
-        drawCLI()
-      elseif (keyEvent[2] == 28 or keyEvent[2] == 46) then -- c, <enter> (Commit)
-        flashChoice("commit")
-        runState = "Edit"
-        saveData(dhdSettings.gateData,"gate")
-        gateChange = false
-        drawCLI()
-      elseif (keyEvent[2] == 25 or keyEvent[2] == 34) then -- p / g (goPage)
+      if (keyEvent[2] == 25 or keyEvent[2] == 34) then -- p / g (goPage)
         flashChoice("page")
         goToPage()
       elseif keyEvent[2] == 199 then -- HOME
