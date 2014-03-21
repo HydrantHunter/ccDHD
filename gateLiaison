@@ -6,7 +6,7 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.0.26"
+local gVer = "1.0.27"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -612,6 +612,15 @@ local function initGate()
       end
     end
   end
+  if not gate then
+    term.setBackgroundColor(colors.black)
+    term.setTextColor(colors.red)
+    term.clear()
+    term.setCursorPos(1,1)
+    term.write("No Stargate detected!")
+    term.setCursorPos(1,3)
+    return
+  end
   thisGate = gate.getAddress()
   fuelGuage = gate.hasFuel()
   if #thisGate > 7 then
@@ -632,6 +641,7 @@ end
 
 local function initMe()
   initGate()
+  if not gate then return end
   -- Check for first time install
   if not fs.exists("/data/gateSettings") then
     firstRun()
@@ -677,6 +687,7 @@ end
 -- END AUTOMATIC/STATIC CONFIGURATION (Part 2)
 
 initMe()
+if not gate then return end
 
 while true do
   gateKernel()
