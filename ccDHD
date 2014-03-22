@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.91"
+local ccDHDVer = "1.0.92"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -1931,30 +1931,34 @@ function drawCLI()   -- Client Interface 'decider'
   end
 end
 
-local function readInput(cX,cY,cO)
+local function readInput(cX,cY,cO)  -- cursor X,Y and color
   local word = ""
   local curX, curY = cX, cY
-  term.setCursorPos(curX, curY)
   term.setTextColor(cO)
-  term.write("_")
+  term.setCursorBlink(true)
+  term.setCursorPos(curX, curY)
   while true do
     local kEvent = { os.pullEvent() }
-    if kEvent[1] == "key" and kEvent[2] == keys.backspace then
-      if curX > cX then
-        curX = curX - 1
-        word = word:sub(1,#word-1)
+    if kEvent[1] == "key" then
+      if kEvent[2] == keys.backspace then
+        if curX > cX then
+          curX = curX - 1
+          word = word:sub(1,#word-1)
+        end
+        term.setTextColor(cO)
+        term.setBackgroundColor(black)
+        term.setCursorPos(curX, curY)
+        term.write(" ")
+        term.setCursorPos(curX, curY)
+      elseif kEvent[2] == keys.enter then
+        term.setCursorBlink(false)
+        return word
       end
-      term.setCursorPos(curX, curY)
-      term.setBackgroundColor(black)
-      term.setTextColor(cO)
-      term.write("_ ")
-    elseif kEvent[1] == "key" and kEvent[2] == keys.enter then
-      return word
     elseif kEvent[1] == "char" then
-      term.setCursorPos(curX, curY)
-      term.setBackgroundColor(black)
       term.setTextColor(cO)
-      term.write(kEvent[2] .. "_")
+      term.setBackgroundColor(black)
+      term.setCursorPos(curX, curY)
+      term.write(kEvent[2])
    	  word = word .. kEvent[2]
       curX = curX + 1
     end
