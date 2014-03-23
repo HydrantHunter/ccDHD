@@ -8,7 +8,7 @@ local iVer = "1.0"
 Tested with/Requires:
   - Minecraft 1.6.4
   - HTTP API enabled (for this installer only)
-  - LanteaCraft (snapshot 82 and RC1)
+  - LanteaCraft (snapshot 82+ and RC1_15+)
   - ComputerCraft 1.57+ for MC 1.6.4
     - ccDHD: Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch), optional Biolock
     - gateLiaison: Advanced Computer (color, mouse), 3 optional Advanced Monitors (color)
@@ -98,7 +98,7 @@ if fs.exists("/data/gateSettings") then startup = 4 end -- gateLiaison installed
 if fs.exists("/gateLiaison") then startup = 3 end       -- gateLiaison installed as gateLiason (otherwise installed as startup)
 if fs.exists("/data/DHDsettings") then startup = 2 end  -- ccDHD 1.0.74- installed?
 if fs.exists("/data/DHDconfig") then startup = 2 end    -- ccDHD 1.0.75+ installed?
-if fs.exists("/DHD") then startup = 1 end               -- ccDHD installed as ccDHD (otherwise installed as startup)
+if fs.exists("/DHD") then startup = 1 end               -- ccDHD installed as DHD (otherwise installed as startup)
 if startup == 0 then                                    -- neither is installed
   if fs.exists("/startup") then startup = 5 end         -- startup exists, install by name (otherwise install as startup)
 end
@@ -112,7 +112,7 @@ while true do
     if userInput[4] == 6 then
       setCCLabel("DHD")
       if fs.exists("/logs") and fs.exists("/data/DHDSettings") then fs.delete("/data/DHDsettings") end
-      if fs.exists("/data/DHDSettings") then fs.delete("/data/DHDsettings")
+      if fs.exists("/data/DHDSettings") then fs.delete("/data/DHDsettings") end
       if not fs.exists("/data") then
         fs.makeDir("/data")
       end
