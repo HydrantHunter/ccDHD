@@ -2101,6 +2101,10 @@ local function wrapPerp(perp,side)
     elseif perp == "C" then
       if peripheral.getType(side) == "modem" then
         if peripheral.call(side,"isWireless") == true then
+          if modem then
+            modem.close(dhdSettings.channels.recv)
+            modem = nil
+          end
           modem = peripheral.wrap(side)
           dhdSettings.netSide = side
           modem.open(dhdSettings.channels.recv)
@@ -2110,6 +2114,7 @@ local function wrapPerp(perp,side)
     elseif perp == "R" then
       if peripheral.getType(side) == "modem" then
         if peripheral.call(side,"isWireless") == true then
+          if dhdSettings.netSide ~= side then rednet.close(dhdSettings.netSide) end
           rednet.open(side)
           dhdSettings.netSide = side
           configChange = true
