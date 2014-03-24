@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.93"
+local ccDHDVer = "1.0.94"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -1081,8 +1081,11 @@ local function drawHelpUI()
   term.setBackgroundColor(gray)
   term.setTextColor(lgray)
   term.setCursorPos(2,termY)
-  term.write("ccDHD ver. " .. ccDHDVer) -- Show ccDHD version in bottom pane
-  if runState == "DialHelp" then        -- Show either DHD or Edit help, depending on runState
+  term.write("ccDHD ver. " .. ccDHDVer .. string.rep(" ",5) .. "cc# " .. os.getComputerID()) -- Show ccDHD version and cc# in bottom pane
+  local tmpLabel = os.getComputerLabel()
+  term.setCursorPos(termX - #tmpLabel,termY)
+  term.write(os.getComputerLabel()) -- Show cc Label in bottom pane
+  if runState == "DialHelp" then    -- Show either DHD or Edit help, depending on runState
     viewDialHelp(colorCount)
   elseif runState == "EditHelp" then
     viewEditHelp(colorCount)
@@ -3088,8 +3091,8 @@ local function mClick()
           local netSide = { os.pullEvent("mouse_click") }
           if netSide[3] > 26 and netSide[2] < 35 then
             for jc,kc in pairs(cfgPos) do
-              if netSide[4] == kr then
-                wrapPerp("R",cfgSides[jr])
+              if netSide[4] == kc then
+                wrapPerp("C",cfgSides[jc])
                 break
               end
             end
@@ -3465,8 +3468,8 @@ local function initMe()
   term.write("Initializing . . .")
   if not fs.exists(settingsData) then firstRun() end
   if not fs.exists(settingsData) then missingComponent("cfg") return end
-  if dhdSettings.netSide == "none" then missingComponent("modem") return end
   ingestData(settingsData,"cfg")
+  if dhdSettings.netSide == "none" then missingComponent("modem") return end
   if tostring(dhdSettings.highlight) == "" or dhdSettings.highlight == nil then
     dhdSettings.highlight = "YES"
     saveData(settingsData,"cfg")
