@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.94"
+local ccDHDVer = "1.0.95"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
