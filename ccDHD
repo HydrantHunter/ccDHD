@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin vMtcSz2e ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.92"
+local ccDHDVer = "1.0.93"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -36,7 +36,7 @@ local dhdSettings = { thisGate="--ERROR--",
                       netSide="none",
                       server=9999,
                       channels={send=1776,recv=1787,},
-                      pSync="NO",
+                      pSync="OFF",
                       pChannels={send=24747,recv=24242,},
                       ecShield="ON",
                       startShield="OFF",
@@ -296,7 +296,7 @@ local function netReceive()
           updateStatus(netEvent[5])
           return
         end
-      elseif netEvent[3] == dhdSettings.pChannels.recv and netEvent[4] == dhdSettings.pChannels.send and dhdSettings.pSync == "YES" then
+      elseif netEvent[3] == dhdSettings.pChannels.recv and netEvent[4] == dhdSettings.pChannels.send and dhdSettings.pSync == "ON" then
         if netEvent[5] == "pPull" or netEvent[5] == "pPush" then
           pSync(netEvent[5])
         else
@@ -309,39 +309,6 @@ local function netReceive()
       end
     end
   end
-end
-
-local function ingestLogData()
-  if not fs.exists(dhdSettings.gateHistory) then
-    local tmpHist = fs.open(dhdSettings.gateHistory,"w")
-    tmpHist.close()
-  end
-  if fs.exists(dhdSettings.gateHistory) then
-    local dhdHist = fs.open(dhdSettings.gateHistory,"r") or error("ingestLogData(): Cannot open /data/DHDhistory for reading", 2)
-    while true do
-      local timeDate = dhdHist.readLine()
-      local gateAddr = dhdHist.readLine()
-      if gateAddr == "" or gateAddr == nil then gateAddr = "No Data" end
-      if timeDate == nil or timeDate == "" then break end
-      local tTime = timeDate:sub(1,string.find(timeDate," / ")) -- separate time from time/day
-      local dDate = timeDate:sub(#tTime+7)                      -- separate day from time/day
-      if #tTime == 8 then tTime = " " .. tTime end  -- move single digit hour times to the right one space (this must happen after date so date doesn't get skewed by 1)
-      table.insert(callHistory,1,tTime .. string.rep(" ",termX-40-#tTime) .. dDate .. string.rep(" ",termX-41-#dDate) .. gateAddr)
-    end
-    dhdHist.close()
-  end
-  histPages = math.ceil(#callHistory/10)  -- paginate call logs
-  if histPages < 1 then histPages = 1 end -- probably not necessary with math.ceil
-  if not fs.exists(dhdSettings.lastGate) then
-    local tmpLast = fs.open(dhdSettings.lastGate,"w")
-    tmpLast.close()
-  end
-  local dhdLast = fs.open(dhdSettings.lastGate,"r") or error("ingestLogData(): Cannot open /data/DHDlast for reading", 2)
-  for i = 1,2,1 do
-    local lastInfo = dhdLast.readLine()
-    table.insert(lastCall,lastInfo)
-  end
-  dhdLast.close()
 end
 
 local function saveData(filename,filetype)
@@ -378,10 +345,17 @@ local function ingestData(fileName,fileType)
     end
     if dhdSettings.net == "R" and dhdSettings.netSide ~= "none" then
       rednet.open(dhdSettings.netSide)
+      if dhdSettings.pSync == "ON" then
+        modem = peripheral.wrap(dhdSettings.netSide)
+        modem.open(dhdSettings.pChannels.recv)
+      end
     elseif dhdSettings.net == "C" and dhdSettings.netSide ~= "none" then
       if not modem then
         modem = peripheral.wrap(dhdSettings.netSide)
         modem.open(dhdSettings.channels.recv)
+      end
+      if dhdSettings.pSync == "ON" then
+        modem.open(dhdSettings.pChannels.recv)
       end
     end
     if #dhdSettings.thisGate > 7 then
@@ -410,6 +384,39 @@ local function ingestData(fileName,fileType)
     if fs.exists("/disk/DHDgates") then fs.delete("/disk/DHDgates") end
     if fileName == "/disk/data/DHDgates" then gateChange = true end
   end
+end
+
+local function ingestLogData()
+  if not fs.exists(dhdSettings.gateHistory) then
+    local tmpHist = fs.open(dhdSettings.gateHistory,"w")
+    tmpHist.close()
+  end
+  if fs.exists(dhdSettings.gateHistory) then
+    local dhdHist = fs.open(dhdSettings.gateHistory,"r") or error("ingestLogData(): Cannot open /data/DHDhistory for reading", 2)
+    while true do
+      local timeDate = dhdHist.readLine()
+      local gateAddr = dhdHist.readLine()
+      if gateAddr == "" or gateAddr == nil then gateAddr = "No Data" end
+      if timeDate == nil or timeDate == "" then break end
+      local tTime = timeDate:sub(1,string.find(timeDate," / ")) -- separate time from time/day
+      local dDate = timeDate:sub(#tTime+7)                      -- separate day from time/day
+      if #tTime == 8 then tTime = " " .. tTime end  -- move single digit hour times to the right one space (this must happen after date so date doesn't get skewed by 1)
+      table.insert(callHistory,1,tTime .. string.rep(" ",termX-40-#tTime) .. dDate .. string.rep(" ",termX-41-#dDate) .. gateAddr)
+    end
+    dhdHist.close()
+  end
+  histPages = math.ceil(#callHistory/10)  -- paginate call logs
+  if histPages < 1 then histPages = 1 end -- probably not necessary with math.ceil
+  if not fs.exists(dhdSettings.lastGate) then
+    local tmpLast = fs.open(dhdSettings.lastGate,"w")
+    tmpLast.close()
+  end
+  local dhdLast = fs.open(dhdSettings.lastGate,"r") or error("ingestLogData(): Cannot open /data/DHDlast for reading", 2)
+  for i = 1,2,1 do
+    local lastInfo = dhdLast.readLine()
+    table.insert(lastCall,lastInfo)
+  end
+  dhdLast.close()
 end
 
 local function missingComponent(id)
@@ -1259,12 +1266,12 @@ local function drawSettingsUI()
   term.setTextColor(gray)
   term.write("pSync (ccDialer)") -- Enable/Disable ccDialer pSync
   term.setCursorPos(45,6)
-  if dhdSettings.pSync == "YES" then
+  if dhdSettings.pSync == "ON" then
     term.setBackgroundColor(green)
     term.write("  ")
     term.setBackgroundColor(gray)
     term.write("  ")
-  elseif dhdSettings.pSync == "NO" then
+  elseif dhdSettings.pSync == "OFF" then
     term.setBackgroundColor(gray)
     term.write("  ")
     term.setBackgroundColor(red)
@@ -1799,6 +1806,11 @@ local function viewGateEntry(dataBlock)
       term.setTextColor(gray)
       local ratingWord = assignRating(currentEdit)
       term.write(ratingWord)
+      if allGates[currentEdit].addr == dhdSettings.thisGate then
+        term.setCursorPos(34,7)
+        term.setTextColor(yellow)
+        term.write("THIS GATE")
+      end
       term.setTextColor(white)
       term.setCursorPos(2,9)
       term.setTextColor(white)
@@ -3190,13 +3202,13 @@ local function mClick()
         drawSettingsUI()
         -- pSync ON/OFF for ccDialer
       elseif mcY == 6 and mcX > 44 and mcX < 49 then
-        if dhdSettings.pSync == "YES" then
-          dhdSettings.pSync = "NO"
+        if dhdSettings.pSync == "ON" then
+          dhdSettings.pSync = "OFF"
           modem.close(dhdSettings.pChannels.recv)
           configChange = true
           --saveData(settingsData,"cfg")
-        elseif dhdSettings.pSync == "NO" then
-          dhdSettings.pSync = "YES"
+        elseif dhdSettings.pSync == "OFF" then
+          dhdSettings.pSync = "ON"
           modem.open(dhdSettings.pChannels.recv)
           configChange = true
           --saveData(settingsData,"cfg")
@@ -3453,20 +3465,23 @@ local function initMe()
   term.write("Initializing . . .")
   if not fs.exists(settingsData) then firstRun() end
   if not fs.exists(settingsData) then missingComponent("cfg") return end
-  ingestData(settingsData,"cfg")
   if dhdSettings.netSide == "none" then missingComponent("modem") return end
+  ingestData(settingsData,"cfg")
   if tostring(dhdSettings.highlight) == "" or dhdSettings.highlight == nil then
     dhdSettings.highlight = "YES"
     saveData(settingsData,"cfg")
   end
   if tostring(dhdSettings.pSync) == "" or dhdSettings.pSync == nil then
-    dhdSettings.pSync = "NO"
+    dhdSettings.pSync = "OFF"
     dhdSettings.pChannels = { send = 24747, recv = 24242, }
     saveData(settingsData,"cfg")
   end
   if dhdSettings.pSync == "YES" then
-    if not modem then modem = peripheral.wrap(dhdSettings.netSide) end
-    modem.open(dhdSettings.pChannels.recv)
+    dhdSettings.pSync = "ON"
+    saveData(settingsData,"cfg")
+  elseif dhdSettings.pSync == "NO" then
+    dhdSettings.pSync = "OFF"
+    saveData(settingsData,"cfg")
   end
   if dhdSettings.monA ~= "none" then
     monA.setBackgroundColor(black)
@@ -3544,7 +3559,7 @@ repeat
     term.clear()
     term.setCursorPos(1,1)
     if dhdSettings.netSide ~= "none" then
-      if dhdSettings.pSync == "YES" then
+      if dhdSettings.pSync == "ON" then
         modem.close(dhdSettings.pChannels.recv)
       end
       if dhdSettings.net == "R" then
