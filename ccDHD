@@ -1,14 +1,14 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[  core ver. 4.5.4  ]]--
+--[[  core ver. 5.0.0  ]]--
 --[[   ui ver. 4.4.2   ]]--
 --[[     by Dog        ]]--
 --[[ aka HydrantHunter ]]--
 --[[  with help from   ]]--
 --[[    Bomb Bloke     ]]--
---[[ pastebin vMtcSz2e ]]--
+--[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.0.95"
+local ccDHDVer = "1.1.00"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -47,7 +47,6 @@ local dhdSettings = { thisGate="--ERROR--",
                       gateData="/data/DHDgates",
                     }
 local allGates = { {addr="NEWGATE",rating="U",note="short note",loc={x=99999,y=99999,z=99999,dim="Overworld",},}, }
-local gateLiaison = dhdSettings.server
 local fistAuth = false
 local longName, tY
 -- Peripherals
@@ -107,6 +106,7 @@ local function pSync(pushpull) -- Sync allGates with a portable advanced compute
       local newGateData = newGates[5]
       allGates = textutils.unserialize(newGateData)
       gateChange = true
+      if pageNum == numPages then term.setBackgroundColor(black) term.clear() end
       drawCLI()
     end
   end
@@ -266,14 +266,14 @@ local function updateStatus(newInfo)  -- Update status info
     pSync(newInfo)
     return
   end
-  if newInfo ~= "pPush" and newInfo ~= "pPull" then currentState = newInfo end
-  drawCLI()
+  if newInfo ~= "pPush" and newInfo ~= "pPull" and runState ~= "ZZ" and runState ~= "init" then currentState = newInfo end
+  if runState ~= "ZZ" and runState ~= "init" then drawCLI() end
   return
 end
 
 local function netSend(dataPack)
   if dhdSettings.net == "R" then
-    rednet.send(gateLiaison,dataPack,true)
+    rednet.send(dhdSettings.server,dataPack,true)
   elseif dhdSettings.net == "C" then
     modem.transmit(dhdSettings.channels.send,dhdSettings.channels.recv,dataPack)
   end
@@ -283,7 +283,7 @@ local function netReceive()
   while true do
     if dhdSettings.net == "R" then
       local netEvent = { rednet.receive() }
-      if tonumber(netEvent[1]) == gateLiaison then
+      if tonumber(netEvent[1]) == dhdSettings.server then
         if currentState ~= netEvent[2] then
           updateStatus(netEvent[2])
           return
@@ -335,43 +335,19 @@ local function ingestData(fileName,fileType)
   local dhdCfg = dhdConfig.readAll()
   dhdConfig.close()
   if fileType == "cfg" then
+    local tmpMSide = dhdSettings.netSide
     dhdSettings = textutils.unserialize(dhdCfg)
-    gateLiaison = dhdSettings.server
+    if dhdSettings.netSide ~= tmpMSide then
+      dhdSettings.netSide = tmpMSide
+      saveData(settingsData,"cfg")
+    end
     if dhdSettings.monA ~= "none" then
       monA = peripheral.wrap(dhdSettings.monA)
     end
     if dhdSettings.monB ~= "none" then
       monB = peripheral.wrap(dhdSettings.monB)
     end
-    if dhdSettings.net == "R" and dhdSettings.netSide ~= "none" then
-      rednet.open(dhdSettings.netSide)
-      if dhdSettings.pSync == "ON" then
-        modem = peripheral.wrap(dhdSettings.netSide)
-        modem.open(dhdSettings.pChannels.recv)
-      end
-    elseif dhdSettings.net == "C" and dhdSettings.netSide ~= "none" then
-      if not modem then
-        modem = peripheral.wrap(dhdSettings.netSide)
-        modem.open(dhdSettings.channels.recv)
-      end
-      if dhdSettings.pSync == "ON" then
-        modem.open(dhdSettings.pChannels.recv)
-      end
-    end
-    if #dhdSettings.thisGate > 7 then
-      longName = dhdSettings.thisGate
-    else
-      local tG = { }
-      longName = ""
-      for i = 1,dhdSettings.thisGate:len(),1 do --
-        tG[i] = dhdSettings.thisGate:sub(i,i)   --
-        if i < dhdSettings.thisGate:len() then  -- This spaces out the name for a 7 character home gate address
-          longName = longName .. tG[i] .. " "   --
-        else                                    --
-          longName = longName .. tG[i]          --
-        end
-      end
-    end
+    longName = makeLongName(dhdSettings.thisGate)
   elseif fileType == "gate" then
     allGates = textutils.unserialize(dhdCfg)
     if allGates[1].addr == "NEWGATE" then
@@ -401,7 +377,7 @@ local function ingestLogData()
       local tTime = timeDate:sub(1,string.find(timeDate," / ")) -- separate time from time/day
       local dDate = timeDate:sub(#tTime+7)                      -- separate day from time/day
       if #tTime == 8 then tTime = " " .. tTime end  -- move single digit hour times to the right one space (this must happen after date so date doesn't get skewed by 1)
-      table.insert(callHistory,1,tTime .. string.rep(" ",termX-40-#tTime) .. dDate .. string.rep(" ",termX-41-#dDate) .. gateAddr)
+      table.insert(callHistory,1,tTime .. "_" .. dDate .. "/" .. gateAddr)
     end
     dhdHist.close()
   end
@@ -417,72 +393,6 @@ local function ingestLogData()
     table.insert(lastCall,lastInfo)
   end
   dhdLast.close()
-end
-
-local function missingComponent(id)
-  term.setTextColor(red)
-  term.setBackgroundColor(black)
-  term.clear()
-  term.setCursorPos(2,2)
-  if id == "modem" then
-    term.write("No wireless modem detected!")
-    term.setCursorPos(2,4)
-    term.write("ccDHD REQUIRES a wireless modem.")
-  elseif id == "cfg" then
-    term.write("No configuration file found!")
-    term.setCursorPos(2,4)
-    term.write("Please restart ccDHD.")
-  else
-    term.write("Unknown component missing!")
-    term.setCursorPos(2,4)
-    term.write("ccDHD REQUIRES a something.")
-  end
-  term.setCursorPos(2,8)
-  term.setTextColor(lgray)
-  term.write("<Click a mouse button to exit>")
-  os.pullEvent("mouse_click")
-  runState = "quit"
-  kernelState = false
-end
-
-local function localInventory()
-  dhdSettings.monA="none"
-  dhdSettings.monB="none"
-  dhdSettings.bio.lock="OFF"
-  dhdSettings.bio.side="none"
-  dhdSettings.bio.func="none"
-  dhdSettings.net="C"
-  dhdSettings.netSide="none"
-  local side
-  for _,side in pairs(rs.getSides()) do
-    if peripheral.isPresent(tostring(side)) then
-      local perp = peripheral.getType(tostring(side))
-      if tostring(perp) == "modem" then
-        if peripheral.call(tostring(side),"isWireless") == true then
-          dhdSettings.netSide = side
-          if dhdSettings.net == "R" then
-            rednet.open(side)
-          elseif dhdSettings.net == "C" then
-            modem = peripheral.wrap(side)
-            modem.open(dhdSettings.channels.recv)
-          end
-        end
-      end
-      if tostring(perp) == "monitor" then
-        local tmX, tmY = peripheral.call(side,"getSize")
-        if tmX == 7 or tmX == 15 then
-          dhdSettings.monA = side
-        elseif tmX == 14 or tmX == 45 then
-          dhdSettings.monB = side
-        end
-      end
-      if tostring(perp) == "biolock" then
-        dhdSettings.bio.side = side
-      end
-    end
-  end
-  if dhdSettings.netSide == "none" then return end
-  saveData(settingsData,"cfg")
 end
 
 local function assignColor(gateNumber)
@@ -596,17 +506,7 @@ local function displayStatus()
       longAddress = dialAddress
     end
     monB.setCursorPos(xPos,2)
-    if #dialAddress < 8 then
-      local dA = { }
-      for i = 1,#dialAddress,1 do
-        dA[i] = dialAddress:sub(i,i)
-        if i < #dialAddress then
-          longAddress = longAddress .. dA[i] .. " "
-        else
-          longAddress = longAddress .. dA[i]
-        end
-      end
-    end
+    longAddress = makeLongName(dialAddress)
     monB.setTextColor(yellow)
     monB.write(longAddress)
   elseif (gateStatus == "Dialing" or gateStatus == "Connected" ) and (dialAddress == "" or dialAddress == nil) then
@@ -749,13 +649,6 @@ local function drawHeader()
       term.write(dialAddress)
     end
   end
-  --[[
-  if runState == "rCmd" or runState == "goPage" then
-    term.setCursorPos(((termX/2)-10),9) -- this repositions the cursor for the rCmd & Go to Page boxes after an update is received
-    term.setBackgroundColor(black)      -- this returns the background color to black after an update is received
-    term.setTextColor(lime)             -- this returns the cursor to 'lime' after an update is received
-  end
-  ]]--
   if secureStatus == "allclear" then displayStatus() end
 end
 
@@ -952,21 +845,25 @@ local function viewLogs()
   term.setTextColor(white)
   term.write(tostring(histPages))
   term.setBackgroundColor(black)
-  local currentEntry = ((histPage - 1) * 10) + 1                 -- Set the first entry to show (based on page number)
-  if callHistory[1] == "" or callHistory[1] == nil then callHistory[1] = "No Logs" .. string.rep(" ",13) end
-  for i = currentEntry,#callHistory,1 do                         -- Display logs
-    term.setCursorPos(2, i - ((histPage - 1) * 10) + 5)          -- position entry
-    term.setTextColor(gray)                                      --
-    term.write(callHistory[i]:sub(1,#callHistory[i]-9))          -- time/day - broken apart from gate, so gate can be highlighted
-    local tGate = callHistory[i]:sub(#callHistory[i]-8,#callHistory[i])
-    if tGate == "  Restart" then
+  local currentEntry = ((histPage - 1) * 10) + 1                        -- Set the first entry to show (based on page number)
+  if callHistory[1] == "" or callHistory[1] == nil then callHistory[1] = "No Logs" .. string.rep(" ",13) end -- no logs
+  for i = currentEntry,#callHistory,1 do                                -- Display logs
+    term.setCursorPos(2, i - ((histPage - 1) * 10) + 5)                 -- position entry
+    term.setTextColor(gray)                                             --
+    term.write(callHistory[i]:sub(1,string.find(callHistory[i],"_")-1)) -- write time
+    term.setCursorPos(13, i - ((histPage - 1) * 10) + 5)                -- position entry
+    term.write(callHistory[i]:sub(string.find(callHistory[i],"_")+1,string.find(callHistory[i],"/")-1)) -- write day
+    term.setCursorPos(23, i - ((histPage - 1) * 10) + 5)                -- position entry
+    local tGate = callHistory[i]:sub(string.find(callHistory[i],"/")+1) -- get gate
+    if tGate == "No Data" then
       term.setTextColor(gray)
-    elseif tGate == "  Inbound" or tGate == ">Inbound<" or tGate == "<Inbound>" then
+    elseif tGate == "Inbound" then
       term.setTextColor(lgray)
     else
       term.setTextColor(lblue)
     end
-    term.write(callHistory[i]:sub(#callHistory[i]-8,#callHistory[i]) .. "  ") -- gate
+    if #tGate < 9 then tGate = " " .. tGate .. " " end -- if tGate is LT 9 characters add buffer spaces
+    term.write(tGate) -- write gate
     if i > currentEntry + 9 or i > #callHistory then break end   -- if we've 'filled' the page or reached the end of the log then stop the loop
   end
 end
@@ -1184,7 +1081,7 @@ local function drawSettingsUI()
   term.setBackgroundColor(gray)
   term.setTextColor(black)
   term.setCursorPos(23,10)
-  term.write("#")                    -- netSide
+  term.write("#")                    -- dhdSettings.netSide
   term.setBackgroundColor(black)
   term.setTextColor(gray)
   term.setCursorPos(2,12)
@@ -1888,7 +1785,7 @@ local function secKernel()       -- LOCKDOWN handler
       netSend("allclear")
       if dhdSettings.net == "R" then
         local senderID, message = rednet.receive(1)
-        if senderID == gateLiaison and (message == "YY0" or message == "YY1") then
+        if senderID == dhdSettings.server and (message == "YY0" or message == "YY1") then
           secureStatus = "allclear"
           term.setBackgroundColor(black)
           term.setCursorPos(15,9)
@@ -2410,7 +2307,7 @@ local function mClick()
           term.setBackgroundColor(black)
           for i = 5,10,1 do
             term.setCursorPos(2,i)
-            term.write("           ")
+            term.write(string.rep(" ",11))
           end
           drawCLI()
           return
@@ -2420,7 +2317,7 @@ local function mClick()
         term.setBackgroundColor(black)
         for i = 5,10,1 do
           term.setCursorPos(2,i)
-          term.write("           ")
+          term.write(string.rep(" ",11))
         end
         drawCLI()
         return
@@ -3001,20 +2898,7 @@ local function mClick()
         if newGate ~= "" and newGate ~= "NIL" and newGate ~= dhdSettings.thisGate and newGate:len() > 6 and newGate:len() < 10 then
           configChange = true
           dhdSettings.thisGate = newGate
-          longName = ""
-          if #newGate == 7 then
-            tG = {}
-            for i = 1,dhdSettings.thisGate:len(),1 do
-              tG[i] = dhdSettings.thisGate:sub(i,i)
-              if i < dhdSettings.thisGate:len() then
-                longName = longName .. tG[i] .. " "
-              else
-                longName = longName .. tG[i]
-              end
-            end
-          elseif #newGate > 7 then
-            longName = newGate
-          end
+          longName = makeLongName(dhdSettings.thisGate)
           if gateStatus == "Disconnected" then displayMarquee() end
         end
         term.setCursorPos(16,4)
@@ -3036,12 +2920,14 @@ local function mClick()
         drawSettingsUI()
         -- Biolock ON/OFF
       elseif mcY == 8 and mcX > 16 and mcX < 21 and dhdSettings.bio.lock ~= "none" then
-        if dhdSettings.bio.lock == "ON" then
-          dhdSettings.bio.lock = "OFF"
-          configChange = true
-        elseif dhdSettings.bio.lock == "OFF" then
-          dhdSettings.bio.lock = "ON"
-          configChange = true
+        if dhdSettings.bio.side ~= "none" then
+          if dhdSettings.bio.lock == "ON" then
+            dhdSettings.bio.lock = "OFF"
+            configChange = true
+          elseif dhdSettings.bio.lock == "OFF" then
+            dhdSettings.bio.lock = "ON"
+            configChange = true
+          end
         end
         drawSettingsUI()
       elseif mcY == 8 and mcX > 22 and mcX < 24 and dhdSettings.bio.lock ~= "none" then
@@ -3080,10 +2966,10 @@ local function mClick()
       elseif mcY == 10 and mcX > 22 and mcX < 24 then
         if dhdSettings.net == "R" then
           drawSideList(dhdSettings.netSide)
-          local netSide = { os.pullEvent("mouse_click") }
-          if netSide[3] > 26 and netSide[2] < 35 then
+          local modemSide = { os.pullEvent("mouse_click") }
+          if modemSide[3] > 26 and modemSide[2] < 35 then
             for jr,kr in pairs(cfgPos) do
-              if netSide[4] == kr then
+              if modemSide[4] == kr then
                 wrapPerp("R",cfgSides[jr])
                 break
               end
@@ -3093,10 +2979,10 @@ local function mClick()
         -- Select ccNet Side
         elseif dhdSettings.net == "C" then
           drawSideList(dhdSettings.netSide)
-          local netSide = { os.pullEvent("mouse_click") }
-          if netSide[3] > 26 and netSide[2] < 35 then
+          local modemSide = { os.pullEvent("mouse_click") }
+          if modemSide[3] > 26 and modemSide[2] < 35 then
             for jc,kc in pairs(cfgPos) do
-              if netSide[4] == kc then
+              if modemSide[4] == kc then
                 wrapPerp("C",cfgSides[jc])
                 break
               end
@@ -3214,12 +3100,11 @@ local function mClick()
           dhdSettings.pSync = "OFF"
           modem.close(dhdSettings.pChannels.recv)
           configChange = true
-          --saveData(settingsData,"cfg")
         elseif dhdSettings.pSync == "OFF" then
           dhdSettings.pSync = "ON"
+          if not modem then modem = peripheral.wrap(dhdSettings.netSide) end
           modem.open(dhdSettings.pChannels.recv)
           configChange = true
-          --saveData(settingsData,"cfg")
         end
         drawSettingsUI()
         -- Bioscanner function (shield/lockdown)
@@ -3438,9 +3323,107 @@ local function dhdKernel()
   return kernelState
 end
 
+function makeLongName(name)
+  if #name > 7 then
+    local newLongName = name
+    return newLongName
+  else
+    local lN = { }
+    local newLongName = ""
+    for i = 1,name:len(),1 do                     --
+      lN[i] = name:sub(i,i)                       --
+      if i < name:len() then                      -- This spaces out the name for a 7 character address
+        newLongName = newLongName .. lN[i] .. " " --
+      else                                        --
+        newLongName = newLongName .. lN[i]        --
+        return newLongName
+      end
+    end
+  end
+end
+
+local function missingComponent(id)
+  term.setTextColor(red)
+  term.setBackgroundColor(black)
+  term.clear()
+  term.setCursorPos(2,2)
+  if id == "modem" then
+    term.write("No wireless modem detected!")
+    term.setCursorPos(2,4)
+    term.write("ccDHD REQUIRES a wireless modem.")
+  elseif id == "cfg" then
+    term.write("Please restart ccDHD")
+    term.setCursorPos(2,4)
+    term.write("to complete setup.")
+  else
+    term.write("Unknown component missing!")
+    term.setCursorPos(2,4)
+    term.write("ccDHD REQUIRES a something.")
+  end
+  term.setCursorPos(1,8)
+  runState = "quit"
+  kernelState = false
+end
+
+local function detectHardware(hType)
+  if hType == "bio" then
+    dhdSettings.bio.side="none"
+    for _,bSide in pairs(rs.getSides()) do
+      if peripheral.isPresent(bSide) then
+        if peripheral.getType(bSide) == "biolock" then
+          dhdSettings.bio.side = bSide
+          break
+        end
+      end
+    end
+    if dhdSettings.bio.side == "none" then -- This accounts for a removed scanner
+      dhdSettings.bio.lock = "OFF"         --
+    end
+    return
+  elseif hType == "modem" then
+    dhdSettings.netSide="none"
+    local side
+    for _,side in pairs(rs.getSides()) do
+      if peripheral.isPresent(tostring(side)) then
+        local perp = peripheral.getType(tostring(side))
+        if tostring(perp) == "modem" then
+          if peripheral.call(tostring(side),"isWireless") == true then
+            dhdSettings.netSide = side
+            if dhdSettings.net == "R" then
+              rednet.open(side)
+            elseif dhdSettings.net == "C" then
+              modem = peripheral.wrap(side)
+              modem.open(dhdSettings.channels.recv)
+            end
+            break
+          end
+        end
+      end
+    end
+    if dhdSettings.netSide == "none" then missingComponent("modem") return end
+    return
+  elseif hType == "mon" then
+    dhdSettings.monA="none"
+    dhdSettings.monB="none"
+    local side
+    for _,side in pairs(rs.getSides()) do
+      if peripheral.isPresent(tostring(side)) then
+        local perp = peripheral.getType(tostring(side))
+        if tostring(perp) == "monitor" then
+          local tmX, tmY = peripheral.call(side,"getSize")
+          if tmX == 7 or tmX == 15 then
+            dhdSettings.monA = side
+          elseif tmX == 14 or tmX == 45 then
+            dhdSettings.monB = side
+          end
+        end
+      end
+    end
+    return
+  end
+end
+
 local function firstRun()
-  localInventory()
-  if dhdSettings.netSide == "none" then missingComponent("modem") return end
   netSend("1stRun")
   sleep(0.1)
   netSend(os.getComputerID())
@@ -3454,11 +3437,12 @@ local function firstRun()
       break
     end
   end
-  if fs.exists("/data/DHDsettings") then fs.delete("/data/DHDsettings") end
+  if dhdSettings.thisGate == "--ERROR--" then return end
   saveData(settingsData,"cfg")
   if not fs.exists(dhdSettings.gateData) then
     saveData(dhdSettings.gateData,"gate")
   end
+  -- Check and, if necessary, set computer label
   local ccLabel = os.getComputerLabel()
   if tostring(ccLabel) == "nil" or ccLabel == "" or ccLabel == "DHD" then
     os.setComputerLabel(dhdSettings.thisGate .. " DHD")
@@ -3471,25 +3455,20 @@ local function initMe()
   term.clear()
   term.setCursorPos(2,2)
   term.write("Initializing . . .")
-  if not fs.exists(settingsData) then firstRun() end
+  term.setCursorPos(2,4)
+  term.write("Hardware Discovery . . .")
+  detectHardware("modem")
+  if dhdSettings.netSide == "none" then return end
+  if not fs.exists(settingsData) then detectHardware("mon") firstRun() end
   if not fs.exists(settingsData) then missingComponent("cfg") return end
   ingestData(settingsData,"cfg")
-  if dhdSettings.netSide == "none" then missingComponent("modem") return end
-  if tostring(dhdSettings.highlight) == "" or dhdSettings.highlight == nil then
-    dhdSettings.highlight = "YES"
-    saveData(settingsData,"cfg")
-  end
-  if tostring(dhdSettings.pSync) == "" or dhdSettings.pSync == nil then
-    dhdSettings.pSync = "OFF"
-    dhdSettings.pChannels = { send = 24747, recv = 24242, }
-    saveData(settingsData,"cfg")
-  end
-  if dhdSettings.pSync == "YES" then
-    dhdSettings.pSync = "ON"
-    saveData(settingsData,"cfg")
-  elseif dhdSettings.pSync == "NO" then
-    dhdSettings.pSync = "OFF"
-    saveData(settingsData,"cfg")
+  if dhdSettings.pSync == "ON" then
+    if dhdSettings.net == "R" then
+      modem = peripheral.wrap(dhdSettings.netSide)
+      modem.open(dhdSettings.pChannels.recv)
+    elseif dhdSettings.net == "C" then
+      modem.open(dhdSettings.pChannels.recv)
+    end
   end
   if dhdSettings.monA ~= "none" then
     monA.setBackgroundColor(black)
@@ -3499,21 +3478,7 @@ local function initMe()
     monB.setBackgroundColor(black)
     monB.clear()
   end
-  term.setCursorPos(2,4)
-  term.write("Hardware Discovery . . .")
-  for _,bSide in pairs(rs.getSides()) do
-    if peripheral.isPresent(bSide) then
-      if peripheral.getType(bSide) == "biolock" then
-        dhdSettings.bio.side = bSide
-        saveData(settingsData,"cfg")
-        break
-      end
-    end
-    if dhdSettings.bio.side ~= "none" then -- This accounts for a removed scanner
-      dhdSettings.bio.side = "none"        --
-      saveData(settingsData,"cfg")
-    end
-  end
+  detectHardware("bio")
   if dhdSettings.bio.lock == "ON" and dhdSettings.bio.side ~= "none" then bioLogin() end -- Biolock login
   term.setCursorPos(2,6)
   term.write("Querying gateLiaison @ " .. dhdSettings.thisGate .. " . . .")
@@ -3522,7 +3487,7 @@ local function initMe()
   term.write("Awaiting response . . .")
   if dhdSettings.net == "R" then
     local senderID, message = rednet.receive()
-    if senderID == gateLiaison then
+    if senderID == dhdSettings.server then
       updateStatus(message)
     end
   elseif dhdSettings.net == "C" then
@@ -3564,8 +3529,10 @@ repeat
     end
     term.setBackgroundColor(black)
     term.setTextColor(white)
-    term.clear()
-    term.setCursorPos(1,1)
+    if dhdSettings.thisGate ~= "--ERROR--" then
+      term.clear()
+      term.setCursorPos(1,1)
+    end
     if dhdSettings.netSide ~= "none" then
       if dhdSettings.pSync == "ON" then
         modem.close(dhdSettings.pChannels.recv)
