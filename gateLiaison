@@ -6,7 +6,7 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.0.27"
+local gVer = "1.0.28"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -412,7 +412,6 @@ local function doCommand(thisCommand)
     updateStatus()
     return
   end
-
   if gateStatus ~= "lockdown" then
     if thisCommand == "QRY" then
       updateStatus("QRY")
@@ -438,6 +437,7 @@ local function doCommand(thisCommand)
       rednet.open(modemSide)
       saveData()
       drawTermScreen()
+      return
     elseif thisCommand == "ccNet" then  -- change to ccNet
       if gateSettings.net == "R" then rednet.close(modemSide) end
       gateSettings.net = "C"
@@ -445,6 +445,7 @@ local function doCommand(thisCommand)
       modem.open(gateSettings.chan.recv)
       saveData()
       drawTermScreen()
+      return
     elseif thisCommand == "CS" then     -- change ccNet Receive Channel
       local newCR = { os.pullEvent("modem_message") }
       modem.close(gateSettings.chan.recv)
@@ -452,11 +453,13 @@ local function doCommand(thisCommand)
       modem.open(gateSettings.chan.recv)
       saveData()
       drawTermScreen()
+      return
     elseif thisCommand == "CR" then     -- change ccNet Send Channel
       local newCS = { os.pullEvent("modem_message") }
       gateSettings.chan.send = newCS[5]
       saveData()
       drawTermScreen()
+      return
     elseif thisCommand == "endCall" then
       endCall()
       updateStatus()
@@ -652,19 +655,20 @@ local function initMe()
   end
   ingestData()
   for k,v in pairs(rs.getSides()) do
-        -- Modem/redNet
+        -- Modem
     if peripheral.getType(v) == "modem" then
       if peripheral.call(tostring(v),"isWireless") == true then
+        -- redNet
         if gateSettings.net == "R" then
           modemSide = v
           rednet.open(v)
-        -- Network/ccNet
+        -- ccNet
         elseif gateSettings.net == "C" then
           modemSide = v
           modem = peripheral.wrap(v)
           modem.open(gateSettings.chan.recv)
         end
-        -- Monitor / Stargate
+        -- Monitor
       elseif peripheral.call(tostring(v),"isWireless") == false then
         local mPerps = peripheral.call(tostring(v),"getNamesRemote")
         for num,mPerp in pairs(mPerps) do
