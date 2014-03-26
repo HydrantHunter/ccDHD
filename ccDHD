@@ -391,7 +391,7 @@ local function ingestLogData()
       local tTime = timeDate:sub(1,string.find(timeDate," / ")) -- separate time from time/day
       local dDate = timeDate:sub(#tTime+7)                      -- separate day from time/day
       if #tTime == 8 then tTime = " " .. tTime end  -- move single digit hour times to the right one space (this must happen after date so date doesn't get skewed by 1)
-      table.insert(callHistory,1,tTime .. "_" .. dDate .. "/" .. gateAddr)
+      table.insert(callHistory,1,tTime .. "_" .. dDate .. "/" .. gateAddr) -- insert concatenated data into callHistory table
     end
     dhdHist.close()
   end
@@ -919,7 +919,7 @@ local function viewEditHelp(pY)
   term.setBackgroundColor(black)
   term.setTextColor(white)
   term.setCursorPos(2, pY + 2)
-  term.write("- Edit Mode: Left click an address to edit")
+  term.write("- EDIT Mode: Left click an address to edit")
   term.setCursorPos(2, pY + 3)
   term.write("             Right click an address for Trim Mode")
   term.setCursorPos(2, pY + 4)
@@ -927,13 +927,13 @@ local function viewEditHelp(pY)
   term.setCursorPos(2, pY + 5)
   term.write("  'Import /  Load gate data from diskette")
   term.setCursorPos(2, pY + 6)
-  term.write("     Export' Save gate data to diskette")
+  term.write("    Export'  Save gate data to diskette")
   term.setCursorPos(2, pY + 7)
-  term.write("- Trim Mode: Left click an address to delete")
+  term.write("- TRIM Mode: Left click an address to delete")
   term.setCursorPos(2, pY + 8)
-  term.write("  '-COMMIT-' saves new gate data, exits Trim Mode")
+  term.write(" '-COMMIT-'  saves new gate data, exits Trim Mode")
   term.setCursorPos(2, pY + 9)
-  term.write("  '- Undo -' cancels deletions, exits Trim Mode")
+  term.write(" '- Undo -'  cancels deletions, exits Trim Mode")
 end
 
 local function drawHelpUI()
