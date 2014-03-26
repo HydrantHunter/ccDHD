@@ -31,9 +31,8 @@ local dhdSettings = { thisGate="--ERROR--",
                       password="password",
                       monA="none",
                       monB="none",
-                      bio={lock="OFF",side="none",func="none",auth=4,},
+                      bio={lock="OFF",func="none",auth=4,},
                       net="C",
-                      netSide="none",
                       server=9999,
                       channels={send=1776,recv=1787,},
                       pSync="OFF",
@@ -49,11 +48,12 @@ local dhdSettings = { thisGate="--ERROR--",
 local allGates = { {addr="NEWGATE",rating="U",note="short note",loc={x=99999,y=99999,z=99999,dim="Overworld",},}, }
 local fistAuth = false
 local longName, tY
--- Peripherals
+ -- Peripherals
 local termX,termY = term.getSize() -- portable 26x20 / standard 51x19 / cBang & OneOS = 51x18
 local modem = nil                  -- Modem (for ccNet)
 local monA = dhdSettings.monA      -- List monitor
 local monB = dhdSettings.monB      -- Marquee Monitor
+local hardware = { netSide = "none", bioSide = "none", }
  -- Status Info
 local shieldStatus = "QRY"
 local gateStatus = "QRY"
@@ -311,6 +311,25 @@ local function netReceive()
   end
 end
 
+local function makeLongName(name)
+  if #name > 7 then
+    local newLongName = name
+    return newLongName
+  else
+    local lN = { }
+    local newLongName = ""
+    for i = 1,name:len(),1 do                     --
+      lN[i] = name:sub(i,i)                       --
+      if i < name:len() then                      -- This spaces out the name for a 7 character address
+        newLongName = newLongName .. lN[i] .. " " --
+      else                                        --
+        newLongName = newLongName .. lN[i]        --
+        return newLongName
+      end
+    end
+  end
+end
+
 local function saveData(filename,filetype)
   menuState = false
   if not fs.exists("/data") then fs.makeDir("/data") end
@@ -335,12 +354,7 @@ local function ingestData(fileName,fileType)
   local dhdCfg = dhdConfig.readAll()
   dhdConfig.close()
   if fileType == "cfg" then
-    local tmpMSide = dhdSettings.netSide
     dhdSettings = textutils.unserialize(dhdCfg)
-    if dhdSettings.netSide ~= tmpMSide then
-      dhdSettings.netSide = tmpMSide
-      saveData(settingsData,"cfg")
-    end
     if dhdSettings.monA ~= "none" then
       monA = peripheral.wrap(dhdSettings.monA)
     end
@@ -1081,7 +1095,7 @@ local function drawSettingsUI()
   term.setBackgroundColor(gray)
   term.setTextColor(black)
   term.setCursorPos(23,10)
-  term.write("#")                    -- dhdSettings.netSide
+  term.write("#")                    -- hardware.netSide
   term.setBackgroundColor(black)
   term.setTextColor(gray)
   term.setCursorPos(2,12)
@@ -2003,7 +2017,7 @@ local function wrapPerp(perp,side)
             modem = nil
           end
           modem = peripheral.wrap(side)
-          dhdSettings.netSide = side
+          hardware.netSide = side
           modem.open(dhdSettings.channels.recv)
           configChange = true
         end
@@ -2011,9 +2025,9 @@ local function wrapPerp(perp,side)
     elseif perp == "R" then
       if peripheral.getType(side) == "modem" then
         if peripheral.call(side,"isWireless") == true then
-          if dhdSettings.netSide ~= side then rednet.close(dhdSettings.netSide) end
+          if hardware.netSide ~= side then rednet.close(hardware.netSide) end
           rednet.open(side)
-          dhdSettings.netSide = side
+          hardware.netSide = side
           configChange = true
         end
       end
@@ -2864,6 +2878,15 @@ local function mClick()
         drawCLI()
       end
     end
+  end
+end
+
+local function mClickSettings()
+  while true do
+    local clickEvent = { os.pullEvent("mouse_click") }
+    local mButton = clickEvent[2]
+    local mcX = clickEvent[3]
+    local mcY = clickEvent[4]
       -- DHD Settings
     if runState == "DialCfg" or runState == "EditCfg" then
       local cfgPos = { 5, 7, 9, 11, 13, 15 }
@@ -2920,7 +2943,7 @@ local function mClick()
         drawSettingsUI()
         -- Biolock ON/OFF
       elseif mcY == 8 and mcX > 16 and mcX < 21 and dhdSettings.bio.lock ~= "none" then
-        if dhdSettings.bio.side ~= "none" then
+        if hardware.bioSide ~= "none" then
           if dhdSettings.bio.lock == "ON" then
             dhdSettings.bio.lock = "OFF"
             configChange = true
@@ -2948,9 +2971,9 @@ local function mClick()
       elseif mcY == 10 and mcX > 16 and mcX < 21 then
         if dhdSettings.net == "R" then
           netSend("ccNet")
-          rednet.close(dhdSettings.netSide)
+          rednet.close(hardware.netSide)
           dhdSettings.net = "C"
-          modem = peripheral.wrap(dhdSettings.netSide)
+          modem = peripheral.wrap(hardware.netSide)
           modem.open(dhdSettings.channels.recv)
           saveData(settingsData,"cfg")
         elseif dhdSettings.net == "C" then
@@ -2958,14 +2981,14 @@ local function mClick()
           modem.close(dhdSettings.channels.recv)
           modem = nil
           dhdSettings.net = "R"
-          rednet.open(dhdSettings.netSide)
+          rednet.open(hardware.netSide)
           saveData(settingsData,"cfg")
         end
         drawSettingsUI()
         -- Select redNet Side
       elseif mcY == 10 and mcX > 22 and mcX < 24 then
         if dhdSettings.net == "R" then
-          drawSideList(dhdSettings.netSide)
+          drawSideList(hardware.netSide)
           local modemSide = { os.pullEvent("mouse_click") }
           if modemSide[3] > 26 and modemSide[2] < 35 then
             for jr,kr in pairs(cfgPos) do
@@ -2978,7 +3001,7 @@ local function mClick()
           drawSettingsUI()
         -- Select ccNet Side
         elseif dhdSettings.net == "C" then
-          drawSideList(dhdSettings.netSide)
+          drawSideList(hardware.netSide)
           local modemSide = { os.pullEvent("mouse_click") }
           if modemSide[3] > 26 and modemSide[2] < 35 then
             for jc,kc in pairs(cfgPos) do
@@ -3102,7 +3125,7 @@ local function mClick()
           configChange = true
         elseif dhdSettings.pSync == "OFF" then
           dhdSettings.pSync = "ON"
-          if not modem then modem = peripheral.wrap(dhdSettings.netSide) end
+          if not modem then modem = peripheral.wrap(hardware.netSide) end
           modem.open(dhdSettings.pChannels.recv)
           configChange = true
         end
@@ -3280,7 +3303,7 @@ local function bioScan()
 end
 
 local function bioLogin()
-  local bio = peripheral.wrap(dhdSettings.bio.side)
+  local bio = peripheral.wrap(hardware.bioSide)
   fistAuth = false
   term.setBackgroundColor(black)
   term.clear()
@@ -3310,8 +3333,10 @@ end
 local function dhdKernel()
   if kernelState == true and secureStatus == "lockdown" then
     parallel.waitForAny(secKernel,netReceive)
-  elseif kernelState == true and secureStatus == "allclear" and runState ~= "rCmd" and runState ~= "goPage" then
+  elseif kernelState == true and secureStatus == "allclear" and runState ~= "DialCfg" and runState ~= "EditCfg" and runState ~= "rCmd" and runState ~= "goPage" then
     parallel.waitForAny(keyClick,mClick,mScroll,bioScan,monTouch,netReceive)
+  elseif kernelState == true and secureStatus == "allclear" and (runState == "DialCfg" or runState == "EditCfg") then
+    parallel.waitForAny(keyClick,mClickSettings,bioScan,monTouch,netReceive)
   end
   if runState == "reset" then
     netSend("reset")
@@ -3321,25 +3346,6 @@ local function dhdKernel()
     kernelState = false
   end
   return kernelState
-end
-
-function makeLongName(name)
-  if #name > 7 then
-    local newLongName = name
-    return newLongName
-  else
-    local lN = { }
-    local newLongName = ""
-    for i = 1,name:len(),1 do                     --
-      lN[i] = name:sub(i,i)                       --
-      if i < name:len() then                      -- This spaces out the name for a 7 character address
-        newLongName = newLongName .. lN[i] .. " " --
-      else                                        --
-        newLongName = newLongName .. lN[i]        --
-        return newLongName
-      end
-    end
-  end
 end
 
 local function missingComponent(id)
@@ -3367,28 +3373,28 @@ end
 
 local function detectHardware(hType)
   if hType == "bio" then
-    dhdSettings.bio.side="none"
+    hardware.bioSide="none"
     for _,bSide in pairs(rs.getSides()) do
       if peripheral.isPresent(bSide) then
         if peripheral.getType(bSide) == "biolock" then
-          dhdSettings.bio.side = bSide
+          hardware.bioSide = bSide
           break
         end
       end
     end
-    if dhdSettings.bio.side == "none" then -- This accounts for a removed scanner
+    if hardware.bioSide == "none" then -- This accounts for a removed scanner
       dhdSettings.bio.lock = "OFF"         --
     end
     return
   elseif hType == "modem" then
-    dhdSettings.netSide="none"
+    hardware.netSide="none"
     local side
     for _,side in pairs(rs.getSides()) do
       if peripheral.isPresent(tostring(side)) then
         local perp = peripheral.getType(tostring(side))
         if tostring(perp) == "modem" then
           if peripheral.call(tostring(side),"isWireless") == true then
-            dhdSettings.netSide = side
+            hardware.netSide = side
             if dhdSettings.net == "R" then
               rednet.open(side)
             elseif dhdSettings.net == "C" then
@@ -3400,7 +3406,7 @@ local function detectHardware(hType)
         end
       end
     end
-    if dhdSettings.netSide == "none" then missingComponent("modem") return end
+    if hardware.netSide == "none" then missingComponent("modem") return end
     return
   elseif hType == "mon" then
     dhdSettings.monA="none"
@@ -3458,13 +3464,13 @@ local function initMe()
   term.setCursorPos(2,4)
   term.write("Hardware Discovery . . .")
   detectHardware("modem")
-  if dhdSettings.netSide == "none" then return end
+  if hardware.netSide == "none" then return end
   if not fs.exists(settingsData) then detectHardware("mon") firstRun() end
   if not fs.exists(settingsData) then missingComponent("cfg") return end
   ingestData(settingsData,"cfg")
   if dhdSettings.pSync == "ON" then
     if dhdSettings.net == "R" then
-      modem = peripheral.wrap(dhdSettings.netSide)
+      modem = peripheral.wrap(hardware.netSide)
       modem.open(dhdSettings.pChannels.recv)
     elseif dhdSettings.net == "C" then
       modem.open(dhdSettings.pChannels.recv)
@@ -3479,7 +3485,7 @@ local function initMe()
     monB.clear()
   end
   detectHardware("bio")
-  if dhdSettings.bio.lock == "ON" and dhdSettings.bio.side ~= "none" then bioLogin() end -- Biolock login
+  if dhdSettings.bio.lock == "ON" and hardware.bioSide ~= "none" then bioLogin() end -- Biolock login
   term.setCursorPos(2,6)
   term.write("Querying gateLiaison @ " .. dhdSettings.thisGate .. " . . .")
   netSend("QRY")
@@ -3533,12 +3539,12 @@ repeat
       term.clear()
       term.setCursorPos(1,1)
     end
-    if dhdSettings.netSide ~= "none" then
+    if hardware.netSide ~= "none" then
       if dhdSettings.pSync == "ON" then
         modem.close(dhdSettings.pChannels.recv)
       end
       if dhdSettings.net == "R" then
-        rednet.close(dhdSettings.netSide)
+        rednet.close(hardware.netSide)
       elseif dhdSettings.net == "C" then
         modem.close(dhdSettings.channels.recv)
       end
