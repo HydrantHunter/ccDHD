@@ -1762,9 +1762,7 @@ local function clearGateEntryScreen() -- Clean up select parts of the screen ins
   term.setCursorPos(13,12)
   term.write(string.rep(" ",termX))
   term.setCursorPos(1,termY-1)
-  for i = 1,termX,1 do
-    term.write(" ")
-  end
+  term.write(string.rep(" ",termX))
   drawCLI()
 end
 
@@ -1905,30 +1903,34 @@ local function remoteCommand()
     term.setCursorPos((termX/2)-11,i)
     term.write(string.rep(" ",15))
   end
-  if commandLine == "quit" or commandLine == "exit" then
+  if string.lower(commandLine) == "quit" or string.lower(commandLine) == "exit" then
     runState = "quit"
     kernelState = false
     return
-  elseif commandLine == "reboot" then
+  elseif string.lower(commandLine) == "reboot" then
     runState = "reboot"
     kernelState = false
     return
-  elseif commandLine == "reset" then
+  elseif string.lower(commandLine) == "reset" then
     runState = "reset"
     kernelState = false
     netSend(commandLine)
     return
-  elseif commandLine == "lockdown" then
+  elseif string.lower(commandLine) == "lockdown" then
     secureStatus = "lockdown"
     netSend(secureStatus)
-  elseif commandLine == "restart" then
-    netSend(commandLine)
+  elseif string.lower(commandLine) == "restart" then
+    netSend(string.lower(commandLine))
   elseif commandLine == "sON" then
     netSend(commandLine)
   elseif commandLine == "sOFF" then
     netSend(commandLine)
   elseif commandLine == "endCall" then
     netSend(commandLine)
+  elseif string.lower(commandLine) == "help" then
+    runState = "DialHelp"
+    drawHelpUI()
+    return
   else
     if commandLine ~= "" and commandLine:len() > 6 and commandLine:len() < 10 then
       if gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
