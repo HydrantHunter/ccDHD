@@ -860,7 +860,7 @@ local function viewLogs()
   term.write(tostring(histPages))
   term.setBackgroundColor(black)
   local currentEntry = ((histPage - 1) * 10) + 1                        -- Set the first entry to show (based on page number)
-  if callHistory[1] == "" or callHistory[1] == nil then callHistory[1] = "No Logs" .. string.rep(" ",13) end -- no logs
+  if callHistory[1] == "" or callHistory[1] == nil then callHistory[1] = "No Logs_/" end -- no logs
   for i = currentEntry,#callHistory,1 do                                -- Display logs
     term.setCursorPos(2, i - ((histPage - 1) * 10) + 5)                 -- position entry
     term.setTextColor(gray)                                             --
