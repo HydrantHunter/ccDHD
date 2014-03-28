@@ -3406,7 +3406,7 @@ local function detectHardware(hType)
         end
       end
     end
-    if hardware.netSide == "none" then missingComponent("modem") return end
+    if hardware.netSide == "none" then return end
     return
   elseif hType == "mon" then
     dhdSettings.monA="none"
@@ -3465,14 +3465,14 @@ local function initMe()
   if not fs.exists(settingsData) then
     detectHardware("mon")
     detectHardware("modem")
-    if hardware.netSide == "none" then return end
+    if hardware.netSide == "none" then missingComponent("modem") return end
     firstRun()
   end
-  term.write("Hardware Discovery . . .")
   if not fs.exists(settingsData) then missingComponent("cfg") return end
+  term.write("Hardware Discovery . . .")
   ingestData(settingsData,"cfg")
   detectHardware("modem")
-  if hardware.netSide == "none" then return end
+  if hardware.netSide == "none" then missingComponent("modem") dhdSettings.thisGate = "--ERROR--" return end
   if dhdSettings.pSync == "ON" then
     if dhdSettings.net == "R" then
       modem = peripheral.wrap(hardware.netSide)
