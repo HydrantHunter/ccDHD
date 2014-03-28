@@ -1773,6 +1773,10 @@ local function deleteGate(tGate) -- TRIM mode: delete gate
     listPages = math.ceil(#allGates / 8)
     if pageNum > numPages then pageNum = numPages end
     if listPage > listPages then listPage = listPages end
+    for i = 6,16,2 do                   --
+      term.setCursorPos(2,i)            -- Clear gate entry areas of screen
+      term.write(string.rep(" ",termX)) --
+    end
   end
 end
 
@@ -2532,10 +2536,6 @@ local function mClick()
             elseif runState == "Trim" then
               if mButton == 1 then
                 deleteGate(i)
-                for i = 6,16,2 do                   --
-                  term.setCursorPos(2,i)            -- Clear gate entry areas of screen
-                  term.write(string.rep(" ",termX)) --
-                end
                 drawCLI()
                 return
               end
@@ -2566,10 +2566,6 @@ local function mClick()
             elseif runState == "Trim" then
               if mButton == 1 then
                 deleteGate(i + 6)
-                for i = 6,16,2 do                   --
-                  term.setCursorPos(2,i)            -- Clear gate entry areas of screen
-                  term.write(string.rep(" ",termX)) --
-                end
                 drawCLI()
                 return
               end
@@ -2600,10 +2596,6 @@ local function mClick()
             elseif runState == "Trim" then
               if mButton == 1 then
                 deleteGate(i + 12)
-                for i = 6,16,2 do                   --
-                  term.setCursorPos(2,i)            -- Clear gate entry areas of screen
-                  term.write(string.rep(" ",termX)) --
-                end
                 drawCLI()
                 return
               end
@@ -2632,11 +2624,7 @@ local function mClick()
               end
             elseif runState == "Trim" then
               if mButton == 1 then
-                for i = 6,16,2 do                   --
-                  term.setCursorPos(2,i)            -- Clear gate entry areas of screen
-                  term.write(string.rep(" ",termX)) --
-                end
-                term.clear()
+                deleteGate(i + 18)
                 drawCLI()
                 return
               end
