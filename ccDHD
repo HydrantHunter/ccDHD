@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.00"
+local ccDHDVer = "1.1.01"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -53,7 +53,7 @@ local termX,termY = term.getSize() -- portable 26x20 / standard 51x19 / cBang & 
 local modem = nil                  -- Modem (for ccNet)
 local monA = dhdSettings.monA      -- List monitor
 local monB = dhdSettings.monB      -- Marquee Monitor
-local hardware = { netSide = "none", bioSide = "none", }
+local hardware = { netSide = "none", bioSide = "none", } -- Modem and Biolock sides
  -- Status Info
 local shieldStatus = "QRY"
 local gateStatus = "QRY"
@@ -1917,16 +1917,18 @@ local function remoteCommand()
     netSend(commandLine)
     return
   elseif string.lower(commandLine) == "lockdown" then
+    flashChoice("lock")
     secureStatus = "lockdown"
     netSend(secureStatus)
   elseif string.lower(commandLine) == "restart" then
     netSend(string.lower(commandLine))
-  elseif commandLine == "sON" then
-    netSend(commandLine)
-  elseif commandLine == "sOFF" then
-    netSend(commandLine)
-  elseif commandLine == "endCall" then
-    netSend(commandLine)
+  elseif string.lower(commandLine) == "son" then
+    netSend("sON")
+  elseif string.lower(commandLine) == "soff" then
+    netSend("sOFF")
+  elseif string.lower(commandLine) == "endcall" or string.lower(commandLine) == "hangup" then
+    flashChoice("end")
+    netSend("endCall")
   elseif string.lower(commandLine) == "help" then
     runState = "DialHelp"
     drawHelpUI()
