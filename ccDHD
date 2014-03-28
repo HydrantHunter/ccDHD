@@ -1929,7 +1929,7 @@ local function remoteCommand()
   elseif string.lower(commandLine) == "endcall" or string.lower(commandLine) == "hangup" then
     flashChoice("end")
     netSend("endCall")
-  elseif string.lower(commandLine) == "help" then
+  elseif string.lower(commandLine) == "help" or commandLine == "?" then
     runState = "DialHelp"
     drawHelpUI()
     return
