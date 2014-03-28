@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.02"
+local ccDHDVer = "1.1.03"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -296,15 +296,21 @@ local function netReceive()
           updateStatus(netEvent[5])
           return
         end
-      elseif netEvent[3] == dhdSettings.pChannels.recv and netEvent[4] == dhdSettings.pChannels.send and dhdSettings.pSync == "ON" then
-        if netEvent[5] == "pPull" or netEvent[5] == "pPush" then
-          pSync(netEvent[5])
-        else
-          if #tostring(netEvent[5]) > 6 and #tostring(netEvent[5]) < 10 then
-            dialAddress = netEvent[5]
-            netSend(dialAddress)
-            --return
-          end
+      end
+    end
+  end
+end
+
+local function pSyncReceive()
+  while true do
+    local pSyncEvent = { os.pullEvent("modem_message") }
+    if pSyncEvent[3] == dhdSettings.pChannels.recv and pSyncEvent[4] == dhdSettings.pChannels.send then
+      if pSyncEvent[5] == "pPull" or pSyncEvent[5] == "pPush" then
+        pSync(pSyncEvent[5])
+      else
+        if #tostring(pSyncEvent[5]) > 6 and #tostring(pSyncEvent[5]) < 10 then
+          dialAddress = pSyncEvent[5]
+          netSend(dialAddress)
         end
       end
     end
@@ -669,19 +675,19 @@ end
 local function drawControlUI()
   local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "Iris", "END Call", "LOCKDOWN", "rCmd", "+ Entry", "Import", "Export", "Save", "- Undo -", "-COMMIT-" }
   term.setBackgroundColor(gray)
-  for i = 6,16,1 do
-    for h = 42,termX,1 do
-      term.setCursorPos(h,i)
-      term.write(" ")
+  for i = 6,16,1 do          --
+    for h = 42,termX,1 do    -- Control UI
+      term.setCursorPos(h,i) --   'box'
+      term.write(" ")        --
     end
   end
   term.setTextColor(white)
   term.setCursorPos(43,7)
   if runState == "Dial" then
-    if fuelGauge then
-      term.setBackgroundColor(green)
-    else
-      term.setBackgroundColor(red)
+    if fuelGauge then                -- Fuel
+      term.setBackgroundColor(green) --  full
+    else                             --
+      term.setBackgroundColor(red)   --  empty
     end
     term.write(dhdCommandOptions[1] .. "     ")  -- D I A L
   elseif runState == "Edit" then
@@ -937,23 +943,15 @@ local function drawHelpUI()
   elseif runState == "EditHelp" then
     term.setBackgroundColor(brown)
   end
-  for i = 1,termX,1 do
-    term.setCursorPos(i,1)
-    term.write(" ")
-  end
+  term.write(string.rep(" ",termX))
   term.setBackgroundColor(gray)
-  for i = 1,termX,1 do
-    term.setCursorPos(i,termY)
-    term.write(" ")
-  end
+  term.setCursorPos(1,termY)
+  term.write(string.rep(" ",termX))
   term.setCursorPos((termX/2)-(((#runState-4)/2)+3),1)
   term.write(" " .. runState:sub(1,#runState-4) .. " Help ")
   term.setCursorPos(1,2)
   term.setBackgroundColor(gray)
-  for i = 1,termX,1 do
-    term.setCursorPos(i,2)
-    term.write(" ")
-  end
+  term.write(string.rep(" ",termX))
   term.setTextColor(lgray)
   term.setCursorPos(2,2)
   term.write("-- Key --")
@@ -1680,9 +1678,9 @@ local function flashChoice(choice)
 end
 
 local function viewGateEntry(dataBlock)
+  currentEdit = dataBlock
   tempState = runState
   if tempState ~= "GateEdit" then runState = "viewing" end
-  currentEdit = dataBlock
   if currentEdit == "new" or currentEdit == "newFast" then    -- If we're adding a new gate, create a generic gate to edit
     local newGate = { addr = "NEWGATE", rating = "U", note = "short note", loc = {x=99999,y=99999,z=99999,dim="Overworld",}, }
     table.insert(allGates,newGate)
@@ -1693,7 +1691,6 @@ local function viewGateEntry(dataBlock)
       drawCLI()
       return
     end
-    dataBlock = #allGates
     currentEdit = #allGates
   end
   term.setBackgroundColor(black)
@@ -2011,23 +2008,34 @@ local function wrapPerp(perp,side)
     elseif perp == "C" then
       if peripheral.getType(side) == "modem" then
         if peripheral.call(side,"isWireless") == true then
-          if modem then
-            modem.close(dhdSettings.channels.recv)
-            modem = nil
+          if hardware.netSide ~= side then
+            if modem then
+              modem.close(dhdSettings.channels.recv)
+              modem.close(dhdSettings.pChannels.recv)
+              modem = nil
+            end
+            hardware.netSide = side
+            modem = peripheral.wrap(hardware.netSide)
+            modem.open(dhdSettings.channels.recv)
+            if dhdSettings.pSync == "ON" then modem.open(dhdSettings.pChannels.recv) end
+            configChange = true
           end
-          modem = peripheral.wrap(side)
-          hardware.netSide = side
-          modem.open(dhdSettings.channels.recv)
-          configChange = true
         end
       end
     elseif perp == "R" then
       if peripheral.getType(side) == "modem" then
         if peripheral.call(side,"isWireless") == true then
-          if hardware.netSide ~= side then rednet.close(hardware.netSide) end
-          rednet.open(side)
-          hardware.netSide = side
-          configChange = true
+          if hardware.netSide ~= side then
+            rednet.close(hardware.netSide)
+            if dhdSettings.pSync == "ON" then modem.close(dhdSettings.pChannels.recv) modem = nil end
+            hardware.netSide = side
+            rednet.open(hardware.netSide)
+            if dhdSettings.pSync == "ON" then
+              modem = peripheral.wrap(hardware.netSide)
+              modem.open(dhdSettings.pChannels.recv)
+            end
+            configChange = true
+          end
         end
       end
     end
@@ -3328,9 +3336,13 @@ end
 local function dhdKernel()
   if kernelState == true and secureStatus == "lockdown" then
     parallel.waitForAny(secKernel,netReceive)
-  elseif kernelState == true and secureStatus == "allclear" and runState ~= "DialCfg" and runState ~= "EditCfg" and runState ~= "rCmd" and runState ~= "goPage" then
+  elseif kernelState == true and secureStatus == "allclear" and runState ~= "DialCfg" and runState ~= "EditCfg" and runState ~= "rCmd" and runState ~= "goPage" and dhdSettings.pSync == "ON" then
+    parallel.waitForAny(keyClick,mClick,mScroll,bioScan,monTouch,netReceive,pSyncReceive)
+  elseif kernelState == true and secureStatus == "allclear" and runState ~= "DialCfg" and runState ~= "EditCfg" and runState ~= "rCmd" and runState ~= "goPage" and dhdSettings.pSync == "OFF" then
     parallel.waitForAny(keyClick,mClick,mScroll,bioScan,monTouch,netReceive)
-  elseif kernelState == true and secureStatus == "allclear" and (runState == "DialCfg" or runState == "EditCfg") then
+  elseif kernelState == true and secureStatus == "allclear" and (runState == "DialCfg" or runState == "EditCfg") and dhdSettings.pSync == "ON" then
+    parallel.waitForAny(keyClick,mClickSettings,bioScan,monTouch,netReceive,pSyncReceive)
+  elseif kernelState == true and secureStatus == "allclear" and (runState == "DialCfg" or runState == "EditCfg") and dhdSettings.pSync == "OFF" then
     parallel.waitForAny(keyClick,mClickSettings,bioScan,monTouch,netReceive)
   end
   if runState == "reset" then
@@ -3406,7 +3418,6 @@ local function detectHardware(hType)
         end
       end
     end
-    if hardware.netSide == "none" then return end
     return
   elseif hType == "mon" then
     dhdSettings.monA="none"
@@ -3468,18 +3479,16 @@ local function initMe()
     if hardware.netSide == "none" then missingComponent("modem") return end
     firstRun()
   end
-  if not fs.exists(settingsData) then missingComponent("cfg") return end
-  term.write("Hardware Discovery . . .")
+  if not fs.exists(settingsData) then missingComponent("cfg") dhdSettings.thisGate = "--ERROR--" return end
   ingestData(settingsData,"cfg")
+  term.write("Hardware Discovery . . .")
   detectHardware("modem")
   if hardware.netSide == "none" then missingComponent("modem") dhdSettings.thisGate = "--ERROR--" return end
   if dhdSettings.pSync == "ON" then
     if dhdSettings.net == "R" then
       modem = peripheral.wrap(hardware.netSide)
-      modem.open(dhdSettings.pChannels.recv)
-    elseif dhdSettings.net == "C" then
-      modem.open(dhdSettings.pChannels.recv)
     end
+    modem.open(dhdSettings.pChannels.recv)
   end
   if dhdSettings.monA ~= "none" then
     monA.setBackgroundColor(black)
