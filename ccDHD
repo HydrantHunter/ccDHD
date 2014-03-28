@@ -2532,7 +2532,10 @@ local function mClick()
             elseif runState == "Trim" then
               if mButton == 1 then
                 deleteGate(i)
-                term.clear() -- cheap out - should really clear just the space and redraw the list, but I'm lazy
+                for i = 6,16,2 do                   --
+                  term.setCursorPos(2,i)            -- Clear gate entry areas of screen
+                  term.write(string.rep(" ",termX)) --
+                end
                 drawCLI()
                 return
               end
