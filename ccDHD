@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.01"
+local ccDHDVer = "1.1.02"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -273,7 +273,7 @@ end
 
 local function netSend(dataPack)
   if dhdSettings.net == "R" then
-    rednet.send(dhdSettings.server,dataPack,true)
+    rednet.send(dhdSettings.server,dataPack)
   elseif dhdSettings.net == "C" then
     modem.transmit(dhdSettings.channels.send,dhdSettings.channels.recv,dataPack)
   end
@@ -1921,7 +1921,7 @@ local function remoteCommand()
     secureStatus = "lockdown"
     netSend(secureStatus)
   elseif string.lower(commandLine) == "restart" then
-    netSend(string.lower(commandLine))
+    netSend("restart")
   elseif string.lower(commandLine) == "son" then
     netSend("sON")
   elseif string.lower(commandLine) == "soff" then
@@ -2968,20 +2968,20 @@ local function mClickSettings()
           netSend("ccNet")
           rednet.close(hardware.netSide)
           dhdSettings.net = "C"
-          modem = peripheral.wrap(hardware.netSide)
+          if not modem then modem = peripheral.wrap(hardware.netSide) end
           modem.open(dhdSettings.channels.recv)
           saveData(settingsData,"cfg")
         elseif dhdSettings.net == "C" then
           netSend("redNet")
           modem.close(dhdSettings.channels.recv)
-          modem = nil
+          if dhdSettings.pSync == "OFF" then modem = nil end
           dhdSettings.net = "R"
           rednet.open(hardware.netSide)
           saveData(settingsData,"cfg")
         end
         drawSettingsUI()
-        -- Select redNet Side
       elseif mcY == 10 and mcX > 22 and mcX < 24 then
+        -- Select redNet Side
         if dhdSettings.net == "R" then
           drawSideList(hardware.netSide)
           local modemSide = { os.pullEvent("mouse_click") }
@@ -3382,6 +3382,11 @@ local function detectHardware(hType)
     end
     return
   elseif hType == "modem" then
+    if modem then
+      modem.close(dhdSettings.channels.recv)
+      modem.close(dhdSettings.pChannels.recv)
+      modem = nil
+    end
     hardware.netSide="none"
     local side
     for _,side in pairs(rs.getSides()) do
@@ -3391,9 +3396,9 @@ local function detectHardware(hType)
           if peripheral.call(tostring(side),"isWireless") == true then
             hardware.netSide = side
             if dhdSettings.net == "R" then
-              rednet.open(side)
+              rednet.open(hardware.netSide)
             elseif dhdSettings.net == "C" then
-              modem = peripheral.wrap(side)
+              modem = peripheral.wrap(hardware.netSide)
               modem.open(dhdSettings.channels.recv)
             end
             break
@@ -3463,6 +3468,7 @@ local function initMe()
   if not fs.exists(settingsData) then detectHardware("mon") firstRun() end
   if not fs.exists(settingsData) then missingComponent("cfg") return end
   ingestData(settingsData,"cfg")
+  detectHardware("modem")
   if dhdSettings.pSync == "ON" then
     if dhdSettings.net == "R" then
       modem = peripheral.wrap(hardware.netSide)
