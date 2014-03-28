@@ -1066,7 +1066,7 @@ local function drawSettingsUI()
   term.setCursorPos(7,10)
   if dhdSettings.net == "R" then     -- redNet (specify server #)
     term.setTextColor(red)
-    term.write("RedNet")
+    term.write("redNet")
   elseif dhdSettings.net == "C" then -- ccNet (specify send/receive channels)
     term.setTextColor(green)
     term.write("ccNet")
@@ -3462,13 +3462,17 @@ local function initMe()
   term.setCursorPos(2,2)
   term.write("Initializing . . .")
   term.setCursorPos(2,4)
+  if not fs.exists(settingsData) then
+    detectHardware("mon")
+    detectHardware("modem")
+    if hardware.netSide == "none" then return end
+    firstRun()
+  end
   term.write("Hardware Discovery . . .")
-  detectHardware("modem")
-  if hardware.netSide == "none" then return end
-  if not fs.exists(settingsData) then detectHardware("mon") firstRun() end
   if not fs.exists(settingsData) then missingComponent("cfg") return end
   ingestData(settingsData,"cfg")
   detectHardware("modem")
+  if hardware.netSide == "none" then return end
   if dhdSettings.pSync == "ON" then
     if dhdSettings.net == "R" then
       modem = peripheral.wrap(hardware.netSide)
