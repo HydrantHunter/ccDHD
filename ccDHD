@@ -2566,7 +2566,10 @@ local function mClick()
             elseif runState == "Trim" then
               if mButton == 1 then
                 deleteGate(i + 6)
-                term.clear()
+                for i = 6,16,2 do                   --
+                  term.setCursorPos(2,i)            -- Clear gate entry areas of screen
+                  term.write(string.rep(" ",termX)) --
+                end
                 drawCLI()
                 return
               end
@@ -2597,7 +2600,10 @@ local function mClick()
             elseif runState == "Trim" then
               if mButton == 1 then
                 deleteGate(i + 12)
-                term.clear()
+                for i = 6,16,2 do                   --
+                  term.setCursorPos(2,i)            -- Clear gate entry areas of screen
+                  term.write(string.rep(" ",termX)) --
+                end
                 drawCLI()
                 return
               end
@@ -2626,7 +2632,10 @@ local function mClick()
               end
             elseif runState == "Trim" then
               if mButton == 1 then
-                deleteGate(i + 18)
+                for i = 6,16,2 do                   --
+                  term.setCursorPos(2,i)            -- Clear gate entry areas of screen
+                  term.write(string.rep(" ",termX)) --
+                end
                 term.clear()
                 drawCLI()
                 return
