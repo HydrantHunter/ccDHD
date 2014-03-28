@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.03"
+local ccDHDVer = "1.1.04"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -602,11 +602,9 @@ local function drawHeader()
     term.write("-DHD-")
   end
   term.setBackgroundColor(gray)
-  for i = 2,4,1 do              --
-    for h = 1,termX,1 do        -- Draw 'status' area
-      term.setCursorPos(h,i)    --
-      term.write(" ")           --
-    end
+  for i = 2,4,1 do                     --
+    term.setCursorPos(1,i)             -- Draw 'status' area
+    term.write(string.rep(" ", termX)) --
   end
   term.setTextColor(lgray)
   term.setCursorPos(2,3)
@@ -675,19 +673,17 @@ end
 local function drawControlUI()
   local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "Iris", "END Call", "LOCKDOWN", "rCmd", "+ Entry", "Import", "Export", "Save", "- Undo -", "-COMMIT-" }
   term.setBackgroundColor(gray)
-  for i = 6,16,1 do          --
-    for h = 42,termX,1 do    -- Control UI
-      term.setCursorPos(h,i) --   'box'
-      term.write(" ")        --
-    end
-  end
+  for i = 6,16,1 do                --
+    term.setCursorPos(42,i)        -- Control UI
+    term.write(string.rep(" ",10)) --   'box'
+  end          --                  --
   term.setTextColor(white)
   term.setCursorPos(43,7)
   if runState == "Dial" then
     if fuelGauge then                -- Fuel
-      term.setBackgroundColor(green) --  full
+      term.setBackgroundColor(green) --  full color
     else                             --
-      term.setBackgroundColor(red)   --  empty
+      term.setBackgroundColor(red)   --  empty color
     end
     term.write(dhdCommandOptions[1] .. "     ")  -- D I A L
   elseif runState == "Edit" then
@@ -898,9 +894,9 @@ local function viewDialHelp(pY)
   term.setCursorPos(2, pY + 4)
   term.write("- rCmd: manually send commands to the gate")
   term.setCursorPos(2, pY + 5)
-  term.write("  - ADDRESS / sON / sOFF / endCall")
+  term.write("  - ADDRESS / sON / sOFF / endCall / hangup")
   term.setCursorPos(2, pY + 6)
-  term.write("  - lockdown / allclear / restart")
+  term.write("  - lockdown / restart")
   term.setCursorPos(2, pY + 7)
   term.write("  - reboot & quit are local")
   term.setCursorPos(2, pY + 8)
@@ -997,22 +993,15 @@ local function drawSettingsUI()
   term.clear()
   term.setCursorPos(1,1)
   term.setBackgroundColor(lblue) -- Header
-  for i = 1,termX,1 do
-    term.setCursorPos(i,1)
-    term.write(" ")
-  end
+  term.write(string.rep(" ",termX))
+  term.setCursorPos(1,2)
   term.setBackgroundColor(gray)
-  for i = 1,termX,1 do
-    term.setCursorPos(i,2)
-    term.write(" ")
-  end
+  term.write(string.rep(" ",termX))
   term.setTextColor(white)
   term.setCursorPos((termX/2)-((#dhdSettings.thisGate/2))-4,1)
   term.write(" " .. dhdSettings.thisGate .. " Settings ")
-  for i = 1,termX,1 do
-    term.setCursorPos(i,termY)
-    term.write(" ")
-  end
+  term.setCursorPos(1,termY)
+  term.write(string.rep(" ",termX))
   term.setBackgroundColor(lgray)
   term.setCursorPos(39,2)
   if configChange == true then
@@ -1891,7 +1880,7 @@ local function remoteCommand()
   term.setCursorPos((termX/2)-11,9)
   term.write(" ")
   term.setBackgroundColor(black)     --
-  term.setCursorPos((termX/2)-10,9)  -- These three lines kept in case ccDHD bg is changed
+  term.setCursorPos((termX/2)-10,9)  -- input area bg - kept in case ccDHD bg is changed
   term.write(string.rep(" ",15))     --
   term.setCursorPos((termX/2)+3,9)
   term.setBackgroundColor(gray)
@@ -1956,7 +1945,7 @@ local function goToPage()
   term.setCursorPos((termX/2)-11,9)
   term.write(" ")
   term.setBackgroundColor(black)     --
-  term.setCursorPos((termX/2)-10,9)  -- These three lines kept in case ccDHD bg is changed
+  term.setCursorPos((termX/2)-10,9)  -- input area bg - kept in case ccDHD bg is changed
   term.write(string.rep(" ",15))     --
   term.setCursorPos((termX/2)+3,9)
   term.setBackgroundColor(gray)
@@ -1986,14 +1975,24 @@ local function wrapPerp(perp,side)
     if perp == "A" or perp == "B" then
       if peripheral.getType(side) == "monitor" then
         if perp == "B" then
-          if dhdSettings.monA ~= side then
+          if dhdSettings.monA ~= side and dhdSettings.monB ~= side then
+            if peripheral.getType(dhdSettings.monB) == "monitor" then
+              monB.setBackgroundColor(black)
+              monB.clear()
+              monB = "none"
+            end
             monB = peripheral.wrap(side)
             dhdSettings.monB = side
             configChange = true
             displayStatus()
           end
         elseif perp == "A" then
-          if dhdSettings.monB ~= side then
+          if dhdSettings.monA ~= side and dhdSettings.monB ~= side then
+            if peripheral.getType(dhdSettings.monA) == "monitor" then
+              monA.setBackgroundColor(black)
+              monA.clear()
+              monA = "none"
+            end
             monA = peripheral.wrap(side)
             dhdSettings.monA = side
             configChange = true
@@ -2018,7 +2017,6 @@ local function wrapPerp(perp,side)
             modem = peripheral.wrap(hardware.netSide)
             modem.open(dhdSettings.channels.recv)
             if dhdSettings.pSync == "ON" then modem.open(dhdSettings.pChannels.recv) end
-            configChange = true
           end
         end
       end
@@ -2026,15 +2024,21 @@ local function wrapPerp(perp,side)
       if peripheral.getType(side) == "modem" then
         if peripheral.call(side,"isWireless") == true then
           if hardware.netSide ~= side then
-            rednet.close(hardware.netSide)
-            if dhdSettings.pSync == "ON" then modem.close(dhdSettings.pChannels.recv) modem = nil end
+            if peripheral.getType(hardware.netSide) == "modem" then
+              if peripheral.call(hardware.netSide,"isWireless") == true then
+                rednet.close(hardware.netSide)
+              end
+            end
+            if dhdSettings.pSync == "ON" then
+              modem.close(dhdSettings.pChannels.recv)
+              modem = nil
+            end
             hardware.netSide = side
             rednet.open(hardware.netSide)
             if dhdSettings.pSync == "ON" then
               modem = peripheral.wrap(hardware.netSide)
               modem.open(dhdSettings.pChannels.recv)
             end
-            configChange = true
           end
         end
       end
@@ -2726,14 +2730,10 @@ local function mClick()
             end
           end
           term.setBackgroundColor(black)
-          for i = 2,termX,1 do
-            term.setCursorPos(i,9)
-            term.write(" ")
-          end
+          term.setCursorPos(2,9)
+          term.write(string.rep(" ",termX))
           term.setCursorPos(2,10)
-          for i = 2,termX,1 do
-            term.write(" ")
-          end
+          term.write(string.rep(" ",termX))
           for i = 5,14,1 do
             term.setCursorPos(14,i)
             term.write(string.rep(" ",20))
@@ -2767,13 +2767,9 @@ local function mClick()
           end
           term.setBackgroundColor(black)
           term.setCursorPos(2,9)
-          for i = 2,termX,1 do
-            term.write(" ")
-          end
+          term.write(string.rep(" ",termX))
           term.setCursorPos(2,10)
-          for i = 2,termX,1 do
-            term.write(" ")
-          end
+          term.write(string.rep(" ",termX))
           term.setCursorPos(2,9)
           term.setTextColor(white)
           term.write(allGates[currentEdit].note)
@@ -2863,13 +2859,9 @@ local function mClick()
         term.setCursorPos(2,7)
         term.write(string.rep(" ",40))
         term.setCursorPos(2,9)
-        for i = 2,termX,1 do
-          term.write(" ")
-        end
+        term.write(string.rep(" ",termX))
         term.setCursorPos(2,10)
-        for i = 2,termX,1 do
-          term.write(" ")
-        end
+        term.write(string.rep(" ",termX))
         for i = 12,15,1 do
           term.setCursorPos(2,i)
           term.write(string.rep(" ",16))
