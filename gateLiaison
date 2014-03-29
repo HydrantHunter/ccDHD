@@ -6,7 +6,7 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.1.00"
+local gVer = "1.1.01"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -363,13 +363,8 @@ end
 local function lockDown()
   gateStatus = "lockdown"
   shieldControl("ON")
-  if #thisGate > 7 then     -- RC1 (8+ symbols)
-    local onHook, _ = pcall(gate.disconnect)
-    if onHook then
-      dialAddress = "none"
-    end
-  elseif #thisGate == 7 then -- snapshot 82+ (7 symbols)
-    gate.disconnect()
+  local onHook, _ = pcall(gate.disconnect)
+  if onHook then
     dialAddress = "none"
   end
   updateStatus()
@@ -412,11 +407,12 @@ local function doCommand(thisCommand)
     updateStatus()
     return
   end
+  if thisCommand == "QRY" then
+    updateStatus("QRY")
+    return
+  end
   if gateStatus ~= "lockdown" then
-    if thisCommand == "QRY" then
-      updateStatus("QRY")
-      return
-    elseif thisCommand == "1stRun" then -- When ccDHD signifies its first run...
+    if thisCommand == "1stRun" then -- When ccDHD signifies its first run...
       while true do
         local myBoss = { os.pullEvent("modem_message") }  -- ...it then sends it's cc# and waits for the gate's address & cc #
         if myBoss[3] == gateSettings.chan.recv and myBoss[4] == gateSettings.chan.send then
