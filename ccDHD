@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.07"
+local ccDHDVer = "1.1.08"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -1496,7 +1496,7 @@ local function drawMenu()
   term.write(" ")
   term.setBackgroundColor(lgray)
   term.write("View Logs")
-  if runState == "Dial" then       -- Whether to show Dial Help or Edit Help color pip in menu
+  if runState == "Dial" then -- Whether to show Dial Help or Edit Help color pip in menu
     term.setBackgroundColor(cyan)                      --
   elseif runState == "Edit" or runState == "Trim" then --
     term.setBackgroundColor(brown)                     --
@@ -1833,7 +1833,7 @@ local function remoteCommand()
   term.setCursorPos((termX/2)-11,9)
   term.write(" ")
   term.setBackgroundColor(black)     --
-  term.setCursorPos((termX/2)-10,9)  -- input area bg - kept in case ccDHD bg is changed
+  term.setCursorPos((termX/2)-10,9)  -- input area bg
   term.write(string.rep(" ",15))     --
   term.setCursorPos((termX/2)+3,9)
   term.setBackgroundColor(gray)
@@ -1898,7 +1898,7 @@ local function goToPage()
   term.setCursorPos((termX/2)-11,9)
   term.write(" ")
   term.setBackgroundColor(black)     --
-  term.setCursorPos((termX/2)-10,9)  -- input area bg - kept in case ccDHD bg is changed
+  term.setCursorPos((termX/2)-10,9)  -- input area bg
   term.write(string.rep(" ",15))     --
   term.setCursorPos((termX/2)+3,9)
   term.setBackgroundColor(gray)
@@ -3510,6 +3510,7 @@ local function initMe()
   term.clear()
   kernelState = true
   runState = "Dial"
+  currentState = "Dial"
   drawCLI()
 end
 
