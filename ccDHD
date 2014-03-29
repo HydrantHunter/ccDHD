@@ -1,6 +1,6 @@
 --[[   LanteaCraft     ]]--
 --[[      c c D H D    ]]--
---[[  core ver. 5.0.1  ]]--
+--[[  core ver. 5.0.3  ]]--
 --[[   ui ver. 4.4.2   ]]--
 --[[     by Dog        ]]--
 --[[ aka HydrantHunter ]]--
@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.05"
+local ccDHDVer = "1.1.07"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -266,8 +266,8 @@ local function updateStatus(newInfo)  -- Update status info
     pSync(newInfo)
     return
   end
-  if newInfo ~= "pPush" and newInfo ~= "pPull" and runState ~= "ZZ" and runState ~= "init" then currentState = newInfo end
-  if runState ~= "ZZ" and runState ~= "init" then drawCLI() end
+  if newInfo ~= "pPush" and newInfo ~= "pPull" and currentState ~= "ZZ" and runState ~= "init" then currentState = newInfo end
+  if currentState ~= "ZZ" and runState ~= "init" then drawCLI() end
   return
 end
 
@@ -842,48 +842,6 @@ local function drawMainUI() -- Gate Address Book (Dial / Edit / Trim)
   term.setBackgroundColor(black)
 end
 
-local function viewLogs()
-  if histPage == histPages then
-    term.setBackgroundColor(black)
-    term.clear()
-    drawHeader()
-  end
-  term.setCursorPos(1,termY)
-  term.setBackgroundColor(gray)
-  term.write(string.rep(" ",termX))
-  term.setCursorPos(5,termY)
-  term.setTextColor(black)
-  term.write("page # ")
-  term.setTextColor(white)
-  term.write(tostring(histPage))
-  term.setTextColor(black)
-  term.write(" of ")
-  term.setTextColor(white)
-  term.write(tostring(histPages))
-  term.setBackgroundColor(black)
-  local currentEntry = ((histPage - 1) * 10) + 1                        -- Set the first entry to show (based on page number)
-  if callHistory[1] == "" or callHistory[1] == nil then callHistory[1] = "No Logs_/" end -- no logs
-  for i = currentEntry,#callHistory,1 do                                -- Display logs
-    term.setCursorPos(2, i - ((histPage - 1) * 10) + 5)                 -- position entry
-    term.setTextColor(gray)                                             --
-    term.write(callHistory[i]:sub(1,string.find(callHistory[i],"_")-1)) -- write time
-    term.setCursorPos(13, i - ((histPage - 1) * 10) + 5)                -- position entry
-    term.write(callHistory[i]:sub(string.find(callHistory[i],"_")+1,string.find(callHistory[i],"/")-1)) -- write day
-    term.setCursorPos(23, i - ((histPage - 1) * 10) + 5)                -- position entry
-    local tGate = callHistory[i]:sub(string.find(callHistory[i],"/")+1) -- get gate
-    if tGate == "No Data" then
-      term.setTextColor(gray)
-    elseif tGate == "Inbound" then
-      term.setTextColor(lgray)
-    else
-      term.setTextColor(lblue)
-    end
-    if #tGate < 9 then tGate = " " .. tGate .. " " end -- if tGate is LT 9 characters add buffer spaces
-    term.write(tGate) -- write gate
-    if i > currentEntry + 9 or i > #callHistory then break end   -- if we've 'filled' the page or reached the end of the log then stop the loop
-  end
-end
-
 local function drawHelpUI()
   local colorDefs = { blue, green, purple, lblue, orange, lgray, brown, red }
   local colorDesc = { "Base/Outpost/Hub", "Secured/Safe", "Misc./Special", "Home/Camp", "Caution", "Unknown", "Village", "Danger" }
@@ -1298,6 +1256,37 @@ local function drawSecureUI()
   term.write("password:")
 end
 
+function drawCLI()   -- Client Interface 'decider'
+  if menuState == false then
+    drawHeader()
+  end
+  if runState == "viewing" or runState == "GateEdit" then return end
+  if secureStatus == "lockdown" then
+    return
+  else
+    if menuState == false then
+      if displayState == "list" then
+        if monB ~= "none" then
+          displayStatus()
+        end
+        if monA ~= "none" then
+          displayGateList()
+        end
+      end
+      if runState == "Dial" or runState == "Edit" or runState == "Trim" then
+        drawMainUI()
+        drawControlUI()
+        drawNaviUI()
+        displayStatus()
+      elseif runState == "DialCfg" or runState == "EditCfg" then
+        drawSettingsUI()
+      elseif runState == "DialHelp" or runState == "EditHelp" then
+        drawHelpUI()
+      end
+    end
+  end
+end
+
 local function drawSideList(pSide)
   local tPos = { 5,7,9,11,13,15 }
   local tSide = { "top","bottom","front","back","left","right" }
@@ -1658,6 +1647,48 @@ local function flashChoice(choice)
   end
 end
 
+local function viewLogs()
+  if histPage == histPages then
+    term.setBackgroundColor(black)
+    term.clear()
+    drawHeader()
+  end
+  term.setCursorPos(1,termY)
+  term.setBackgroundColor(gray)
+  term.write(string.rep(" ",termX))
+  term.setCursorPos(5,termY)
+  term.setTextColor(black)
+  term.write("page # ")
+  term.setTextColor(white)
+  term.write(tostring(histPage))
+  term.setTextColor(black)
+  term.write(" of ")
+  term.setTextColor(white)
+  term.write(tostring(histPages))
+  term.setBackgroundColor(black)
+  local currentEntry = ((histPage - 1) * 10) + 1                        -- Set the first entry to show (based on page number)
+  if callHistory[1] == "" or callHistory[1] == nil then callHistory[1] = "No Logs_/" end -- no logs
+  for i = currentEntry,#callHistory,1 do                                -- Display logs
+    term.setCursorPos(2, i - ((histPage - 1) * 10) + 5)                 -- position entry
+    term.setTextColor(gray)                                             --
+    term.write(callHistory[i]:sub(1,string.find(callHistory[i],"_")-1)) -- write time
+    term.setCursorPos(13, i - ((histPage - 1) * 10) + 5)                -- position entry
+    term.write(callHistory[i]:sub(string.find(callHistory[i],"_")+1,string.find(callHistory[i],"/")-1)) -- write day
+    term.setCursorPos(23, i - ((histPage - 1) * 10) + 5)                -- position entry
+    local tGate = callHistory[i]:sub(string.find(callHistory[i],"/")+1) -- get gate
+    if tGate == "No Data" then
+      term.setTextColor(gray)
+    elseif tGate == "Inbound" then
+      term.setTextColor(lgray)
+    else
+      term.setTextColor(lblue)
+    end
+    if #tGate < 9 then tGate = " " .. tGate .. " " end -- if tGate is LT 9 characters add buffer spaces
+    term.write(tGate) -- write gate
+    if i > currentEntry + 9 or i > #callHistory then break end   -- if we've 'filled' the page or reached the end of the log then stop the loop
+  end
+end
+
 local function viewGateEntry(dataBlock)
   currentEdit = dataBlock
   tempState = runState
@@ -1754,73 +1785,6 @@ local function deleteGate(tGate) -- TRIM mode: delete gate
     for i = 6,16,2 do                   --
       term.setCursorPos(2,i)            -- Clear gate entry areas of screen
       term.write(string.rep(" ",termX)) --
-    end
-  end
-end
-
-local function secKernel()       -- LOCKDOWN handler
-  drawSecureUI()
-  term.setTextColor(yellow)
-  term.setBackgroundColor(black)
-  local passSymbols = { "!", "@", "#", "$", "%", "*", "?", "+", "x", "X" }
-  while secureStatus == "lockdown" do
-    term.setCursorPos(termX/2,15)
-    term.write(string.rep(" ",termX))
-    term.setCursorPos(termX/2,15)
-    local securePass = tostring(read(passSymbols[math.random(1,#passSymbols)]))
-    if securePass == dhdSettings.password then
-      netSend("allclear")
-      if dhdSettings.net == "R" then
-        local senderID, message = rednet.receive(1)
-        if senderID == dhdSettings.server and (message == "YY0" or message == "YY1") then
-          secureStatus = "allclear"
-        end
-      elseif dhdSettings.net == "C" then
-        local ccNetEvent = { os.pullEvent("modem_message") }
-        if ccNetEvent[3] == dhdSettings.channels.recv and ccNetEvent[4] == dhdSettings.channels.send and (ccNetEvent[5] == "YY0" or ccNetEvent[5] == "YY1") then
-          secureStatus = "allclear"
-        end
-      end
-      term.setBackgroundColor(black)
-      term.setCursorPos(15,9)
-      term.write(string.rep(" ",termX))
-      term.setCursorPos(15,15)
-      term.write(string.rep(" ",termX))
-      netSend("QRY")
-      drawCLI()
-      break
-    end
-  end
-end
-
-function drawCLI()   -- Client Interface 'decider'
-  if menuState == false then
-    drawHeader()
-  end
-  if runState == "viewing" or runState == "GateEdit" then return end
-  if secureStatus == "lockdown" then
-    secKernel()
-    return
-  else
-    if menuState == false then
-      if displayState == "list" then
-        if monB ~= "none" then
-          displayStatus()
-        end
-        if monA ~= "none" then
-          displayGateList()
-        end
-      end
-      if runState == "Dial" or runState == "Edit" or runState == "Trim" then
-        drawMainUI()
-        drawControlUI()
-        drawNaviUI()
-        displayStatus()
-      elseif runState == "DialCfg" or runState == "EditCfg" then
-        drawSettingsUI()
-      elseif runState == "DialHelp" or runState == "EditHelp" then
-        drawHelpUI()
-      end
     end
   end
 end
@@ -3310,6 +3274,41 @@ local function bioLogin()
     if fistAuth == true then
       bio = nil
       return fistAuth
+    end
+  end
+end
+
+local function secKernel()       -- LOCKDOWN handler
+  drawSecureUI()
+  term.setTextColor(yellow)
+  term.setBackgroundColor(black)
+  local passSymbols = { "!", "@", "#", "$", "%", "*", "?", "+", "x", "X" }
+  while secureStatus == "lockdown" do
+    term.setCursorPos(termX/2,15)
+    term.write(string.rep(" ",termX))
+    term.setCursorPos(termX/2,15)
+    local securePass = tostring(read(passSymbols[math.random(1,#passSymbols)]))
+    if securePass == dhdSettings.password then
+      netSend("allclear")
+      if dhdSettings.net == "R" then
+        local senderID, message = rednet.receive(1)
+        if senderID == dhdSettings.server and (message == "YY0" or message == "YY1") then
+          secureStatus = "allclear"
+        end
+      elseif dhdSettings.net == "C" then
+        local ccNetEvent = { os.pullEvent("modem_message") }
+        if ccNetEvent[3] == dhdSettings.channels.recv and ccNetEvent[4] == dhdSettings.channels.send and (ccNetEvent[5] == "YY0" or ccNetEvent[5] == "YY1") then
+          secureStatus = "allclear"
+        end
+      end
+      term.setBackgroundColor(black)
+      term.setCursorPos(15,9)
+      term.write(string.rep(" ",termX))
+      term.setCursorPos(15,15)
+      term.write(string.rep(" ",termX))
+      netSend("QRY")
+      drawCLI()
+      break
     end
   end
 end
