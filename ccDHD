@@ -651,9 +651,7 @@ local function drawHeader()
   end
   term.setTextColor(tgColor)
   term.setCursorPos(26,3)
-  if gateStatus == "Connected" and dialAddress == "" then
-    term.write("Incoming Connection")
-  elseif gateStatus == "Dialing" and dialAddress == "" then
+  if (gateStatus == "Connected" or gateStatus == "Dialing") and (dialAddress == "" or dialAddress == nil) then
     term.write("Incoming Connection")
   else
     if gateStatus == "Connected" and dialAddress ~= "" and dialAddress ~= nil then
@@ -1416,19 +1414,11 @@ end
 
 local function clearGateEntryScreen() -- Clean up select parts of the screen instead of clearing and redrawing the entire screen
   runState = tempState
-  term.setBackgroundColor(black)
-  term.setCursorPos(2,7)
-  term.write(string.rep(" ",termX))
-  term.setCursorPos(2,9)
-  term.write(string.rep(" ",termX))
-  for i = 12,15,1 do
-    term.setCursorPos(2,i)
-  term.write(string.rep(" ",16))
-  end
-  term.setCursorPos(13,12)
-  term.write(string.rep(" ",termX))
-  term.setCursorPos(1,termY-1)
-  term.write(string.rep(" ",termX))
+  drawElement(2,7,termX,1,black,black,"")
+  drawElement(2,9,termX,1,black,black,"")
+  drawElement(2,12,16,4,black,black,"")
+  drawElement(13,12,termX,1,black,black,"")
+  drawElement(1,termY-1,termX,1,black,black,"")
   drawCLI()
 end
 
@@ -1439,10 +1429,7 @@ local function deleteGate(tGate) -- TRIM mode: delete gate
     listPages = math.ceil(#allGates / 8)
     if pageNum > numPages then pageNum = numPages end
     if listPage > listPages then listPage = listPages end
-    for i = 6,16,2 do                   --
-      term.setCursorPos(2,i)            -- Clear gate entry areas of screen
-      term.write(string.rep(" ",termX)) --
-    end
+    drawElement(2,6,termX,11,black,black,"") -- Clear gate entry area of screen
   end
 end
 
