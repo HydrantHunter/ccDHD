@@ -549,18 +549,16 @@ local function displayStatus()
 end
 
 local function drawElement(x,y,w,h,txColor,bgColor,text)
-  if x == "ON" or x == "OFF" then
-    if x == "OFF" then
-      term.setBackgroundColor(gray)
-      term.write("  ")
-      term.setBackgroundColor(red)
-      term.write("  ")
-    elseif x == "ON" then
-      term.setBackgroundColor(green)
-      term.write("  ")
-      term.setBackgroundColor(gray)
-      term.write("  ")
-    end
+  if x == "OFF" then
+    term.setBackgroundColor(gray)
+    term.write("  ")
+    term.setBackgroundColor(red)
+    term.write("  ")
+  elseif x == "ON" then
+    term.setBackgroundColor(green)
+    term.write("  ")
+    term.setBackgroundColor(gray)
+    term.write("  ")
   else
     term.setBackgroundColor(bgColor)
     term.setTextColor(txColor)
