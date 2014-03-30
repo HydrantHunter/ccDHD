@@ -698,7 +698,7 @@ local function drawControlUI()
     drawElement(45,13,8,1,orange,red,dhdCommandOptions[7] .. "   ") -- Lockdown
     drawElement(46,15,4,1,gray,cyan,dhdCommandOptions[8] .. "     ") -- rCmd
   elseif runState == "Edit" then
-    if #allGates < 23976 then
+    if #allGates < 23977 then
       drawElement(45,9,6,1,white,blue,dhdCommandOptions[9] .. "  ") -- +Entry
     end
     drawElement(45,11,6,1,white,orange,dhdCommandOptions[10] .. "    ") -- Import Gate Data
@@ -1926,13 +1926,13 @@ local function keyClick()
             dialAddress = ""
           end
         elseif keyEvent[2] == 13 and runState == "Edit" then -- +/= (+ Entry)
-          if #allGates < 23976 then
+          if #allGates < 23977 then
             flashChoice("new")
             gateChange = true
             viewGateEntry("new")
           end
         elseif keyEvent[2] == 210 and runState == "Edit" then -- <insert> (+ Entry/fast)
-          if #allGates < 23976 then
+          if #allGates < 23977 then
             flashChoice("new")
             gateChange = true
             viewGateEntry("newFast")
@@ -2222,7 +2222,7 @@ local function mClick()
             netSend("sOFF")
             return
           elseif runState == "Edit" then
-            if #allGates < 23976 then
+            if #allGates < 23977 then
               flashChoice("new")
               gateChange = true
               if mButton == 1 then
