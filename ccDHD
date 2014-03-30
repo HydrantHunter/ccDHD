@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.11"
+local ccDHDVer = "1.1.12"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -48,6 +48,7 @@ local dhdSettings = { thisGate="--ERROR--",
 local allGates = { {addr="NEWGATE",rating="U",note="short note",loc={x=99999,y=99999,z=99999,dim="Overworld",},}, }
 local fistAuth = false
 local longName, tY
+local drawCLI
  -- Peripherals
 local termX,termY = term.getSize() -- portable 26x20 / standard 51x19 / cBang & OneOS = 51x18
 local modem = nil                  -- Modem (for ccNet)
@@ -549,12 +550,13 @@ local function displayStatus()
 end
 
 local function drawElement(x,y,w,h,txColor,bgColor,text)
-  if x == "OFF" then
+  term.setCursorPos(x,y)
+  if w == "OFF" then
     term.setBackgroundColor(gray)
     term.write("  ")
     term.setBackgroundColor(red)
     term.write("  ")
-  elseif x == "ON" then
+  elseif w == "ON" then
     term.setBackgroundColor(green)
     term.write("  ")
     term.setBackgroundColor(gray)
@@ -562,7 +564,6 @@ local function drawElement(x,y,w,h,txColor,bgColor,text)
   else
     term.setBackgroundColor(bgColor)
     term.setTextColor(txColor)
-    term.setCursorPos(x,y)
     for i = 1,h,1 do
       term.write(string.rep(" ",w))
       term.setCursorPos(x,y+i)
@@ -909,11 +910,10 @@ local function drawSettingsUI()
   drawElement(2,6,13,1,gray,black,"Lockdown pass")
   drawElement(17,6,#dhdSettings.password,1,orange,black,dhdSettings.password) -- superSecretPassword
   drawElement(2,8,13,1,gray,black,"Biolock Login")
-  term.setCursorPos(17,8)
   if dhdSettings.bio.lock == "OFF" then -- Fistprint Authentication (Biolock mod)
-    drawElement("OFF")
+    drawElement(17,8,"OFF")
   elseif dhdSettings.bio.lock == "ON" then
-    drawElement("ON")
+    drawElement(17,8,"ON")
   end
   drawElement(23,8,1,1,black,gray,"#") -- Biolock auth. level
   drawElement(2,10,4,1,gray,black,"Net:")
@@ -925,11 +925,10 @@ local function drawSettingsUI()
     term.setTextColor(green)
     term.write("ccNet")
   end
-  term.setCursorPos(17,10)
   if dhdSettings.net == "R" then     -- Red for redNet
-    drawElement("OFF")
+    drawElement(17,10,"OFF")
   elseif dhdSettings.net == "C" then -- Green for ccNet
-    drawElement("ON")
+    drawElement(17,10,"ON")
   end
   drawElement(23,10,1,1,black,gray,"#") -- hardware.netSide
   if dhdSettings.net == "R" then     -- if redNet show "Gate Liaison"
@@ -938,9 +937,7 @@ local function drawSettingsUI()
     drawElement(2,12,8,1,gray,black,"Send/Rec")
   end
   if dhdSettings.net == "R" then
-    term.setCursorPos(17,12)
-    term.setTextColor(red)
-    term.write(tostring(dhdSettings.gate)) -- Gate Liaison (redNet)
+    drawElement(17,12,#tostring(dhdSettings.gate),1,red,black,tostring(dhdSettings.gate)) -- Gate Liaison (redNet)
   elseif dhdSettings.net == "C" then
     term.setCursorPos(11,12)
     term.setTextColor(green) -- Send Channel (ccNet)
@@ -953,35 +950,31 @@ local function drawSettingsUI()
     term.write(string.rep(" ",5-#tostring(dhdSettings.channels.recv)) .. tostring(dhdSettings.channels.recv)) -- Receive Channel (ccNet)
   end
   drawElement(2,14,7,1,gray,black,"Marquee") -- Marquee (monB)
-  term.setCursorPos(17,14)
   if dhdSettings.monB == "none" then
-    drawElement("OFF")
+    drawElement(17,14,"OFF")
   else
-    drawElement("ON")
+    drawElement(17,14,"ON")
   end
   drawElement(23,14,1,1,black,gray,"#") -- Marquee side (monB)
   drawElement(2,16,12,1,gray,black,"List Monitor") -- List Monitor (monA)
-  term.setCursorPos(17,16)
   if dhdSettings.monA == "none" then
-    drawElement("OFF")
+    drawElement(17,16,"OFF")
   else
-    drawElement("ON")
+    drawElement(17,16,"ON")
   end
   drawElement(23,16,1,1,black,gray,"#") -- List Monitor side (monA)
   -- Settings 2nd column
   drawElement(28,4,14,1,gray,black,"Highlight gate") -- Whether or not to display the local gate differently than the rest of the list
-  term.setCursorPos(45,4)
   if dhdSettings.highlight == "YES" then
-    drawElement("ON")
+    drawElement(45,4,"ON")
   elseif dhdSettings.highlight == "NO" then
-    drawElement("OFF")
+    drawElement(45,4,"OFF")
   end
   drawElement(28,6,16,1,gray,black,"pSync (ccDialer)") -- Enable/Disable ccDialer pSync
-  term.setCursorPos(45,6)
   if dhdSettings.pSync == "ON" then
-    drawElement("ON")
+    drawElement(45,6,"ON")
   elseif dhdSettings.pSync == "OFF" then
-    drawElement("OFF")
+    drawElement(45,6,"OFF")
   end
   drawElement(28,8,5,1,gray,black,"Bio: ") -- Whether Biolock controls shield or initiates lockdown or does nothing (this is separate from BioLogin)
   if dhdSettings.bio.func == "none" then
@@ -1007,9 +1000,9 @@ local function drawSettingsUI()
     term.setBackgroundColor(red)
     term.write(" ")
   elseif dhdSettings.bio.func == "shield" then
-    drawElement("ON")
+    drawElement(45,8,"ON")
   elseif dhdSettings.bio.func == "lock" then
-    drawElement("OFF")
+    drawElement(45,8,"OFF")
   end
   term.setCursorPos(28,10)
   term.setBackgroundColor(black)
@@ -1019,39 +1012,35 @@ local function drawSettingsUI()
   elseif #dhdSettings.thisGate > 7 then
     term.write("STARTUP Iris")
   end
-  term.setCursorPos(45,10)
   if dhdSettings.startShield == "OFF" then
-    drawElement("OFF")
+    drawElement(45,10,"OFF")
   elseif dhdSettings.startShield == "ON" then
-    drawElement("ON")
+    drawElement(45,10,"ON")
   end
   term.setCursorPos(28,12)
   term.setBackgroundColor(black)
   term.setTextColor(gray)
-  if #dhdSettings.thisGate == 7 then
-    term.write("END Call Shield") -- END Call Shield (ON/OFF)
+  if #dhdSettings.thisGate == 7 then -- END Call Shield (ON/OFF)
+    term.write("END Call Shield")
   elseif #dhdSettings.thisGate > 7 then
     term.write("END Call Iris")
   end
-  term.setCursorPos(45,12)
   if dhdSettings.ecShield == "OFF" then
-    drawElement("OFF")
+    drawElement(45,12,"OFF")
   elseif dhdSettings.ecShield == "ON" then
-    drawElement("ON")
+    drawElement(45,12,"ON")
   end
   drawElement(28,14,12,1,gray,black,"Call Logging") -- ccDHD should/not log outbound calls
-  term.setCursorPos(45,14)
   if dhdSettings.logs == "OFF" then
-    drawElement("OFF")
+    drawElement(45,14,"OFF")
   elseif dhdSettings.logs == "ON" then
-    drawElement("ON")
+    drawElement(45,14,"ON")
   end
   drawElement(28,16,14,1,gray,black,"Initiator Only") -- Only call initiator can end call (ON/OFF)
-  term.setCursorPos(45,16)
   if dhdSettings.callEnd == "OFF" then
-    drawElement("OFF")
+    drawElement(45,16,"OFF")
   elseif dhdSettings.callEnd == "ON" then
-    drawElement("ON")
+    drawElement(45,16,"ON")
   end
 end
 
@@ -1076,7 +1065,7 @@ local function drawSecureUI()
   drawElement((termX/2)-10,15,9,1,gray,black,"password:")
 end
 
-function drawCLI()   -- Client Interface 'decider'
+drawCLI = function()
   if menuState == false then
     drawHeader()
   end
@@ -3116,8 +3105,6 @@ local function initMe()
   term.write("Setting Shield . . .")
   if dhdSettings.startShield == "ON" then
     netSend("sON")
-  elseif dhdSettings.startShield == "OFF" then
-    netSend("sOFF")
   end
   term.setCursorPos(2,12)
   term.write("Ingesting gate data . . .")
