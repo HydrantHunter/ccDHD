@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.09"
+local ccDHDVer = "1.1.10"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -2224,6 +2224,7 @@ local function mClick()
               flashChoice("new")
               gateChange = true
               if mButton == 1 then
+                runState = "GateEdit"
                 viewGateEntry("new")
               elseif mButton == 2 then
                 viewGateEntry("newFast")
