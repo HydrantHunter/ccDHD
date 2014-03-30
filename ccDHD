@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.14"
+local ccDHDVer = "1.1.15"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -663,14 +663,13 @@ local function drawHeader()
       term.write(gateStatus .. string.rep(" ",13))
       term.setCursorPos(34,3)
     end
-    if gateStatus == "Disconnected" and fuelGauge == false then
-      term.setTextColor(red)
-      term.setCursorPos(26,3)
-      term.write("N O  F U E L" .. string.rep(" ",13))
-    end
     if gateStatus ~= "Disconnected" then
       term.setTextColor(yellow)
       term.write(dialAddress)
+    end
+    if gateStatus == "Disconnected" and fuelGauge == false then
+      local nf = "N O  F U E L" .. string.rep(" ",13)
+      drawElement(26,3,#nf,1,red,gray,nf)
     end
   end
   if secureStatus == "allclear" then displayStatus() end
@@ -825,11 +824,8 @@ local function drawHelpUI()
   drawElement(1,termY,termX,1,white,gray,"") -- Footer
   drawElement(2,2,9,1,lgray,gray,"-- Key --")
   drawElement(termX-6,2,7,1,red,lgray," Close ")
-  term.setBackgroundColor(black)
   for q,r in pairs(colorDefs) do -- Color key for gate classifications
-    term.setCursorPos(xMod,yMod)
-    term.setTextColor(r)
-    term.write(tostring(colorDesc[q]))
+    drawElement(xMod,yMod,#tostring(colorDesc[q]),1,r,black,colorDesc[q])
     if xMod == 2 then
       xMod = 20
     elseif xMod == 20 then
@@ -1529,11 +1525,7 @@ local function keyClick()
       if menuState then           -- Menu OPEN
         if keyEvent[2] == 50 then -- m (Menu CLOSE)
           menuState = false
-          term.setBackgroundColor(black)
-          for i = 5,10,1 do
-            term.setCursorPos(2,i)
-            term.write("           ")
-          end
+          drawElement(2,5,11,6,white,black,"") -- clear menu
           drawCLI()
         elseif keyEvent[2] == 31 then -- s (Settings)
           if runState == "Dial" then
@@ -1805,21 +1797,13 @@ local function mClick()
           break  -- required to exit properly
         elseif mcY < 2 or mcY > 10 then
           menuState = false
-          term.setBackgroundColor(black)
-          for i = 5,10,1 do
-            term.setCursorPos(2,i)
-            term.write(string.rep(" ",11))
-          end
+          drawElement(2,5,11,6,white,black,"") -- clear menu
           drawCLI()
           return
         end
       else
         menuState = false
-        term.setBackgroundColor(black)
-        for i = 5,10,1 do
-          term.setCursorPos(2,i)
-          term.write(string.rep(" ",11))
-        end
+        drawElement(2,5,11,6,white,black,"") -- clear menu
         drawCLI()
         return
       end
@@ -2134,20 +2118,15 @@ local function mClick()
       if mcY == 7 then
          -- Edit Gate Address
         if mcX > 1 and mcX < 11 then
-          term.setBackgroundColor(black)
-          term.setTextColor(gray)
-          term.setCursorPos(2,7)
-          term.write(allGates[currentEdit].addr)
+          drawElement(2,7,#allGates[currentEdit].addr,1,gray,black,allGates[currentEdit].addr)
           local newGate = string.upper(tostring(readInput(2,7,yellow)))
           if newGate ~= "" and newGate ~= "NIL" and newGate:len() > 6 and newGate:len() < 10 then
             allGates[currentEdit].addr = newGate
             gateChange = true
           end
-          term.setCursorPos(2,7)
           local gColor = assignColor(currentEdit)
-          term.setTextColor(gColor)
-          term.setBackgroundColor(black)
-          term.write(allGates[currentEdit].addr .. "  ")
+          local cGate = allGates[currentEdit].addr .. "  "
+          drawElement(2,7,#cGate,1,gColor,black,cGate)
          -- Edit Gate Rating/Classification
         elseif mcX > 13 and mcX < 30 then
           term.setBackgroundColor(black)
