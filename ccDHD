@@ -1412,16 +1412,6 @@ local function viewGateEntry(dataBlock)
   term.write(" < < < CLOSE > > > ")
 end
 
-local function clearGateEntryScreen() -- Clean up select parts of the screen instead of clearing and redrawing the entire screen
-  runState = tempState
-  drawElement(2,7,termX,1,black,black,"")
-  drawElement(2,9,termX,1,black,black,"")
-  drawElement(2,12,16,4,black,black,"")
-  drawElement(13,12,termX,1,black,black,"")
-  drawElement(1,termY-1,termX,1,black,black,"")
-  drawCLI()
-end
-
 local function deleteGate(tGate) -- TRIM mode: delete gate
   if #allGates > 1 then          -- Don't delete if only 1 gate remaining
     table.remove(allGates,tGate)
@@ -1958,7 +1948,14 @@ local function mClick()
         end
       elseif runState == "viewing" then
         if mcX > 16 and mcX < 36 and mcY == termY-1 then
-          clearGateEntryScreen()
+          -- Clean up select parts of the screen instead of clearing and redrawing the entire screen
+          runState = tempState
+          drawElement(2,7,termX,1,black,black,"")
+          drawElement(2,9,termX,1,black,black,"")
+          drawElement(2,12,16,4,black,black,"")
+          drawElement(13,12,termX,1,black,black,"")
+          drawElement(1,termY-1,termX,1,black,black,"")
+          drawCLI()
           return
         end
       elseif runState ~= "DialCfg" and runState ~= "EditCfg" and runState ~= "GateEdit" and runState ~= "viewing" then
