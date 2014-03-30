@@ -556,10 +556,12 @@ local function drawElement(x,y,w,h,tColor,bgColor,text)
     term.write(string.rep(" ",w))
     term.setCursorPos(x,y+i)
   end
-  local xW = (x + w/2) - #text/2
-  local xH = y + h/2
-  term.setCursorPos(xW,xH)
-  term.write(text)
+  if text ~= "" then
+    local xW = (x + w/2) - #text/2
+    local xH = y + h/2
+    term.setCursorPos(xW,xH)
+    term.write(text)
+  end
 end
 
 local function drawHeader()
