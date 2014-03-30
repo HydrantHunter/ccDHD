@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.12"
+local ccDHDVer = "1.1.13"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -550,6 +550,7 @@ local function displayStatus()
 end
 
 local function drawElement(x,y,w,h,txColor,bgColor,text)
+  text = tostring(text)
   term.setCursorPos(x,y)
   if w == "OFF" then
     term.setBackgroundColor(gray)
@@ -810,20 +811,18 @@ local function drawHelpUI()
   local colorCount = #colorDesc
   local xMod = 2
   local yMod = 4
-  term.setTextColor(white)
   term.setBackgroundColor(black)
   term.clear()
-  term.setCursorPos(1,1)
-  if runState == "DialHelp" then -- Header
-    term.setBackgroundColor(cyan)
+  local hColor
+  if runState == "DialHelp" then -- Header color
+    hColor = cyan
   elseif runState == "EditHelp" then
-    term.setBackgroundColor(brown)
+    hColor = brown
   end
-  term.write(string.rep(" ",termX))
-  drawElement(1,termY,termX,1,white,gray,"")
-  term.setCursorPos((termX/2)-(((#runState-4)/2)+3),1)
-  term.write(" " .. runState:sub(1,#runState-4) .. " Help ")
+  drawElement(1,1,termX,1,white,hColor,"") -- Header
+  drawElement((termX/2)-(((#runState-4)/2)+3),1,11,1,white,gray,runState:sub(1,#runState-4) .. " Help") -- Header text
   drawElement(1,2,termX,1,white,gray,"")
+  drawElement(1,termY,termX,1,white,gray,"") -- Footer
   drawElement(2,2,9,1,lgray,gray,"-- Key --")
   drawElement(termX-6,2,7,1,red,lgray," Close ")
   term.setBackgroundColor(black)
@@ -842,49 +841,27 @@ local function drawHelpUI()
   end
   drawElement(1,colorCount,termX,1,lgray,gray,"")
   drawElement(2,colorCount,11,1,lgray,gray,"-- Notes --")
-  term.setCursorPos(2,termY)
-  term.setTextColor(lgray)
-  term.setBackgroundColor(gray)
-  term.write("ccDHD ver. " .. ccDHDVer .. string.rep(" ",5) .. "cc# " .. os.getComputerID()) -- Show ccDHD version and cc# in bottom pane
+  local lowLine = "ccDHD ver. " .. ccDHDVer .. string.rep(" ",5) .. "cc# " .. os.getComputerID()
+  drawElement(2,termY,#lowLine,1,lgray,gray,lowLine)
   local tmpLabel = os.getComputerLabel()
-  term.setCursorPos(termX - #tmpLabel,termY)
-  term.write(os.getComputerLabel()) -- Show cc Label in bottom pane
+  drawElement(termX-#tmpLabel,termY,#tmpLabel,1,lgray,gray,tmpLabel)
   if runState == "DialHelp" then
-    term.setBackgroundColor(black)
-    term.setTextColor(white)
-    term.setCursorPos(2, colorCount + 2)
-    term.write("- Left click an address to dial")
-    term.setCursorPos(2, colorCount + 3)
-    term.write("- Right click an address to view details")
-    term.setCursorPos(2, colorCount + 4)
-    term.write("- rCmd: manually send commands to the gate")
-    term.setCursorPos(2, colorCount + 5)
-    term.write("  - ADDRESS / sON / sOFF / endCall / hangup")
-    term.setCursorPos(2, colorCount + 6)
-    term.write("  - lockdown / restart")
-    term.setCursorPos(2, colorCount + 7)
-    term.write("  - reboot & quit are local")
-    term.setCursorPos(2, colorCount + 8)
-    term.write("  - reset = reboots DHD & gateLiaison")
+    drawElement(2,colorCount+2,31,1,white,black,"- Left click an address to dial")
+    drawElement(2,colorCount+3,40,1,white,black,"- Right click an address to view details")
+    drawElement(2,colorCount+4,42,1,white,black,"- rCmd: manually send commands to the gate")
+    drawElement(2,colorCount+5,43,1,white,black,"  - ADDRESS / sON / sOFF / endCall / hangup")
+    drawElement(2,colorCount+6,22,1,white,black,"  - lockdown / restart")
+    drawElement(2,colorCount+7,27,1,white,black,"  - reboot & quit are local")
+    drawElement(2,colorCount+8,37,1,white,black,"  - reset = reboots DHD & gateLiaison")
   elseif runState == "EditHelp" then
-    term.setBackgroundColor(black)
-    term.setTextColor(white)
-    term.setCursorPos(2, colorCount + 2)
-    term.write("- EDIT Mode: Left click an address to edit")
-    term.setCursorPos(2, colorCount + 3)
-    term.write("             Right click an address for Trim Mode")
-    term.setCursorPos(2, colorCount + 4)
-    term.write("             Right click '+ Entry' to quick-add")
-    term.setCursorPos(2, colorCount + 5)
-    term.write("   'Import'  Load gate data from diskette")
-    term.setCursorPos(2, colorCount + 6)
-    term.write("    Export'  Save gate data to diskette")
-    term.setCursorPos(2, colorCount + 7)
-    term.write("- TRIM Mode: Left click an address to delete")
-    term.setCursorPos(2, colorCount + 8)
-    term.write(" '-COMMIT-'  saves new gate data, exits Trim Mode")
-    term.setCursorPos(2, colorCount + 9)
-    term.write(" '- Undo -'  cancels deletions, exits Trim Mode")
+    drawElement(2,colorCount+2,42,1,white,black,"- EDIT Mode: Left click an address to edit")
+    drawElement(2,colorCount+3,49,1,white,black,"             Right click an address for Trim Mode")
+    drawElement(2,colorCount+4,47,1,white,black,"  '+ Entry'  Right click '+ Entry' to quick-add")
+    drawElement(2,colorCount+5,41,1,white,black,"   'Import'  Load gate data from diskette")
+    drawElement(2,colorCount+6,39,1,white,black,"   'Export'  Save gate data to diskette")
+    drawElement(2,colorCount+7,44,1,white,black,"- TRIM Mode: Left click an address to delete")
+    drawElement(2,colorCount+8,49,1,white,black," '-COMMIT-'  Saves new gate data, exits Trim Mode")
+    drawElement(2,colorCount+9,47,1,white,black," '- Undo -'  Cancels deletions, exits Trim Mode")
   end
 end
 
@@ -917,13 +894,10 @@ local function drawSettingsUI()
   end
   drawElement(23,8,1,1,black,gray,"#") -- Biolock auth. level
   drawElement(2,10,4,1,gray,black,"Net:")
-  term.setCursorPos(7,10)
   if dhdSettings.net == "R" then     -- redNet (specify server #)
-    term.setTextColor(red)
-    term.write("redNet")
+    drawElement(7,10,6,1,red,black,"redNet")
   elseif dhdSettings.net == "C" then -- ccNet (specify send/receive channels)
-    term.setTextColor(green)
-    term.write("ccNet")
+    drawElement(7,10,5,1,green,black,"ccNet")
   end
   if dhdSettings.net == "R" then     -- Red for redNet
     drawElement(17,10,"OFF")
@@ -939,15 +913,11 @@ local function drawSettingsUI()
   if dhdSettings.net == "R" then
     drawElement(17,12,#tostring(dhdSettings.gate),1,red,black,tostring(dhdSettings.gate)) -- Gate Liaison (redNet)
   elseif dhdSettings.net == "C" then
-    term.setCursorPos(11,12)
-    term.setTextColor(green) -- Send Channel (ccNet)
-    term.write(string.rep(" ",5-#tostring(dhdSettings.channels.send)) .. tostring(dhdSettings.channels.send)) -- Send Channel (ccNet)
-    term.setCursorPos(16,12)
-    term.setTextColor(lgray)
-    term.write("/")
-    term.setCursorPos(17,12)
-    term.setTextColor(green) -- Receive Channel (ccNet)
-    term.write(string.rep(" ",5-#tostring(dhdSettings.channels.recv)) .. tostring(dhdSettings.channels.recv)) -- Receive Channel (ccNet)
+    local ccSnd = string.rep(" ",5-#tostring(dhdSettings.channels.send)) .. tostring(dhdSettings.channels.send)
+    drawElement(11,12,#ccSnd,1,green,black,ccSnd)
+    drawElement(16,12,1,1,lgray,black,"/")
+    local ccRec = string.rep(" ",5-#tostring(dhdSettings.channels.recv)) .. tostring(dhdSettings.channels.recv)
+    drawElement(17,12,#ccRec,1,green,black,ccRec)
   end
   drawElement(2,14,7,1,gray,black,"Marquee") -- Marquee (monB)
   if dhdSettings.monB == "none" then
@@ -978,21 +948,18 @@ local function drawSettingsUI()
   end
   drawElement(28,8,5,1,gray,black,"Bio: ") -- Whether Biolock controls shield or initiates lockdown or does nothing (this is separate from BioLogin)
   if dhdSettings.bio.func == "none" then
-    term.setTextColor(lgray)
-    term.write("No Function")
+    drawElement(33,8,11,1,lgray,black,"No Function")
   elseif dhdSettings.bio.func == "shield" then
-    term.setTextColor(green)
     if #dhdSettings.thisGate == 7 then
-      term.write("Shield")
+      drawElement(33,8,6,1,green,black,"Shield")
     elseif #dhdSettings.thisGate > 7 then
-      term.write("Iris")
+      drawElement(33,8,4,1,green,black,"Iris")
     end
   elseif dhdSettings.bio.func == "lock" then
-    term.setTextColor(red)
-    term.write("Lockdown")
+    drawElement(33,8,8,1,red,black,"Lockdown")
   end
   term.setCursorPos(45,8)
-  if dhdSettings.bio.func == "none" then
+  if dhdSettings.bio.func == "none" then -- Bio - Iris/Lockdown/None function switch
     term.setBackgroundColor(green)
     term.write(" ")
     term.setBackgroundColor(gray)
@@ -1004,26 +971,20 @@ local function drawSettingsUI()
   elseif dhdSettings.bio.func == "lock" then
     drawElement(45,8,"OFF")
   end
-  term.setCursorPos(28,10)
-  term.setBackgroundColor(black)
-  term.setTextColor(gray)
   if #dhdSettings.thisGate == 7 then
-    term.write("STARTUP Shield") -- Shield ON/OFF @ startup
+    drawElement(28,10,14,1,gray,black,"STARTUP Shield")
   elseif #dhdSettings.thisGate > 7 then
-    term.write("STARTUP Iris")
+    drawElement(28,10,12,1,gray,black,"STARTUP Iris")
   end
   if dhdSettings.startShield == "OFF" then
     drawElement(45,10,"OFF")
   elseif dhdSettings.startShield == "ON" then
     drawElement(45,10,"ON")
   end
-  term.setCursorPos(28,12)
-  term.setBackgroundColor(black)
-  term.setTextColor(gray)
   if #dhdSettings.thisGate == 7 then -- END Call Shield (ON/OFF)
-    term.write("END Call Shield")
+    drawElement(28,12,15,1,gray,black,"END Call Shield")
   elseif #dhdSettings.thisGate > 7 then
-    term.write("END Call Iris")
+    drawElement(28,12,13,1,gray,black,"END Call Iris")
   end
   if dhdSettings.ecShield == "OFF" then
     drawElement(45,12,"OFF")
@@ -1099,7 +1060,7 @@ end
 local function drawSideList(pSide)
   local tPos = { 5,7,9,11,13,15 }
   local tSide = { "top","bottom","front","back","left","right" }
-  drawElement(26,4,8,13,white,gray,"") -- menu
+  drawElement(26,4,8,13,white,gray,"") -- menu bg
   local tsColor
   for j,k in pairs(tSide) do
     if pSide == k then
@@ -1113,98 +1074,72 @@ local function drawSideList(pSide)
 end
 
 local function drawRatingList(gRating,currentGate)
-  term.setBackgroundColor(gray)
   drawElement(14,6,19,8,white,gray,"") -- menu bg
-  drawElement(14,6,1,1,white,blue," ") -- B pip
-  term.setTextColor(white)
-  term.setBackgroundColor(gray)
+  drawElement(14,6,1,1,white,blue,"") -- B pip
+  local trColor
   if gRating == "B" then
-    drawElement(33,6,1,8,white,blue," ") -- B line
-    term.setTextColor(blue)
-    term.setBackgroundColor(gray)
+    drawElement(33,6,1,8,white,blue,"") -- B line
+    trColor = blue
   else
-    term.setTextColor(lgray)
+    trColor = lgray
   end
-  term.setCursorPos(16,6)
-  term.write("Base/Outpost/Hub")
-  drawElement(14,7,1,1,white,lblue," ") -- H pip
-  term.setBackgroundColor(gray)
+  drawElement(16,6,16,1,trColor,gray,"Base/Outpost/Hub")
+  drawElement(14,7,1,1,white,lblue,"") -- H pip
   if gRating == "H" then
-    drawElement(33,6,1,8,white,lblue," ") -- H line
-    term.setTextColor(lblue)
-    term.setBackgroundColor(gray)
+    drawElement(33,6,1,8,white,lblue,"") -- H line
+    trColor = lblue
   else
-    term.setTextColor(lgray)
+    trColor = lgray
   end
-  term.setCursorPos(16,7)
-  term.write("Home/Camp")
-  drawElement(14,8,1,1,white,brown," ") -- V pip
-  term.setBackgroundColor(gray)
+  drawElement(16,7,9,1,trColor,gray,"Home/Camp")
+  drawElement(14,8,1,1,white,brown,"") -- V pip
   if gRating == "V" then
-    drawElement(33,6,1,8,white,brown," ") -- V line
-    term.setTextColor(brown)
-    term.setBackgroundColor(gray)
+    drawElement(33,6,1,8,white,brown,"") -- V line
+    trColor = brown
   else
-    term.setTextColor(lgray)
+    trColor = lgray
   end
-  term.setCursorPos(16,8)
-  term.write("Village")
-  drawElement(14,9,1,1,white,purple," ") -- M pip
-  term.setBackgroundColor(gray)
+  drawElement(16,8,7,1,trColor,gray,"Village")
+  drawElement(14,9,1,1,white,purple,"") -- M pip
   if gRating == "M" then
-    term.setTextColor(purple)
-    term.setBackgroundColor(purple)
-    drawElement(33,6,1,8,white,purple," ") -- M line
-    term.setBackgroundColor(gray)
+    drawElement(33,6,1,8,white,purple,"") -- M line
+    trColor = purple
   else
-    term.setTextColor(lgray)
+    trColor = lgray
   end
-  term.setCursorPos(16,9)
-  term.write("Misc/Special")
-  drawElement(14,10,1,1,white,green," ") -- S pip
-  term.setBackgroundColor(gray)
+  drawElement(16,9,12,1,trColor,gray,"Misc/Special")
+  drawElement(14,10,1,1,white,green,"") -- S pip
   if gRating == "S" then
-    drawElement(33,6,1,8,white,green," ") -- S line
-    term.setTextColor(green)
-    term.setBackgroundColor(gray)
+    drawElement(33,6,1,8,white,green,"") -- S line
+    trColor = green
   else
-    term.setTextColor(lgray)
+    trColor = lgray
   end
-  term.setCursorPos(16,10)
-  term.write("Safe/Secured")
-  drawElement(14,11,1,1,white,orange," ") -- C pip
-  term.setBackgroundColor(gray)
+  drawElement(16,10,12,1,trColor,gray,"Safe/Secured")
+  drawElement(14,11,1,1,white,orange,"") -- C pip
   if gRating == "C" then
-    drawElement(33,6,1,8,white,orange," ") -- C line
-    term.setTextColor(orange)
-    term.setBackgroundColor(gray)
+    drawElement(33,6,1,8,white,orange,"") -- C line
+    trColor = orange
   else
-    term.setTextColor(lgray)
+    trColor = lgray
   end
-  term.setCursorPos(16,11)
-  term.write("Caution")
-  drawElement(14,12,1,1,white,red," ") -- D pip
-  term.setBackgroundColor(gray)
+  drawElement(16,11,7,1,trColor,gray,"Caution")
+  drawElement(14,12,1,1,white,red,"") -- D pip
   if gRating == "D" then
-    drawElement(33,6,1,8,white,red," ") -- D line
-    term.setTextColor(red)
-    term.setBackgroundColor(gray)
+    drawElement(33,6,1,8,white,red,"") -- D line
+    trColor = red
   else
-    term.setTextColor(lgray)
+    trColor = lgray
   end
-  term.setCursorPos(16,12)
-  term.write("Danger")
-  drawElement(14,13,1,1,white,lgray," ") -- U pip
-  term.setBackgroundColor(gray)
+  drawElement(16,12,6,1,trColor,gray,"Danger")
+  drawElement(14,13,1,1,white,lgray,"") -- U pip
   if gRating == "U" then
-    drawElement(33,6,1,8,white,lgray," ") -- U line
-    term.setTextColor(white)
-    term.setBackgroundColor(gray)
+    drawElement(33,6,1,8,white,lgray,"") -- U line
+    trColor = white
   else
-    term.setTextColor(lgray)
+    trColor = lgray
   end
-  term.setCursorPos(16,13)
-  term.write("Unknown")
+  drawElement(16,13,7,1,trColor,gray,"Unknown")
 end
 
 local function drawAuthList(cAuth)
@@ -1381,24 +1316,17 @@ local function viewGateEntry(dataBlock)
         drawElement(34,7,9,1,yellow,black,"THIS GATE")
       end
       drawElement(2,9,#allGates[currentEdit].note,1,white,black,allGates[currentEdit].note)
-      drawElement(2,12,11,1,lgray,black,"Dimension: ")
-      term.setTextColor(lblue)
-      term.write(allGates[currentEdit].loc.dim)
-      drawElement(2,13,3,1,lgray,black,"x: ")
-      term.setTextColor(brown)
-      term.write(tostring(allGates[currentEdit].loc.x))
-      drawElement(2,14,3,1,lgray,black,"y: ")
-      term.setTextColor(brown)
-      term.write(tostring(allGates[currentEdit].loc.y))
-      drawElement(2,15,3,1,lgray,black,"z: ")
-      term.setTextColor(brown)
-      term.write(tostring(allGates[currentEdit].loc.z))
+      drawElement(2,12,10,1,lgray,black,"Dimension:")
+      drawElement(13,12,#allGates[currentEdit].loc.dim,1,lblue,black,allGates[currentEdit].loc.dim)
+      drawElement(2,13,2,1,lgray,black,"x:")
+      drawElement(5,13,#tostring(allGates[currentEdit].loc.x),1,brown,black,allGates[currentEdit].loc.x)
+      drawElement(2,14,2,1,lgray,black,"y:")
+      drawElement(5,14,#tostring(allGates[currentEdit].loc.y),1,brown,black,allGates[currentEdit].loc.y)
+      drawElement(2,15,2,1,lgray,black,"z:")
+      drawElement(5,15,#tostring(allGates[currentEdit].loc.z),1,brown,black,allGates[currentEdit].loc.z)
     end
   end
-  term.setCursorPos((termX/2)-8,termY-1)
-  term.setTextColor(black)
-  term.setBackgroundColor(gray)
-  term.write(" < < < CLOSE > > > ")
+  drawElement((termX/2)-8,termY-1,19,1,black,gray," < < < CLOSE > > > ")
 end
 
 local function deleteGate(tGate) -- TRIM mode: delete gate
@@ -3053,10 +2981,8 @@ end
 
 local function initMe()
   term.setBackgroundColor(black)
-  term.setTextColor(white)
   term.clear()
-  term.setCursorPos(2,2)
-  term.write("Initializing . . .")
+  drawElement(2,2,18,1,white,black,"Initializing . . .")
   term.setCursorPos(2,4)
   if not fs.exists(settingsData) then
     detectHardware("mon")
@@ -3066,7 +2992,7 @@ local function initMe()
   end
   if not fs.exists(settingsData) then missingComponent("cfg") dhdSettings.thisGate = "--ERROR--" return end
   ingestData(settingsData,"cfg")
-  term.write("Hardware Discovery . . .")
+  drawElement(2,4,24,1,white,black,"Hardware Discovery . . .")
   detectHardware("modem")
   if hardware.netSide == "none" then missingComponent("modem") dhdSettings.thisGate = "--ERROR--" return end
   if dhdSettings.pSync == "ON" then
@@ -3085,11 +3011,10 @@ local function initMe()
   end
   detectHardware("bio")
   if dhdSettings.bio.lock == "ON" and hardware.bioSide ~= "none" then bioLogin() end -- Biolock login
-  term.setCursorPos(2,6)
-  term.write("Querying gateLiaison @ " .. dhdSettings.thisGate .. " . . .")
+  local trWord = "Querying gateLiaison @ " .. dhdSettings.thisGate .. " . . ."
+  drawElement(2,6,#trWord,1,white,black,trWord)
   netSend("QRY")
-  term.setCursorPos(2,8)
-  term.write("Awaiting response . . .")
+  drawElement(2,8,23,1,white,black,"Awaiting response . . .")
   if dhdSettings.net == "R" then
     local senderID, message = rednet.receive()
     if senderID == dhdSettings.gate then
@@ -3101,13 +3026,11 @@ local function initMe()
       updateStatus(netEvent[5])
     end
   end
-  term.setCursorPos(2,10)
-  term.write("Setting Shield . . .")
+  drawElement(2,10,20,1,white,black,"Setting Shield . . .")
   if dhdSettings.startShield == "ON" then
     netSend("sON")
   end
-  term.setCursorPos(2,12)
-  term.write("Ingesting gate data . . .")
+  drawElement(2,12,25,1,white,black,"Ingesting gate data . . .")
   ingestData(dhdSettings.gateData,"gate")
   term.setBackgroundColor(black)
   term.clear()
