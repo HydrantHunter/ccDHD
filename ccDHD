@@ -1841,7 +1841,7 @@ local function mClick()
           local clearLog = fs.open("/data/DHDhistory","w")
           clearLog.close()
           callHistory = { }
-          lastCall = { }
+          --lastCall = { }
           histPages = 1
           histPage = 1
           viewLogs()
