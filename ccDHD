@@ -8,12 +8,12 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.10"
+local ccDHDVer = "1.1.11"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
   - LanteaCraft (snapshot 82+ and RC1_15+)
-  - ComputerCraft ver. 1.57+ for MC 1.6.4
+  - ComputerCraft ver. 1.57-1.58 for MC 1.6.4
     - HTTP API enabled (for pastebin installer - not required for ccDHD)
     - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
     - gateLiaison running on an Advanced Computer (with 3 optional Advanced Monitors) or an Advanced Wireless Turtle (no monitors)
@@ -432,7 +432,7 @@ end
 local function assignRating(gateNumber)
   local ratingBurst = { B = "Base/Outpost/Hub", H = "Home/Camp", V = "Village", M = "Misc/Special", S = "Safe", C = "Caution", D = "Danger", U = "Unknown", Z = "Zog" }
   for i,j in pairs(ratingBurst) do
-    if allGates[gateNumber].rating == i then
+    if allGates[gateNumber].rating == tostring(i) then
       return j
     end
   end
@@ -548,19 +548,33 @@ local function displayStatus()
   end
 end
 
-local function drawElement(x,y,w,h,tColor,bgColor,text)
-  term.setBackgroundColor(bgColor)
-  term.setTextColor(tColor)
-  term.setCursorPos(x,y)
-  for i = 1,h,1 do
-    term.write(string.rep(" ",w))
-    term.setCursorPos(x,y+i)
-  end
-  if text ~= "" then
-    local xW = (x + w/2) - #text/2
-    local xH = y + h/2
-    term.setCursorPos(xW,xH)
-    term.write(text)
+local function drawElement(x,y,w,h,txColor,bgColor,text)
+  if x == "ON" or x == "OFF" then
+    if x == "OFF" then
+      term.setBackgroundColor(gray)
+      term.write("  ")
+      term.setBackgroundColor(red)
+      term.write("  ")
+    elseif x == "ON" then
+      term.setBackgroundColor(green)
+      term.write("  ")
+      term.setBackgroundColor(gray)
+      term.write("  ")
+    end
+  else
+    term.setBackgroundColor(bgColor)
+    term.setTextColor(txColor)
+    term.setCursorPos(x,y)
+    for i = 1,h,1 do
+      term.write(string.rep(" ",w))
+      term.setCursorPos(x,y+i)
+    end
+    if text ~= "" then
+      local xW = (x + w/2) - #text/2
+      local xH = y + h/2
+      term.setCursorPos(xW,xH)
+      term.write(text)
+    end
   end
 end
 
@@ -583,7 +597,7 @@ local function drawHeader()
   else
     drawElement(1,1,termX,1,white,bgColor,longName) -- header for all else
   end
-  if runState == "logs" then                      -- If we're viewing the logs, show the last call info instead of connect/shield info
+  if runState == "logs" then                        -- If we're viewing the logs, show the last call info instead of connect/shield info
     term.setBackgroundColor(gray)
     term.setTextColor(lgray)
     drawElement(1,2,termX,3,lgray,gray,"")
@@ -611,33 +625,33 @@ local function drawHeader()
     drawElement(2,3,9,1,lgray,gray,"Shield is")
   end
   drawElement(20,3,5,1,lgray,gray,"Gate:")
-  local tColor
+  local tgColor
   term.setBackgroundColor(gray)
 -- Shield & Gate Status
   if shieldStatus == "ON" then
-    tColor = lime
+    tgColor = lime
   elseif shieldStatus == "OFF" then
-    tColor = orange
+    tgColor = orange
   else
-    tColor = red
+    tgColor = red
   end
   if #dhdSettings.thisGate > 7 and shieldStatus == "ON" then -- Iris open/closed
-    drawElement(10,3,6,1,tColor,gray,"CLOSED")
+    drawElement(10,3,6,1,tgColor,gray,"CLOSED")
   elseif #dhdSettings.thisGate > 7 and shieldStatus == "OFF" then
-    drawElement(10,3,4,1,tColor,gray,"OPEN")
+    drawElement(10,3,4,1,tgColor,gray,"OPEN")
   else
-    drawElement(12,3,(#shieldStatus)+1,1,tColor,gray,shieldStatus .. " ") -- Shield ON/OFF
+    drawElement(12,3,(#shieldStatus)+1,1,tgColor,gray,shieldStatus .. " ") -- Shield ON/OFF
   end
   if gateStatus == "Connected" then
-    tColor = orange
+    tgColor = orange
   elseif gateStatus == "Disconnected" then
-    tColor = lime
+    tgColor = lime
   elseif gateStatus == "Dialing" then
-    tColor = cyan
+    tgColor = cyan
   else
-    tColor = red
+    tgColor = red
   end
-  term.setTextColor(tColor)
+  term.setTextColor(tgColor)
   term.setCursorPos(26,3)
   if gateStatus == "Connected" and dialAddress == "" then
     term.write("Incoming Connection")
@@ -670,10 +684,10 @@ local function drawControlUI()
   term.setTextColor(white)
   term.setCursorPos(43,7)
   if runState == "Dial" then
-    if fuelGauge then                -- Fuel
-      term.setBackgroundColor(green) --  full color
-    else                             --
-      term.setBackgroundColor(red)   --  empty color
+    if fuelGauge then                 -- FUEL
+      term.setBackgroundColor(green)  --  full color
+    else                              --
+      term.setBackgroundColor(red)    --  empty color
     end
     term.write(dhdCommandOptions[1] .. "     ")  -- D I A L
   elseif runState == "Edit" then
@@ -685,33 +699,33 @@ local function drawControlUI()
   end
   if runState == "Dial" then
     if #dhdSettings.thisGate == 7 then
-      drawElement(45,9,5,1,white,lblue,dhdCommandOptions[4] .. "   ") -- Shield
+      drawElement(45,9,5,1,white,lblue,dhdCommandOptions[4] .. "   ")    -- Shield
     else
-      drawElement(45,9,4,1,white,lblue,dhdCommandOptions[5] .. "    ") -- Iris
+      drawElement(45,9,4,1,white,lblue,dhdCommandOptions[5] .. "    ")   -- Iris
     end
     if shieldStatus == "ON" then
-      drawElement(termX,9,1,1,white,green,"") -- Iris/Shield pip ON
+      drawElement(termX,9,1,1,white,green,"")  -- Iris/Shield pip ON
     else
       drawElement(termX,9,1,1,white,orange,"") -- Iris/Shield pip OFF
     end
-    drawElement(45,11,6,1,black,orange,dhdCommandOptions[6] .. " ") -- endCall
-    drawElement(45,13,8,1,orange,red,dhdCommandOptions[7] .. "   ") -- Lockdown
-    drawElement(46,15,4,1,gray,cyan,dhdCommandOptions[8] .. "     ") -- rCmd
+    drawElement(45,11,6,1,black,orange,dhdCommandOptions[6] .. " ")      -- endCall
+    drawElement(45,13,8,1,orange,red,dhdCommandOptions[7] .. "   ")      -- Lockdown
+    drawElement(46,15,4,1,gray,cyan,dhdCommandOptions[8] .. "     ")     -- rCmd
   elseif runState == "Edit" then
     if #allGates < 23977 then
-      drawElement(45,9,6,1,white,blue,dhdCommandOptions[9] .. "  ") -- +Entry
+      drawElement(45,9,6,1,white,blue,dhdCommandOptions[9] .. "  ")      -- +Entry
     end
-    drawElement(45,11,6,1,white,orange,dhdCommandOptions[10] .. "    ") -- Import Gate Data
-    drawElement(45,13,6,1,white,green,dhdCommandOptions[11] .. "    ") -- Export Gate Data
-    if gateChange == true then
-      drawElement(46,15,4,1,lime,cyan,dhdCommandOptions[12] .. "     ") -- Save Gate Data
+    drawElement(45,11,6,1,white,orange,dhdCommandOptions[10] .. "    ")  -- Import Gate Data
+    drawElement(45,13,6,1,white,green,dhdCommandOptions[11] .. "    ")   -- Export Gate Data
+    if gateChange then
+      drawElement(46,15,4,1,lime,cyan,dhdCommandOptions[12] .. "     ")  -- Save Gate Data
       term.setTextColor(lime)
     else
       drawElement(46,15,4,1,white,cyan,dhdCommandOptions[12] .. "     ") -- Save Gate Data
     end
   elseif runState == "Trim" then
-    drawElement(44,11,8,1,gray,lgray,dhdCommandOptions[13] .. " ") -- Undo
-    drawElement(44,13,8,1,black,red,dhdCommandOptions[14] .. " ") -- Commit
+    drawElement(44,11,8,1,gray,lgray,dhdCommandOptions[13] .. " ")       -- Undo
+    drawElement(44,13,8,1,black,red,dhdCommandOptions[14] .. " ")        -- Commit
   end
   term.setBackgroundColor(black)
 end
@@ -721,7 +735,7 @@ local function drawNaviUI()
   pNum = tostring(pageNum)
   if pageNum < 100 then pNum = "0" .. pNum end -- Add a "0" before double digit page numbers
   if pageNum < 10 then pNum = "0" .. pNum end  -- Add another "0" before single digit page numbers
-  drawElement(((termX/2) - (math.floor(pNum:len()/4)))-5,termY,3,1,lgray,black,pNum) -- Page Number
+  drawElement(((termX/2)-(math.floor(pNum:len()/4)))-5,termY,3,1,lgray,black,pNum) -- Page Number
   if pageNum > 1 then
     drawElement((termX/2)-14,termY,7,1,gray,black,"<< BACK") -- Show "BACK" option if page number is > 1
   elseif pageNum == 1 then
@@ -880,28 +894,19 @@ end
 local function drawSettingsUI()
   term.setBackgroundColor(black)
   term.clear()
-  term.setCursorPos(1,1)
-  term.setBackgroundColor(lblue) -- Header
-  term.write(string.rep(" ",termX))
-  term.setCursorPos(1,2)
-  term.setBackgroundColor(gray)
-  term.write(string.rep(" ",termX))
-  term.setTextColor(white)
-  term.setCursorPos((termX/2)-((#dhdSettings.thisGate/2))-4,1)
-  term.write(" " .. dhdSettings.thisGate .. " Settings ")
-  term.setCursorPos(1,termY)
-  term.write(string.rep(" ",termX))
-  term.setBackgroundColor(lgray)
-  term.setCursorPos(39,2)
-  if configChange == true then
-    term.setTextColor(lime)
-  elseif configChange == false then
-    term.setTextColor(gray)
+  drawElement(1,1,termX,1,white,lblue,"")
+  drawElement(1,2,termX,1,white,gray,"")
+  local settingsHeader = " " .. dhdSettings.thisGate .. " Settings "
+  drawElement((termX/2)-((#dhdSettings.thisGate/2))-4,1,#settingsHeader,1,white,gray,settingsHeader)
+  drawElement(1,termY,termX,1,white,gray,"")
+  local tsColor
+  if configChange then
+    tsColor = lime
+  else
+    tsColor = gray
   end
-  term.write(" Save ")           --
-  term.setCursorPos(45,2)        -- Save / Close buttons
-  term.setTextColor(red)         --
-  term.write(" Close ")          --
+  drawElement(39,2,6,1,tsColor,lgray," Save ") -- Save / Close buttons
+  drawElement(45,2,7,1,red,lgray," Close ")    --
    -- Settings 1st Column
   drawElement(2,4,9,1,gray,black,"This gate")
   drawElement(17,4,#dhdSettings.thisGate,1,cyan,black,dhdSettings.thisGate) -- thisGate
@@ -910,15 +915,9 @@ local function drawSettingsUI()
   drawElement(2,8,13,1,gray,black,"Biolock Login")
   term.setCursorPos(17,8)
   if dhdSettings.bio.lock == "OFF" then -- Fistprint Authentication (Biolock mod)
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
+    drawElement("OFF")
   elseif dhdSettings.bio.lock == "ON" then
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
+    drawElement("ON")
   end
   drawElement(23,8,1,1,black,gray,"#") -- Biolock auth. level
   drawElement(2,10,4,1,gray,black,"Net:")
@@ -932,26 +931,15 @@ local function drawSettingsUI()
   end
   term.setCursorPos(17,10)
   if dhdSettings.net == "R" then     -- Red for redNet
-    term.setBackgroundColor(gray)
-    term.write("  ")
-   term.setBackgroundColor(red)
-    term.write("  ")
+    drawElement("OFF")
   elseif dhdSettings.net == "C" then -- Green for ccNet
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
+    drawElement("ON")
   end
   drawElement(23,10,1,1,black,gray,"#") -- hardware.netSide
-  --term.setBackgroundColor(black)
-  --term.setTextColor(gray)
-  --term.setCursorPos(2,12)
   if dhdSettings.net == "R" then     -- if redNet show "Gate Liaison"
     drawElement(2,12,12,1,gray,black,"Gate Liaison")
-    --term.write("Gate Liaison")
   elseif dhdSettings.net == "C" then -- if ccNet show "Send/Rec"
     drawElement(2,12,8,1,gray,black,"Send/Rec")
-    --term.write("Send/Rec")
   end
   if dhdSettings.net == "R" then
     term.setCursorPos(17,12)
@@ -971,57 +959,33 @@ local function drawSettingsUI()
   drawElement(2,14,7,1,gray,black,"Marquee") -- Marquee (monB)
   term.setCursorPos(17,14)
   if dhdSettings.monB == "none" then
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
+    drawElement("OFF")
   else
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
+    drawElement("ON")
   end
   drawElement(23,14,1,1,black,gray,"#") -- Marquee side (monB)
   drawElement(2,16,12,1,gray,black,"List Monitor") -- List Monitor (monA)
   term.setCursorPos(17,16)
   if dhdSettings.monA == "none" then
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
+    drawElement("OFF")
   else
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
+    drawElement("ON")
   end
   drawElement(23,16,1,1,black,gray,"#") -- List Monitor side (monA)
   -- Settings 2nd column
   drawElement(28,4,14,1,gray,black,"Highlight gate") -- Whether or not to display the local gate differently than the rest of the list
   term.setCursorPos(45,4)
   if dhdSettings.highlight == "YES" then
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
+    drawElement("ON")
   elseif dhdSettings.highlight == "NO" then
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
+    drawElement("OFF")
   end
   drawElement(28,6,16,1,gray,black,"pSync (ccDialer)") -- Enable/Disable ccDialer pSync
   term.setCursorPos(45,6)
   if dhdSettings.pSync == "ON" then
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
+    drawElement("ON")
   elseif dhdSettings.pSync == "OFF" then
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
+    drawElement("OFF")
   end
   drawElement(28,8,5,1,gray,black,"Bio: ") -- Whether Biolock controls shield or initiates lockdown or does nothing (this is separate from BioLogin)
   if dhdSettings.bio.func == "none" then
@@ -1047,15 +1011,9 @@ local function drawSettingsUI()
     term.setBackgroundColor(red)
     term.write(" ")
   elseif dhdSettings.bio.func == "shield" then
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
+    drawElement("ON")
   elseif dhdSettings.bio.func == "lock" then
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
+    drawElement("OFF")
   end
   term.setCursorPos(28,10)
   term.setBackgroundColor(black)
@@ -1067,15 +1025,9 @@ local function drawSettingsUI()
   end
   term.setCursorPos(45,10)
   if dhdSettings.startShield == "OFF" then
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
+    drawElement("OFF")
   elseif dhdSettings.startShield == "ON" then
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
+    drawElement("ON")
   end
   term.setCursorPos(28,12)
   term.setBackgroundColor(black)
@@ -1087,41 +1039,23 @@ local function drawSettingsUI()
   end
   term.setCursorPos(45,12)
   if dhdSettings.ecShield == "OFF" then
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
+    drawElement("OFF")
   elseif dhdSettings.ecShield == "ON" then
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
+    drawElement("ON")
   end
   drawElement(28,14,12,1,gray,black,"Call Logging") -- ccDHD should/not log outbound calls
   term.setCursorPos(45,14)
   if dhdSettings.logs == "OFF" then
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
+    drawElement("OFF")
   elseif dhdSettings.logs == "ON" then
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
+    drawElement("ON")
   end
   drawElement(28,16,14,1,gray,black,"Initiator Only") -- Only call initiator can end call (ON/OFF)
   term.setCursorPos(45,16)
   if dhdSettings.callEnd == "OFF" then
-    term.setBackgroundColor(gray)
-    term.write("  ")
-    term.setBackgroundColor(red)
-    term.write("  ")
+    drawElement("OFF")
   elseif dhdSettings.callEnd == "ON" then
-    term.setBackgroundColor(green)
-    term.write("  ")
-    term.setBackgroundColor(gray)
-    term.write("  ")
+    drawElement("ON")
   end
 end
 
@@ -1180,159 +1114,106 @@ end
 local function drawSideList(pSide)
   local tPos = { 5,7,9,11,13,15 }
   local tSide = { "top","bottom","front","back","left","right" }
-  term.setBackgroundColor(gray)
-  for i = 4,16,1 do
-    term.setCursorPos(26,i)
-    term.write("        ")
-  end
+  drawElement(26,4,8,13,white,gray,"") -- menu
+  local tsColor
   for j,k in pairs(tSide) do
     if pSide == k then
-      term.setTextColor(lime)
+      tsColor = lime
     else
-      term.setTextColor(white)
+      tsColor = white
     end
-    term.setCursorPos(27,tPos[j])
-    term.write(string.upper(k):sub(1,1) .. k:sub(2) )
+    local tWord = string.upper(k):sub(1,1) .. k:sub(2)
+    drawElement(27,tPos[j],#tWord,1,tsColor,gray,tWord)
   end
 end
 
 local function drawRatingList(gRating,currentGate)
   term.setBackgroundColor(gray)
-  for i = 6,13,1 do
-    term.setCursorPos(14,i)
-    term.write(string.rep(" ",19))
-  end
+  drawElement(14,6,19,8,white,gray,"") -- menu bg
+  drawElement(14,6,1,1,white,blue," ") -- B pip
   term.setTextColor(white)
-  term.setCursorPos(14,6)
-  term.setBackgroundColor(blue)
-  term.write(" ")
   term.setBackgroundColor(gray)
   if gRating == "B" then
+    drawElement(33,6,1,8,white,blue," ") -- B line
     term.setTextColor(blue)
-    term.setBackgroundColor(blue)
-    for i = 6,13,1 do
-      term.setCursorPos(33,i)
-      term.write(" ")
-    end
     term.setBackgroundColor(gray)
   else
     term.setTextColor(lgray)
   end
   term.setCursorPos(16,6)
   term.write("Base/Outpost/Hub")
-  term.setCursorPos(14,7)
-  term.setBackgroundColor(lblue)
-  term.write(" ")
+  drawElement(14,7,1,1,white,lblue," ") -- H pip
   term.setBackgroundColor(gray)
   if gRating == "H" then
+    drawElement(33,6,1,8,white,lblue," ") -- H line
     term.setTextColor(lblue)
-    term.setBackgroundColor(lblue)
-    for i = 6,13,1 do
-      term.setCursorPos(33,i)
-      term.write(" ")
-    end
     term.setBackgroundColor(gray)
   else
     term.setTextColor(lgray)
   end
   term.setCursorPos(16,7)
   term.write("Home/Camp")
-  term.setCursorPos(14,8)
-  term.setBackgroundColor(brown)
-  term.write(" ")
+  drawElement(14,8,1,1,white,brown," ") -- V pip
   term.setBackgroundColor(gray)
   if gRating == "V" then
+    drawElement(33,6,1,8,white,brown," ") -- V line
     term.setTextColor(brown)
-    term.setBackgroundColor(brown)
-    for i = 6,13,1 do
-      term.setCursorPos(33,i)
-      term.write(" ")
-    end
     term.setBackgroundColor(gray)
   else
     term.setTextColor(lgray)
   end
   term.setCursorPos(16,8)
   term.write("Village")
-  term.setCursorPos(14,9)
-  term.setBackgroundColor(purple)
-  term.write(" ")
+  drawElement(14,9,1,1,white,purple," ") -- M pip
   term.setBackgroundColor(gray)
   if gRating == "M" then
     term.setTextColor(purple)
     term.setBackgroundColor(purple)
-    for i = 6,13,1 do
-      term.setCursorPos(33,i)
-      term.write(" ")
-    end
+    drawElement(33,6,1,8,white,purple," ") -- M line
     term.setBackgroundColor(gray)
   else
     term.setTextColor(lgray)
   end
   term.setCursorPos(16,9)
   term.write("Misc/Special")
-  term.setCursorPos(14,10)
-  term.setBackgroundColor(green)
-  term.write(" ")
+  drawElement(14,10,1,1,white,green," ") -- S pip
   term.setBackgroundColor(gray)
   if gRating == "S" then
+    drawElement(33,6,1,8,white,green," ") -- S line
     term.setTextColor(green)
-    term.setBackgroundColor(green)
-    for i = 6,13,1 do
-      term.setCursorPos(33,i)
-      term.write(" ")
-    end
     term.setBackgroundColor(gray)
   else
     term.setTextColor(lgray)
   end
   term.setCursorPos(16,10)
   term.write("Safe/Secured")
-  term.setCursorPos(14,11)
-  term.setBackgroundColor(orange)
-  term.write(" ")
+  drawElement(14,11,1,1,white,orange," ") -- C pip
   term.setBackgroundColor(gray)
   if gRating == "C" then
+    drawElement(33,6,1,8,white,orange," ") -- C line
     term.setTextColor(orange)
-    term.setBackgroundColor(orange)
-    for i = 6,13,1 do
-      term.setCursorPos(33,i)
-      term.write(" ")
-    end
     term.setBackgroundColor(gray)
   else
     term.setTextColor(lgray)
   end
   term.setCursorPos(16,11)
   term.write("Caution")
-  term.setCursorPos(14,12)
-  term.setBackgroundColor(red)
-  term.write(" ")
+  drawElement(14,12,1,1,white,red," ") -- D pip
   term.setBackgroundColor(gray)
   if gRating == "D" then
+    drawElement(33,6,1,8,white,red," ") -- D line
     term.setTextColor(red)
-    term.setBackgroundColor(red)
-    for i = 6,13,1 do
-      term.setCursorPos(33,i)
-      term.write(" ")
-    end
     term.setBackgroundColor(gray)
   else
     term.setTextColor(lgray)
   end
   term.setCursorPos(16,12)
   term.write("Danger")
-  term.setCursorPos(14,13)
-  term.setBackgroundColor(lgray)
-  term.write(" ")
+  drawElement(14,13,1,1,white,lgray," ") -- U pip
   term.setBackgroundColor(gray)
   if gRating == "U" then
+    drawElement(33,6,1,8,white,lgray," ") -- U line
     term.setTextColor(white)
-    term.setBackgroundColor(lgray)
-    for i = 6,13,1 do
-      term.setCursorPos(33,i)
-      term.write(" ")
-    end
     term.setBackgroundColor(gray)
   else
     term.setTextColor(lgray)
@@ -1343,19 +1224,15 @@ end
 
 local function drawAuthList(cAuth)
   local cPos = { 5,7,9,11,13 }
-  term.setBackgroundColor(gray)
-  for i = 4,14,1 do
-    term.setCursorPos(26,i)
-    term.write("   ")
-  end
+  drawElement(26,4,3,11,white,gray,"") -- AuthList bg
+  local taColor
   for j,k in pairs(cPos) do
     if cAuth == j then
-      term.setTextColor(lime)
+      taColor = lime
     else
-      term.setTextColor(white)
+      taColor = white
     end
-    term.setCursorPos(27,k)
-    term.write(tostring(j))
+    drawElement(26,k,3,1,taColor,gray,tostring(j))
   end
 end
 
@@ -1380,134 +1257,71 @@ end
 
 local function flashChoice(choice)
   if choice == "cfg" then
-    term.setCursorPos(3,3)
-    term.setBackgroundColor(lblue)
-    term.setTextColor(white)
-    term.write("Settings ")
+    drawElement(3,3,9,1,white,lblue,"Settings ")
     sleep(0.1)
     drawMenu()
   elseif choice == "logs" then
-    term.setCursorPos(3,5)
-    term.setBackgroundColor(yellow)
-    term.setTextColor(black)
-    term.write("View Logs")
+    drawElement(3,5,9,1,black,yellow,"View Logs")
     sleep(0.1)
     drawMenu()
   elseif choice == "dhelp" then
-    term.setCursorPos(3,7)
-    term.setBackgroundColor(cyan)
-    term.setTextColor(white)
-    term.write("Dial Help")
+    drawElement(3,7,9,1,white,cyan,"Dial Help")
     sleep(0.1)
     drawMenu()
   elseif choice == "ehelp" then
-    term.setCursorPos(3,7)
-    term.setBackgroundColor(brown)
-    term.setTextColor(white)
-    term.write("Edit Help")
+    drawElement(3,7,9,1,white,brown,"Edit Help")
     sleep(0.1)
     drawMenu()
   elseif choice == "exit" then
-    term.setCursorPos(3,9)
-    term.setBackgroundColor(red)
-    term.setTextColor(white)
-    term.write("  EXIT   ")
+    drawElement(3,9,9,1,white,red,"  EXIT   ")
     sleep(0.1)
     drawMenu()
   elseif choice == "close" then
-    term.setCursorPos(termX-6,2)
-    term.setBackgroundColor(red)
-    term.setTextColor(white)
-    term.write(" Close ")
+    drawElement(termX-6,2,7,1,white,red," Close ")
     sleep(0.1)
-    term.setCursorPos(termX-6,2)
-    term.setBackgroundColor(lgray)
-    term.setTextColor(red)
-    term.write(" Close ")
+    drawElement(termX-6,2,7,1,red,lgray," Close ")
   elseif choice == "clear" then
-    term.setCursorPos(termX-6,4)
-    term.setBackgroundColor(orange)
-    term.setTextColor(white)
-    term.write(" Clear ")
+    drawElement(termX-6,4,7,1,white,orange," Clear ")
     sleep(0.1)
-    term.setCursorPos(termX-6,4)
-    term.setBackgroundColor(lgray)
-    term.setTextColor(gray)
-    term.write(" Clear ")
+    drawElement(termX-6,4,7,1,gray,lgray," Clear ")
   elseif choice == "cfgsave" then
-    term.setCursorPos(termX-12,2)
-    term.setBackgroundColor(green)
-    term.setTextColor(white)
-    term.write(" Save ")
+    drawElement(termX-12,2,6,1,white,green," Save ")
     sleep(0.1)
-    term.setCursorPos(termX-12,2)
-    term.setBackgroundColor(lgray)
-    term.setTextColor(gray)
-    term.write(" Save ")
+    drawElement(termX-12,2,6,1,gray,lgray," Save ")
   elseif choice == "new" then
-    term.setCursorPos(43,9)
-    term.setBackgroundColor(white)
-    term.setTextColor(blue)
-    term.write("+ Entry  ")
+    drawElement(43,9,9,1,blue,white,"+ Entry  ")
     sleep(0.1)
   elseif choice == "end" then
-    term.setCursorPos(43,11)
-    term.setBackgroundColor(black)
-    term.setTextColor(orange)
-    term.write("END Call ")
+    drawElement(43,11,9,1,orange,black,"END Call ")
     sleep(0.1)
     drawControlUI()
   elseif choice == "import" then
-    term.setCursorPos(43,11)
-    term.setBackgroundColor(white)
-    term.setTextColor(orange)
-    term.write("Import   ")
+    drawElement(43,11,9,1,orange,white,"Import   ")
     sleep(0.1)
     drawControlUI()
   elseif choice == "undo" then
-    term.setCursorPos(43,11)
-    term.setBackgroundColor(brown)
-    term.setTextColor(white)
-    term.write("- Undo - ")
+    drawElement(43,11,9,1,white,brown,"- Undo - ")
     sleep(0.1)
   elseif choice == "lock" then
-    term.setCursorPos(43,13)
-    term.setBackgroundColor(orange)
-    term.setTextColor(red)
-    term.write("LOCKDOWN ")
+    drawElement(43,13,9,1,red,orange,"LOCKDOWN ")
     sleep(0.1)
   elseif choice == "export" then
-    term.setCursorPos(43,13)
-    term.setBackgroundColor(white)
-    term.setTextColor(green)
-    term.write("Export   ")
+    drawElement(43,13,9,1,green,white,"Export   ")
     sleep(0.1)
     drawControlUI()
   elseif choice == "commit" then
-    term.setCursorPos(43,13)
-    term.setBackgroundColor(black)
-    term.setTextColor(red)
-    term.write("-COMMIT- ")
+    drawElement(43,13,9,1,red,black,"-COMMIT- ")
     sleep(0.1)
   elseif choice == "rcmd" then
-    term.setCursorPos(43,15)
-    term.setBackgroundColor(lgray)
-    term.setTextColor(cyan)
-    term.write("rCmd     ")
+    drawElement(43,15,9,1,cyan,lgray,"rCmd     ")
     sleep(0.1)
     drawControlUI()
   elseif choice == "save" then
-    term.setCursorPos(43,15)
-    term.setBackgroundColor(white)
-    term.setTextColor(cyan)
-    term.write("Save     ")
+    drawElement(43,15,9,1,cyan,white,"Save     ")
     sleep(0.1)
     drawControlUI()
   elseif choice == "page" then
-    term.setCursorPos(((termX/2) - (math.floor(#tostring(pNum)/4))) - 5,termY)
-    term.setBackgroundColor(white)
-    term.setTextColor(black)
-    term.write(pNum)
+    drawElement(((termX/2) - (math.floor(#tostring(pNum)/4)))-5,termY,3,1,black,white,pNum)
     sleep(0.1)
     drawCLI()
   end
@@ -1519,12 +1333,8 @@ local function viewLogs()
     term.clear()
     drawHeader()
   end
-  term.setCursorPos(1,termY)
-  term.setBackgroundColor(gray)
-  term.write(string.rep(" ",termX))
-  term.setCursorPos(5,termY)
-  term.setTextColor(black)
-  term.write("page # ")
+  drawElement(1,termY,termX,1,white,gray,"")
+  drawElement(5,termY,7,1,black,gray,"page # ")
   term.setTextColor(white)
   term.write(tostring(histPage))
   term.setTextColor(black)
@@ -1549,9 +1359,9 @@ local function viewLogs()
     else
       term.setTextColor(lblue)
     end
-    if #tGate < 9 then tGate = " " .. tGate .. " " end -- if tGate is LT 9 characters add buffer spaces
-    term.write(tGate) -- write gate
-    if i > currentEntry + 9 or i > #callHistory then break end   -- if we've 'filled' the page or reached the end of the log then stop the loop
+    if #tGate < 9 then tGate = " " .. tGate .. " " end         -- if tGate is LT 9 characters add buffer spaces
+    term.write(tGate)                                          -- write gate
+    if i > currentEntry + 9 or i > #callHistory then break end -- if we've 'filled' the page or reached the end of the log then stop the loop
   end
 end
 
@@ -1559,7 +1369,7 @@ local function viewGateEntry(dataBlock)
   currentEdit = dataBlock
   tempState = runState
   if tempState ~= "GateEdit" then runState = "viewing" end
-  if currentEdit == "new" or currentEdit == "newFast" then    -- If we're adding a new gate, create a generic gate to edit
+  if currentEdit == "new" or currentEdit == "newFast" then     -- If we're adding a new gate, create a generic gate to edit
     local newGate = { addr = "NEWGATE", rating = "U", note = "short note", loc = {x=99999,y=99999,z=99999,dim="Overworld",}, }
     table.insert(allGates,newGate)
     numPages = math.ceil(#allGates / 24) -- Re-paginate gates
@@ -1577,9 +1387,9 @@ local function viewGateEntry(dataBlock)
   -- Display data for viewing/editing
   term.setBackgroundColor(black)
   if currentEdit <= #allGates then
-    local tColor = assignColor(currentEdit)
-    if tColor ~= nil then
-      drawElement(2,7,#allGates[currentEdit].addr,1,tColor,black,allGates[currentEdit].addr)
+    local teColor = assignColor(currentEdit)
+    if teColor ~= nil then
+      drawElement(2,7,#allGates[currentEdit].addr,1,teColor,black,allGates[currentEdit].addr)
       local ratingWord = assignRating(currentEdit)
       drawElement(14,7,#ratingWord,1,gray,black,ratingWord)
       if allGates[currentEdit].addr == dhdSettings.thisGate then
@@ -1675,26 +1485,12 @@ end
 local function remoteCommand()
   tempState = runState
   runState = "rCmd"
-  term.setCursorPos((termX/2)-11,8)
-  term.setBackgroundColor(gray)
-  term.setTextColor(white)
-  term.write(" RemoteCommand ")
-  term.setCursorPos((termX/2)-11,9)
-  term.write(" ")
-  term.setBackgroundColor(black)     --
-  term.setCursorPos((termX/2)-10,9)  -- input area bg
-  term.write(string.rep(" ",15))     --
-  term.setCursorPos((termX/2)+3,9)
-  term.setBackgroundColor(gray)
-  term.write(" ")
-  term.setCursorPos((termX/2)-11,10)
-  term.write(string.rep(" ",15))
+  drawElement((termX/2)-11,8,15,1,white,gray," RemoteCommand ")
+  drawElement((termX/2)-11,9,15,2,white,gray,"")
+  drawElement((termX/2)-10,9,13,1,white,black,"") -- input area bg
   term.setBackgroundColor(black)
   local commandLine = tostring(readInput((termX/2)-10,9,lime))
-  for i = 8,10,1 do
-    term.setCursorPos((termX/2)-11,i)
-    term.write(string.rep(" ",15))
-  end
+  drawElement((termX/2)-11,8,15,3,white,black,"")
   if string.lower(commandLine) == "quit" or string.lower(commandLine) == "exit" then
     runState = "quit"
     kernelState = false
@@ -1740,26 +1536,12 @@ end
 local function goToPage()
   tempState = runState
   runState = "goPage"
-  term.setCursorPos((termX/2)-11,8)
-  term.setTextColor(white)
-  term.setBackgroundColor(gray)
-  term.write("  Go to page:  ")
-  term.setCursorPos((termX/2)-11,9)
-  term.write(" ")
-  term.setBackgroundColor(black)     --
-  term.setCursorPos((termX/2)-10,9)  -- input area bg
-  term.write(string.rep(" ",15))     --
-  term.setCursorPos((termX/2)+3,9)
-  term.setBackgroundColor(gray)
-  term.write(" ")
-  term.setCursorPos((termX/2)-11,10)
-  term.write(string.rep(" ",15))
+  drawElement((termX/2)-11,8,15,1,white,gray,"  Go To Page:  ")
+  drawElement((termX/2)-11,9,15,2,white,gray,"")
+  drawElement((termX/2)-10,9,13,1,white,black,"") -- input area bg
   term.setBackgroundColor(black)
   local newPage = tonumber(readInput((termX/2-10),9,lime))
-  for i = 8,10,1 do
-    term.setCursorPos((termX/2)-11,i)
-    term.write(string.rep(" ",15))
-  end
+  drawElement((termX/2)-11,8,15,3,white,black,"")
   if newPage == nil then newPage = pageNum end
   if newPage < 1 then newPage = 1 end
   if newPage > numPages then newPage = numPages end
@@ -1852,7 +1634,7 @@ local function keyClick()
   while true do
     local keyEvent = { os.pullEvent("key") }
     if (runState == "Dial" or runState == "Edit") and secureStatus == "allclear" then
-      if menuState == true then       -- Menu OPEN
+      if menuState then           -- Menu OPEN
         if keyEvent[2] == 50 then -- m (Menu CLOSE)
           menuState = false
           term.setBackgroundColor(black)
@@ -1901,7 +1683,7 @@ local function keyClick()
           kernelState = false
           break
         end
-      elseif menuState == false then  -- MENU closed
+      else                            -- MENU closed
         if keyEvent[2] == 59 then     -- F1 (Help)
           if runState == "Dial" then
             runState = "DialHelp"
@@ -2086,7 +1868,7 @@ local function mClick()
     local mcX = clickEvent[3]
     local mcY = clickEvent[4]
     -- Menu & Menu Selections
-    if menuState == true then
+    if menuState then
       if mcX > 1 and mcX < 11 then
         if mcY == 3 and runState == "Dial" then
           runState = "DialCfg"
@@ -2149,7 +1931,7 @@ local function mClick()
         drawCLI()
         return
       end
-    elseif menuState == false then
+    else
       if runState == "DialHelp" then
         if mcX > 44 and mcY == 2 then
           flashChoice("close")
@@ -2255,7 +2037,7 @@ local function mClick()
             flashChoice("undo")
             runState = "Edit"
             ingestData(dhdSettings.gateData,"gate")
-            if gateChange == true then
+            if gateChange then
               term.setBackgroundColor(black)
               term.clear()
             end
@@ -3121,7 +2903,7 @@ local function bioLogin()
   end
   while fistAuth == false do
     local fistPrint = parallel.waitForAny(bioScan,bioAnimation)
-    if fistAuth == true then
+    if fistAuth then
       bio = nil
       return fistAuth
     end
