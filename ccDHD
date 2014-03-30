@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.13"
+local ccDHDVer = "1.1.14"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -2392,10 +2392,7 @@ local function mClickSettings()
         -- Settings Column 1
         -- Edit thisGate
       if mcY == 4 and mcX > 16 and mcX < 27 then
-        term.setBackgroundColor(black)
-        term.setTextColor(gray)
-        term.setCursorPos(17,4)
-        term.write(dhdSettings.thisGate)
+        drawElement(17,4,#dhdSettings.thisGate,1,gray,black,dhdSettings.thisGate)
         local newGate = string.upper(tostring(readInput(17,4,cyan)))
         if newGate ~= "" and newGate ~= "NIL" and newGate ~= dhdSettings.thisGate and newGate:len() > 6 and newGate:len() < 10 then
           configChange = true
@@ -2408,10 +2405,7 @@ local function mClickSettings()
         drawSettingsUI()
         -- Change LOCKDOWN Password
       elseif mcY == 6 and mcX > 16 and mcX < 31 then
-        term.setBackgroundColor(black)
-        term.setTextColor(gray)
-        term.setCursorPos(17,6)
-        term.write(dhdSettings.password)
+        drawElement(17,6,#dhdSettings.password,1,gray,black,dhdSettings.password)
         local newPass = tostring(readInput(17,6,orange))
         if newPass ~= "" and newPass ~= "nil" and newPass ~= dhdSettings.password then
           configChange = true
@@ -2492,26 +2486,21 @@ local function mClickSettings()
           end
           drawSettingsUI()
         end
-        -- Change redNet Server / ccNet Receive Channel
+        -- Change redNet gateLiaison / ccNet Receive Channel
       elseif mcY == 12 and mcX > 16 and mcX < 22 then
-        term.setBackgroundColor(black)
-        term.setTextColor(gray)
         if dhdSettings.net == "R" then
-          term.setCursorPos(17,12)
-          term.write(tostring(dhdSettings.gate))
-          local newServer = tonumber(readInput(17,12,red))
-          if tostring(newServer) ~= "" and newServer ~= nil and newServer ~= dhdSettings.gate and newServer < 65536 and newServer >= 0 then
-            dhdSettings.gate = newServer
+          drawElement(17,12,#tostring(dhdSettings.gate),1,gray,black,dhdSettings.gate)
+          local newGate = tonumber(readInput(17,12,red))
+          if tostring(newGate) ~= "" and newGate ~= nil and newGate ~= dhdSettings.gate and newGate < 65536 and newGate >= 0 then
+            dhdSettings.gate = newGate
             configChange = true
           end
           drawSettingsUI()
         elseif dhdSettings.net == "C" then
-          term.setBackgroundColor(black)
-          term.setTextColor(gray)
-          term.setCursorPos(17,12)
-          term.write(tostring(dhdSettings.channels.recv) .. string.rep(" ",5-#tostring(dhdSettings.channels.recv)))
+          local ccRec = tostring(dhdSettings.channels.recv) .. string.rep(" ",5-#tostring(dhdSettings.channels.recv))
+          drawElement(17,12,#ccRec,1,gray,black,ccRec)
           local newChannel = tonumber(readInput(17,12,green))
-          if tostring(newChannel) ~= "" and newChannel ~= nil and newChannel ~= dhdSettings.channels.recv and newChannel < 65536 and newChannel > 0 then
+          if tostring(newChannel) ~= "" and newChannel ~= nil and newChannel ~= dhdSettings.channels.recv and newChannel ~= dhdSettings.channels.send and newChannel ~= dhdSettings.pChannels.send and newChannel ~= dhdSettings.pChannels.recv and newChannel < 65536 and newChannel > 0 then
             netSend("CR")
             sleep(0.1)
             netSend(newChannel)
@@ -2526,13 +2515,11 @@ local function mClickSettings()
         end
         -- Change ccNet Send Channel
       elseif mcY == 12 and mcX > 10 and mcX < 16 then
-        term.setBackgroundColor(black)
-        term.setTextColor(gray)
         if dhdSettings.net == "C" then
-          term.setCursorPos(11,12)
-          term.write(tostring(dhdSettings.channels.send) .. string.rep(" ",5-#tostring(dhdSettings.channels.send)))
+          local ccSnd = tostring(dhdSettings.channels.send) .. string.rep(" ",5-#tostring(dhdSettings.channels.send))
+          drawElement(11,12,#ccSnd,1,gray,black,ccSnd)
           local newSend = tonumber(readInput(11,12,green))
-          if tostring(newSend) ~= "" and newSend ~= nil and newSend ~= dhdSettings.channels.send and newSend < 65536 and newSend > 0 then
+          if tostring(newSend) ~= "" and newSend ~= nil and newSend ~= dhdSettings.channels.send and newSend ~= dhdSettings.channel.recv and newSend~= dhdSettings.pChannels.send and newSend ~= dhdSettings.pChannels.recv and newSend < 65536 and newSend > 0 then
             netSend("CS")
             sleep(0.1)
             netSend(newSend)
