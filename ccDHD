@@ -550,7 +550,7 @@ local function displayStatus()
 end
 
 local function drawElement(x,y,w,h,txColor,bgColor,text)
-  text = tostring(text)
+  local deText = tostring(text)
   term.setCursorPos(x,y)
   if w == "OFF" then
     term.setBackgroundColor(gray)
@@ -569,11 +569,11 @@ local function drawElement(x,y,w,h,txColor,bgColor,text)
       term.write(string.rep(" ",w))
       term.setCursorPos(x,y+i)
     end
-    if text ~= "" then
-      local xW = (x + w/2) - #text/2
+    if deText ~= "" then
+      local xW = (x + w/2) - #deText/2
       local xH = y + h/2
       term.setCursorPos(xW,xH)
-      term.write(text)
+      term.write(deText)
     end
   end
 end
@@ -728,7 +728,6 @@ local function drawControlUI()
 end
 
 local function drawNaviUI()
-  pNum = ""
   pNum = tostring(pageNum)
   if pageNum < 100 then pNum = "0" .. pNum end -- Add a "0" before double digit page numbers
   if pageNum < 10 then pNum = "0" .. pNum end  -- Add another "0" before single digit page numbers
