@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.15"
+local ccDHDVer = "1.1.16"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -1993,7 +1993,7 @@ local function mClick()
           if mcX > 1 and mcX < 11 and mcY == 4 + ((i - l) * 2) and i <= #allGates then
             if runState == "Dial" then
               if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
-                if allGates[i].addr ~= dhdSettings.thisGate then
+                if allGates[i].addr ~= dhdSettings.thisGate and allGates[i].addr ~= "NEWGATE" then
                   dialAddress = allGates[i].addr
                   netSend(dialAddress)
                   return
@@ -2023,7 +2023,7 @@ local function mClick()
           elseif mcX > 11 and mcX < 21 and mcY == 4 + ((i - l) * 2) and (i + 6) <= #allGates then
             if runState == "Dial" then
               if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
-                if allGates[i + 6].addr ~= dhdSettings.thisGate then
+                if allGates[i + 6].addr ~= dhdSettings.thisGate and allGates[i + 6].addr ~= "NEWGATE" then
                   dialAddress = allGates[i + 6].addr
                   netSend(dialAddress)
                   return
@@ -2053,7 +2053,7 @@ local function mClick()
           elseif mcX > 21 and mcX < 31 and mcY == 4 + ((i - l) * 2) and (i + 12) <= #allGates then
             if runState == "Dial" then
               if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
-                if allGates[i + 12].addr ~= dhdSettings.thisGate then
+                if allGates[i + 12].addr ~= dhdSettings.thisGate and allGates[i + 12].addr ~= "NEWGATE" then
                   dialAddress = allGates[i + 12].addr
                   netSend(dialAddress)
                   return
@@ -2083,7 +2083,7 @@ local function mClick()
           elseif mcX > 31 and mcX < 41 and mcY == 4 + ((i - l) * 2) and (i + 18) <= #allGates then
             if runState == "Dial" then
               if mButton == 1 and gateStatus ~= "Dialing" and gateStatus ~= "Connected" then
-                if allGates[i + 18].addr ~= dhdSettings.thisGate then
+                if allGates[i + 18].addr ~= dhdSettings.thisGate and allGates[i + 18].addr ~= "NEWGATE" then
                   dialAddress = allGates[i + 18].addr
                   netSend(dialAddress)
                 end
@@ -2191,147 +2191,87 @@ local function mClick()
               end
             end
           end
-          term.setBackgroundColor(black)
-          term.setCursorPos(2,9)
-          term.write(string.rep(" ",termX))
-          term.setCursorPos(2,10)
-          term.write(string.rep(" ",termX))
-          for i = 5,14,1 do
-            term.setCursorPos(14,i)
-            term.write(string.rep(" ",20))
-          end
-          term.setCursorPos(2,7)
+          drawElement(2,9,termX,2,white,black,"")
+          drawElement(14,5,20,10,white,black,"")
           local gtColor = assignColor(currentEdit)
-          term.setTextColor(gtColor)
-          term.write(allGates[currentEdit].addr)
-          term.setCursorPos(14,7)
-          term.setTextColor(gray)
           local gtRating = assignRating(currentEdit)
-          term.write(gtRating)
-          term.setCursorPos(13,12)
-          term.setTextColor(lblue)
-          term.write(allGates[currentEdit].loc.dim)
-          term.setCursorPos(2,9)
-          term.setTextColor(white)
-          term.write(allGates[currentEdit].note)
+          drawElement(2,7,#allGates[currentEdit].addr,1,gtColor,black,allGates[currentEdit].addr)
+          drawElement(14,7,#gtRating,1,gray,black,gtRating)
+          drawElement(13,12,#allGates[currentEdit].loc.dim,1,lblue,black,allGates[currentEdit].loc.dim)
+          drawElement(2,9,#allGates[currentEdit].note,1,white,black,allGates[currentEdit].note)
         end
        -- Edit Gate Notes
       elseif mcY > 8 and mcY < 11 then
         if mcX < 40 then
+          drawElement(2,9,#allGates[currentEdit].note,1,gray,black,allGates[currentEdit].note)
           term.setBackgroundColor(black)
-          term.setTextColor(gray)
-          term.setCursorPos(2,9)
-          term.write(allGates[currentEdit].note)
           local newNote = tostring(readInput(2,9,white))
           if newNote ~= "" and newNote ~= "nil" then
             allGates[currentEdit].note = newNote
             gateChange = true
           end
-          term.setBackgroundColor(black)
-          term.setCursorPos(2,9)
-          term.write(string.rep(" ",termX))
-          term.setCursorPos(2,10)
-          term.write(string.rep(" ",termX))
-          term.setCursorPos(2,9)
-          term.setTextColor(white)
-          term.write(allGates[currentEdit].note)
+          drawElement(2,9,termX,2,white,black,"")
+          drawElement(2,9,#allGates[currentEdit].note,1,white,black,allGates[currentEdit].note)
         end
          -- Gate Dimension
       elseif mcY == 12 then
         if mcX > 12 and mcX < 32 then
-          term.setCursorPos(13,12)
-          term.setTextColor(gray)
-          term.setBackgroundColor(black)
-          term.write(allGates[currentEdit].loc.dim)
+          drawElement(13,12,#allGates[currentEdit].loc.dim,1,gray,black,allGates[currentEdit].loc.dim)
           local newDim = tostring(readInput(13,12,lblue))
           if newDim ~= "" and tostring(newDim) ~= "nil" then
             allGates[currentEdit].loc.dim = newDim
-            term.setCursorPos(13,12)
-            term.write(string.rep(" ",38))
+            drawElement(13,12,38,1,white,black,"")
             gateChange = true
           end
-          term.setCursorPos(13,12)
-          term.write("     ")
-          term.setCursorPos(13,12)
-          term.setTextColor(lblue)
-          term.setBackgroundColor(black)
-          term.write(allGates[currentEdit].loc.dim)
+          drawElement(13,12,5,1,white,black,"")
+          drawElement(13,12,#allGates[currentEdit].loc.dim,1,lblue,black,allGates[currentEdit].loc.dim)
         end
          -- Gate X position
       elseif mcY == 13 then
         if mcX > 4 and mcX < 10 then
-          term.setCursorPos(5,13)
-          term.setTextColor(gray)
-          term.setBackgroundColor(black)
-          term.write(tostring(allGates[currentEdit].loc.x))
+          local oldX = tostring(allGates[currentEdit].loc.x)
+          drawElement(5,13,#oldX,1,gray,black,oldX)
           local newX = tonumber(readInput(5,13,brown))
           if tostring(newX) ~= "" and newX ~= nil and newX ~= allGates[currentEdit].loc.x then
             allGates[currentEdit].loc.x = newX
             gateChange = true
           end
-          term.setCursorPos(5,13)
-          term.write("      ")
-          term.setCursorPos(5,13)
-          term.setTextColor(brown)
-          term.setBackgroundColor(black)
-          term.write(tostring(allGates[currentEdit].loc.x))
+          drawElement(5,13,6,1,white,black,"")
+          local tmpX = tostring(allGates[currentEdit].loc.x)
+          drawElement(5,13,#tmpX,1,brown,black,tmpX)
         end
          -- Gate Y position
       elseif mcY == 14 then
         if mcX > 4 and mcX < 10 then
-          term.setCursorPos(5,14)
-          term.setTextColor(gray)
-          term.setBackgroundColor(black)
-          term.write(tostring(allGates[currentEdit].loc.y))
+          local oldY = tostring(allGates[currentEdit].loc.y)
+          drawElement(5,14,#oldY,1,gray,black,oldY)
           local newY = tonumber(readInput(5,14,brown))
           if tostring(newY) ~= "" and newY ~= nil and newY ~= allGates[currentEdit].loc.y then
             allGates[currentEdit].loc.y = newY
             gateChange = true
           end
-          term.setCursorPos(5,14)
-          term.write("      ")
-          term.setCursorPos(5,14)
-          term.setTextColor(brown)
-          term.setBackgroundColor(black)
-          term.write(tostring(allGates[currentEdit].loc.y))
+          drawElement(5,14,6,1,white,black,"")
+          local tmpY = tostring(allGates[currentEdit].loc.y)
+          drawElement(5,14,#tmpY,1,brown,black,tmpY)
         end
          -- Gate Z position
       elseif mcY == 15 then
         if mcX > 4 and mcX < 10 then
-          term.setCursorPos(5,15)
-          term.setTextColor(gray)
-          term.setBackgroundColor(black)
-          term.write(tostring(allGates[currentEdit].loc.z))
+          local oldZ = tostring(allGates[currentEdit].loc.z)
+          drawElement(5,15,#oldZ,1,gray,black,oldZ)
           local newZ = tonumber(readInput(5,15,brown))
           if tostring(newZ) ~= "" and newZ ~= nil and newZ ~= allGates[currentEdit].loc.z then
             allGates[currentEdit].loc.z = newZ
             gateChange = true
           end
-          term.setCursorPos(5,15)
-          term.write("      ")
-          term.setCursorPos(5,15)
-          term.setTextColor(brown)
-          term.setBackgroundColor(black)
-          term.write(tostring(allGates[currentEdit].loc.z))
+          drawElement(5,15,6,1,white,black,"")
+          local tmpZ = tostring(allGates[currentEdit].loc.z)
+          drawElement(5,15,#tmpZ,1,brown,black,tmpZ)
         end
         -- Exit Edit Screen
       elseif mcY == (termY-1) then
         runState = "Edit"
-        term.setBackgroundColor(black)
-        term.setCursorPos(2,7)
-        term.write(string.rep(" ",40))
-        term.setCursorPos(2,9)
-        term.write(string.rep(" ",termX))
-        term.setCursorPos(2,10)
-        term.write(string.rep(" ",termX))
-        for i = 12,15,1 do
-          term.setCursorPos(2,i)
-          term.write(string.rep(" ",16))
-        end
-        term.setCursorPos(13,12)
-        term.write(string.rep(" ",38))
-        term.setCursorPos((termX/2)-8,termY-1)
-        term.write(string.rep(" ",19))
+        drawElement(2,7,termX,termY,white,black,"")
         drawCLI()
       end
     end
@@ -2378,8 +2318,7 @@ local function mClickSettings()
           longName = makeLongName(dhdSettings.thisGate)
           if gateStatus == "Disconnected" then displayMarquee() end
         end
-        term.setCursorPos(16,4)
-        term.write("         ")
+        drawElement(16,4,9,1,white,black,"")
         drawSettingsUI()
         -- Change LOCKDOWN Password
       elseif mcY == 6 and mcX > 16 and mcX < 31 then
@@ -2389,8 +2328,7 @@ local function mClickSettings()
           configChange = true
           dhdSettings.password = newPass
         end
-        term.setCursorPos(17,6)
-        term.write("           ")
+        drawElement(17,6,11,1,white,black,"")
         drawSettingsUI()
         -- Biolock ON/OFF
       elseif mcY == 8 and mcX > 16 and mcX < 21 and dhdSettings.bio.lock ~= "none" then
@@ -2487,8 +2425,7 @@ local function mClickSettings()
             modem.open(dhdSettings.channels.recv)
             saveData(settingsData,"cfg")
           end
-          term.setCursorPos(17,12)
-          term.write("     ")
+          drawElement(17,12,5,1,white,black,"")
           drawSettingsUI()
         end
         -- Change ccNet Send Channel
@@ -2504,8 +2441,7 @@ local function mClickSettings()
             dhdSettings.channels.send = newSend
             saveData(settingsData,"cfg")
           end
-          term.setCursorPos(11,12)
-          term.write("     ")
+          drawElement(11,12,5,1,white,black,"")
           drawSettingsUI()
         end
         -- Select Marquee Side
@@ -2751,9 +2687,7 @@ local function bioLogin()
   fistAuth = false
   term.setBackgroundColor(black)
   term.clear()
-  term.setTextColor(yellow)
-  term.setCursorPos(2,2)
-  term.write("Waiting for Bioscan")
+  drawElement(2,2,19,1,yellow,black,"Waiting for Bioscan")
   if monA ~= "none" then
     monA.setBackgroundColor(black)
     monA.setTextColor(yellow)
@@ -2776,12 +2710,9 @@ end
 
 local function secKernel()       -- LOCKDOWN handler
   drawSecureUI()
-  term.setTextColor(yellow)
-  term.setBackgroundColor(black)
   local passSymbols = { "!", "@", "#", "$", "%", "*", "?", "+", "x", "X" }
   while secureStatus == "lockdown" do
-    term.setCursorPos(termX/2,15)
-    term.write(string.rep(" ",termX))
+    drawElement(termX/2,15,termX,1,yellow,black,"")
     term.setCursorPos(termX/2,15)
     local securePass = tostring(read(passSymbols[math.random(1,#passSymbols)]))
     if securePass == dhdSettings.password then
@@ -2797,11 +2728,8 @@ local function secKernel()       -- LOCKDOWN handler
           secureStatus = "allclear"
         end
       end
-      term.setBackgroundColor(black)
-      term.setCursorPos(15,9)
-      term.write(string.rep(" ",termX))
-      term.setCursorPos(15,15)
-      term.write(string.rep(" ",termX))
+      drawElement(15,9,termX,1,white,black,"")
+      drawElement(15,15,termX,1,white,black,"")
       netSend("QRY")
       drawCLI()
       break
@@ -2834,22 +2762,17 @@ local function dhdKernel()
 end
 
 local function missingComponent(id)
-  term.setTextColor(red)
   term.setBackgroundColor(black)
   term.clear()
-  term.setCursorPos(2,2)
   if id == "modem" then
-    term.write("No wireless modem detected!")
-    term.setCursorPos(2,4)
-    term.write("ccDHD REQUIRES a wireless modem.")
+    drawElement(2,2,27,1,red,black,"No wireless modem detected!")
+    drawElement(2,4,32,1,red,black,"ccDHD REQUIRES a wireless modem.")
   elseif id == "cfg" then
-    term.write("Please restart ccDHD")
-    term.setCursorPos(2,4)
-    term.write("to complete setup.")
+    drawElement(2,2,20,1,red,black,"Please restart ccDHD")
+    drawElement(2,4,18,1,red,black,"to complete setup.")
   else
-    term.write("Unknown component missing!")
-    term.setCursorPos(2,4)
-    term.write("ccDHD REQUIRES a something.")
+    drawElement(2,2,26,1,red,black,"Unknown component missing!")
+    drawElement(2,4,27,1,red,black,"ccDHD REQUIRES a something.")
   end
   term.setCursorPos(1,8)
   runState = "quit"
