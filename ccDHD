@@ -8,11 +8,11 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.16"
+local ccDHDVer = "1.1.17"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
-  - LanteaCraft (snapshot 82+ and RC1_15+)
+  - LanteaCraft (snapshot 82+ and RC1_15-RC1_22)
   - ComputerCraft ver. 1.57-1.58 for MC 1.6.4
     - HTTP API enabled (for pastebin installer - not required for ccDHD)
     - 1 Advanced Computer (color, mouse), 4 optional Advanced Monitors (color, touch)
@@ -549,29 +549,29 @@ local function displayStatus()
   end
 end
 
-local function drawElement(x,y,w,h,txColor,bgColor,text)
+local function drawElement(x,y,w,h,txtColor,bgdColor,text)
   local deText = tostring(text)
   term.setCursorPos(x,y)
-  if w == "OFF" then
+  if w == "OFF" then                   -- Switch (OFF)
     term.setBackgroundColor(gray)
     term.write("  ")
     term.setBackgroundColor(red)
     term.write("  ")
-  elseif w == "ON" then
+  elseif w == "ON" then                -- Switch (ON)
     term.setBackgroundColor(green)
     term.write("  ")
     term.setBackgroundColor(gray)
     term.write("  ")
   else
-    term.setBackgroundColor(bgColor)
-    term.setTextColor(txColor)
+    term.setBackgroundColor(bgdColor)   -- Draw 'element' (line_seg/box/rect)
+    term.setTextColor(txtColor)
     for i = 1,h,1 do
       term.write(string.rep(" ",w))
       term.setCursorPos(x,y+i)
     end
-    if deText ~= "" then
-      local xW = (x + w/2) - #deText/2
-      local xH = y + h/2
+    if deText ~= "" and deText ~= "nil" then
+      local xW = (x + w/2) - #deText/2 -- Center the text horizontally
+      local xH = y + h/2               -- Center the text vertically
       term.setCursorPos(xW,xH)
       term.write(deText)
     end
@@ -1055,7 +1055,7 @@ end
 local function drawSideList(pSide)
   local tPos = { 5,7,9,11,13,15 }
   local tSide = { "top","bottom","front","back","left","right" }
-  drawElement(26,4,8,13,white,gray,"") -- menu bg
+  drawElement(26,4,8,13,white,gray,"") -- menu body
   local tsColor
   for j,k in pairs(tSide) do
     if pSide == k then
@@ -1069,9 +1069,9 @@ local function drawSideList(pSide)
 end
 
 local function drawRatingList(gRating,currentGate)
-  drawElement(14,6,19,8,white,gray,"") -- menu bg
-  drawElement(14,6,1,1,white,blue,"") -- B pip
   local trColor
+  drawElement(14,6,19,8,white,gray,"")  -- menu body
+  drawElement(14,6,1,1,white,blue,"")   -- B pip
   if gRating == "B" then
     drawElement(33,6,1,8,white,blue,"") -- B line
     trColor = blue
@@ -1079,7 +1079,7 @@ local function drawRatingList(gRating,currentGate)
     trColor = lgray
   end
   drawElement(16,6,16,1,trColor,gray,"Base/Outpost/Hub")
-  drawElement(14,7,1,1,white,lblue,"") -- H pip
+  drawElement(14,7,1,1,white,lblue,"")   -- H pip
   if gRating == "H" then
     drawElement(33,6,1,8,white,lblue,"") -- H line
     trColor = lblue
@@ -1087,7 +1087,7 @@ local function drawRatingList(gRating,currentGate)
     trColor = lgray
   end
   drawElement(16,7,9,1,trColor,gray,"Home/Camp")
-  drawElement(14,8,1,1,white,brown,"") -- V pip
+  drawElement(14,8,1,1,white,brown,"")   -- V pip
   if gRating == "V" then
     drawElement(33,6,1,8,white,brown,"") -- V line
     trColor = brown
@@ -1095,7 +1095,7 @@ local function drawRatingList(gRating,currentGate)
     trColor = lgray
   end
   drawElement(16,8,7,1,trColor,gray,"Village")
-  drawElement(14,9,1,1,white,purple,"") -- M pip
+  drawElement(14,9,1,1,white,purple,"")   -- M pip
   if gRating == "M" then
     drawElement(33,6,1,8,white,purple,"") -- M line
     trColor = purple
@@ -1103,7 +1103,7 @@ local function drawRatingList(gRating,currentGate)
     trColor = lgray
   end
   drawElement(16,9,12,1,trColor,gray,"Misc/Special")
-  drawElement(14,10,1,1,white,green,"") -- S pip
+  drawElement(14,10,1,1,white,green,"")  -- S pip
   if gRating == "S" then
     drawElement(33,6,1,8,white,green,"") -- S line
     trColor = green
@@ -1111,7 +1111,7 @@ local function drawRatingList(gRating,currentGate)
     trColor = lgray
   end
   drawElement(16,10,12,1,trColor,gray,"Safe/Secured")
-  drawElement(14,11,1,1,white,orange,"") -- C pip
+  drawElement(14,11,1,1,white,orange,"")  -- C pip
   if gRating == "C" then
     drawElement(33,6,1,8,white,orange,"") -- C line
     trColor = orange
@@ -1119,7 +1119,7 @@ local function drawRatingList(gRating,currentGate)
     trColor = lgray
   end
   drawElement(16,11,7,1,trColor,gray,"Caution")
-  drawElement(14,12,1,1,white,red,"") -- D pip
+  drawElement(14,12,1,1,white,red,"")  -- D pip
   if gRating == "D" then
     drawElement(33,6,1,8,white,red,"") -- D line
     trColor = red
@@ -1127,7 +1127,7 @@ local function drawRatingList(gRating,currentGate)
     trColor = lgray
   end
   drawElement(16,12,6,1,trColor,gray,"Danger")
-  drawElement(14,13,1,1,white,lgray,"") -- U pip
+  drawElement(14,13,1,1,white,lgray,"")  -- U pip
   if gRating == "U" then
     drawElement(33,6,1,8,white,lgray,"") -- U line
     trColor = white
@@ -1139,7 +1139,7 @@ end
 
 local function drawAuthList(cAuth)
   local cPos = { 5,7,9,11,13 }
-  drawElement(26,4,3,11,white,gray,"") -- AuthList bg
+  drawElement(26,4,3,11,white,gray,"") -- menu body
   local taColor
   for j,k in pairs(cPos) do
     if cAuth == j then
@@ -1284,17 +1284,19 @@ local function viewGateEntry(dataBlock)
   currentEdit = dataBlock
   tempState = runState
   if tempState ~= "GateEdit" then runState = "viewing" end
-  if currentEdit == "new" or currentEdit == "newFast" then     -- If we're adding a new gate, create a generic gate to edit
-    local newGate = { addr = "NEWGATE", rating = "U", note = "short note", loc = {x=99999,y=99999,z=99999,dim="Overworld",}, }
-    table.insert(allGates,newGate)
-    numPages = math.ceil(#allGates / 24) -- Re-paginate gates
-    listPages = math.ceil(#allGates / 8)
-    if currentEdit == "newFast" then
-      runState = "Edit"
-      drawCLI()
-      return
+  if currentEdit == "new" or currentEdit == "newFast" then
+    if #allGates < 23976 then     -- If we're adding a new gate, create a generic gate to edit
+      local newGate = { addr = "NEWGATE", rating = "U", note = "short note", loc = {x=99999,y=99999,z=99999,dim="Overworld",}, }
+      table.insert(allGates,newGate)
+      numPages = math.ceil(#allGates / 24) -- Re-paginate gates
+      listPages = math.ceil(#allGates / 8)
+      if currentEdit == "newFast" then
+        runState = "Edit"
+        drawCLI()
+        return
+      end
+      currentEdit = #allGates
     end
-    currentEdit = #allGates
   end
   term.setBackgroundColor(black)
   term.clear()
@@ -1848,7 +1850,7 @@ local function mClick()
         end
       elseif runState == "viewing" then
         if mcX > 16 and mcX < 36 and mcY == termY-1 then
-          -- Clean up select parts of the screen instead of clearing and redrawing the entire screen
+          -- Clean up select parts of the screen instead of clearing the entire screen
           runState = tempState
           drawElement(2,7,termX,1,black,black,"")
           drawElement(2,9,termX,1,black,black,"")
