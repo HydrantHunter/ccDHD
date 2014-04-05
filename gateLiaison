@@ -6,15 +6,15 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.1.01"
+local gVer = "1.1.02"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
   - LanteaCraft (snapshot 82+ & RC1_15+)
   - ComputerCraft ver. 1.57+ for MC 1.6.4
     - HTTP API enabled (for pastebin installer - not required for gateLiaison)
-    - 1 Advanced Computer (color), 3 optional Advanced Monitors (color)
-      - or 1 Advanced Wireless Turtle (color), no monitors
+    - 1 Computer (standard or advanced), 3 optional Monitors (standard or advanced)
+      - or 1 Wireless Turtle (standard or advanced), no monitors
     - ccDHD running on an Advanced Computer with 4 optional Advanced Monitors
       - ccDHD also supports GopherATL's BioLock ver. 2.1.3 Fistprint scanner (updated for 1.6.4 by gamax92)
 ]]--
@@ -36,6 +36,39 @@ local gateSettings = { shield = "front",
                        pollTime = 2,
                        last = "/data/lastCall",
                      }
+ -- Color Definitions
+local white = colors.white
+local lgray = colors.lightGray
+local gray = colors.gray
+local black = colors.black
+local brown = colors.brown
+local yellow = colors.yellow
+local orange = colors.orange
+local red = colors.red
+local magenta = colors.magenta
+local purple = colors.purple
+local blue = colors.blue
+local lblue = colors.lightBlue
+local cyan = colors.cyan
+local lime = colors.lime
+local green = colors.green
+if not term.isColor() then
+  white = colors.white
+  lgray = colors.white
+  gray = colors.black
+  black = colors.black
+  brown = colors.white
+  yellow = colors.white
+  orange = colors.white
+  red = colors.white
+  magenta = colors.white
+  purple = colors.white
+  blue = colors.black
+  lblue = colors.white
+  cyan = colors.white
+  lime = colors.white
+  green = colors.white
+end
 -- END AUTOMATIC/STATIC CONFIGURATION (Part 1)
 
 local function ingestData()
@@ -54,13 +87,13 @@ end
 
 local function displayMarquee() -- Display the local address when there is no other information to display
   if mon == "none" then return end
-  mon.setBackgroundColor(colors.black)
+  mon.setBackgroundColor(black)
   mon.clear()
   mon.setTextScale(2)
   mon.setCursorPos(1,1)
-  mon.setTextColor(colors.cyan)
+  mon.setTextColor(cyan)
   mon.write("Stargate")
-  mon.setTextColor(colors.yellow)
+  mon.setTextColor(yellow)
   if #thisGate > 7 then
     mon.setCursorPos(4,2)
   else
@@ -76,9 +109,9 @@ local function displayStatus(select)
     mon.setTextScale(2)
     mon.setCursorPos(1,1)
     if dialAddress ~= "none" then -- dialAddress
-      mon.setTextColor(colors.lightBlue)
+      mon.setTextColor(lblue)
       mon.write("Connected to")
-      mon.setTextColor(colors.yellow)
+      mon.setTextColor(yellow)
       if #dialAddress > 7 then
         mon.setCursorPos(4,2)
         mon.write(dialAddress)
@@ -91,7 +124,7 @@ local function displayStatus(select)
         end
       end
     else
-      mon.setTextColor(colors.yellow)
+      mon.setTextColor(yellow)
       mon.write(" Incoming")
       mon.setCursorPos(4,2)
       mon.write("Connection")
@@ -101,9 +134,9 @@ local function displayStatus(select)
     mon.setTextScale(2)
     mon.setCursorPos(1,1)
     if dialAddress ~= "none" then
-      mon.setTextColor(colors.lightBlue)
+      mon.setTextColor(lblue)
       mon.write("Dialing")
-      mon.setTextColor(colors.yellow)
+      mon.setTextColor(yellow)
       if #dialAddress > 7 then
         mon.setCursorPos(4,2)
         mon.write(dialAddress)  -- dialAddress (8+ symbols)
@@ -116,7 +149,7 @@ local function displayStatus(select)
         end
       end
     else                        -- incoming
-      mon.setTextColor(colors.yellow)
+      mon.setTextColor(yellow)
       mon.write(" Incoming")
       mon.setCursorPos(4,2)
       mon.write("Connection")
@@ -125,7 +158,7 @@ local function displayStatus(select)
     if gate.isDialing() == true and dialAddress == "" then -- incoming
       mon.clear()
       mon.setTextScale(2)
-      mon.setTextColor(colors.yellow)
+      mon.setTextColor(yellow)
       mon.setCursorPos(1,1)
       mon.write(" Incoming")
       mon.setCursorPos(4,2)
@@ -137,18 +170,18 @@ local function displayStatus(select)
 end
 
 local function drawTermScreen()
-  term.setBackgroundColor(colors.black)
+  term.setBackgroundColor(black)
   term.clear()
   if mon == "none" then
-    term.setBackgroundColor(colors.lightBlue)
-    term.setTextColor(colors.black)
+    term.setBackgroundColor(lblue)
+    term.setTextColor(black)
   else
-    term.setBackgroundColor(colors.blue)
-    term.setTextColor(colors.white)
+    term.setBackgroundColor(blue)
+    term.setTextColor(white)
   end
   if fuelGuage == false then
-    term.setBackgroundColor(colors.red)
-    term.setTextColor(colors.white)
+    term.setBackgroundColor(red)
+    term.setTextColor(white)
   end
   term.setCursorPos(2,2)
   term.write(" Gate Liaison            ver. " .. gVer .. " ")
@@ -159,8 +192,8 @@ local function drawTermScreen()
   local cID = tostring(os.getComputerID())
   term.setCursorPos(39-(6+#cID),10)
   term.write("cc # " .. cID)
-  term.setBackgroundColor(colors.lightGray)
-  term.setTextColor(colors.black)
+  term.setBackgroundColor(lgray)
+  term.setTextColor(black)
   for i = 2,14,1 do
     for j = 3,9,1 do
       term.setCursorPos(i,j)
@@ -177,80 +210,80 @@ local function drawTermScreen()
     term.write(" Shield:")
   end
   term.setCursorPos(17,3)
-  term.setBackgroundColor(colors.black)
-  term.setTextColor(colors.yellow)
+  term.setBackgroundColor(black)
+  term.setTextColor(yellow)
   term.write(thisGate)
   term.setCursorPos(17,4)
-  term.setTextColor(colors.blue)
+  term.setTextColor(blue)
   if gateStatus == "Disconnected" then
-    term.setTextColor(colors.green)
+    term.setTextColor(green)
   elseif gateStatus == "Connected" then
-    term.setTextColor(colors.orange)
+    term.setTextColor(orange)
   elseif gateStatus == "Dialing" then
-    term.setTextColor(colors.lightBlue)
+    term.setTextColor(lblue)
   end
   if gateStatus == "Dialing" and dialAddress == "none" then
     term.write("Incoming Connection")
   elseif gateStatus == "lockdown" then
-    term.setTextColor(colors.red)
+    term.setTextColor(red)
     term.write("!! LOCKDOWN !!")
   else
     term.write(gateStatus)
   end
   term.setCursorPos(17,5)
-  term.setTextColor(colors.brown)
+  term.setTextColor(brown)
   term.write(dialAddress)
   term.setCursorPos(17,6)
   if shieldStatus == true then
-    term.setTextColor(colors.green)
+    term.setTextColor(green)
     if #thisGate == 7 then
       term.write("ON    ")
     elseif #thisGate > 7 then
       term.write("CLOSED")
     end
   elseif shieldStatus == false then
-    term.setTextColor(colors.orange)
+    term.setTextColor(orange)
     if #thisGate == 7 then
       term.write("OFF   ")
     elseif #thisGate > 7 then
       term.write("OPEN  ")
     end
   else
-    term.setTextColor(colors.magenta)
+    term.setTextColor(magenta)
     term.write("ERROR ")
   end
   term.setCursorPos(17,7)
   if fuelGuage == true then
-    term.setTextColor(colors.green)
+    term.setTextColor(green)
     term.write("YES  ")
   elseif fuelGuage == false then
-    term.setTextColor(colors.red)
+    term.setTextColor(red)
     term.write("NO   ")
   else
-    term.setTextColor(colors.magenta)
+    term.setTextColor(magenta)
     term.write("ERROR")
   end
   term.setCursorPos(17,8)
-  term.setTextColor(colors.lightBlue)
+  term.setTextColor(lblue)
   term.write(pData)
   term.setCursorPos(17,9)
   if gateSettings.net == "R" then
-    term.setTextColor(colors.red)
+    term.setTextColor(red)
     term.write("redNet   ")
-    term.setTextColor(colors.gray)
+    term.setTextColor(gray)
     term.write("ccDHD ")
-    term.setTextColor(colors.red)
+    term.setTextColor(red)
     term.write(tostring(gateSettings.DHD))
   elseif gateSettings.net == "C" then
-    term.setTextColor(colors.green)
+    term.setTextColor(green)
     term.write("ccNet ")
-    term.setTextColor(colors.gray)
+    term.setTextColor(gray)
     term.write("s:")
-    term.setTextColor(colors.green)
+    term.setTextColor(green)
     term.write(tostring(gateSettings.chan.send))
-    term.setTextColor(colors.gray)
+    term.setTextColor(gray)
     term.write(" r:")
-    term.setTextColor(colors.green)
+    term.setTextColor(green)
     term.write(tostring(gateSettings.chan.recv))
   end
 end
@@ -371,7 +404,7 @@ local function lockDown()
   if mon ~= "none" then
     mon.clear()
     mon.setCursorPos(1,1)
-    mon.setTextColor(colors.red)
+    mon.setTextColor(red)
     mon.write("!! LOCKDOWN !!")
   end
 end
@@ -535,53 +568,83 @@ local function firstRun()
   term.clear()
   -- Select shield/redstone output side
   --if #thisGate == 7 then                              -- implement when iris control is introduced?
-    term.setTextColor(colors.lightBlue)
+    term.setTextColor(lblue)
     term.setCursorPos(2,2)
     term.write("Please select the shield/redstone output side")
-    term.setTextColor(colors.gray)
+    term.setTextColor(gray)
     term.setCursorPos(2,4)
     term.write("(select an unused side")
     term.setCursorPos(2,5)
     term.write("if not using redstone")
     term.setCursorPos(2,6)
     term.write("output)")
-    -- Draw side list
-    local tPos = { }
-    local tSide = { }
-    if #thisGate == 7 then
-      tPos = { 5,7,9,11,13,15 }
-      tSide = { "top","bottom","front","back","left","right" }
-    elseif #thisGate > 7 then
-      tPos = { 5,7,9,11,13,15 }
-      tSide = { "top","bottom","front","back","left","right" }
-      --tPos = { 5,7,9,11,13,15,17 }
-      --tSide = { "top","bottom","front","back","left","right","iris" }
-    end
-    term.setBackgroundColor(colors.gray)
-    term.setTextColor(colors.white)
-    if #thisGate == 7 then                              --
-      for i = 4,16,1 do                                 -- Draw blank menu (snapshot 82+)
-        term.setCursorPos(26,i)                         --
-        term.write(string.rep(" ",8))                   --
+    if term.isColor() then
+      -- Draw side list
+      local tPos = { }
+      local tSide = { }
+      if #thisGate == 7 then
+        tPos = { 5,7,9,11,13,15 }
+        tSide = { "top","bottom","front","back","left","right" }
+      elseif #thisGate > 7 then
+        tPos = { 5,7,9,11,13,15 }
+        tSide = { "top","bottom","front","back","left","right" }
+        --tPos = { 5,7,9,11,13,15,17 }
+        --tSide = { "top","bottom","front","back","left","right","iris" }
       end
-    elseif #thisGate > 7 then                           --
-      --for i = 4,18,1 do                               --
-      for i = 4,16,1 do                                 -- Draw blank menu (RC1)
-        term.setCursorPos(26,i)                         --
-        term.write(string.rep(" ",8))                   --
+      term.setBackgroundColor(gray)
+      term.setTextColor(white)
+      if #thisGate == 7 then                              --
+        for i = 4,16,1 do                                 -- Draw blank menu (snapshot 82+)
+          term.setCursorPos(26,i)                         --
+          term.write(string.rep(" ",8))                   --
+        end
+      elseif #thisGate > 7 then                           --
+        --for i = 4,18,1 do                               --
+        for i = 4,16,1 do                                 -- Draw blank menu (RC1)
+          term.setCursorPos(26,i)                         --
+          term.write(string.rep(" ",8))                   --
+        end
       end
-    end
-    for j,k in pairs(tSide) do                          --
-      term.setCursorPos(27,tPos[j])                     -- Draw side labels in menu
-      term.write(string.upper(k):sub(1,1) .. k:sub(2) ) --
-    end
-    while true do
-      local newSide = { os.pullEvent("mouse_click") }   --
-      if newSide[3] > 26 and newSide[3] < 34 then       --
-        for j,k in pairs(tSide) do                      -- Select shield (redstone output) side
-          if newSide[4] == tPos[j] then                 --          or internal iris
-            gateSettings.shield = k                     --
-            return false                                --
+      for j,k in pairs(tSide) do                          --
+        term.setCursorPos(27,tPos[j])                     -- Draw side labels in menu
+        term.write(string.upper(k):sub(1,1) .. k:sub(2) ) --
+      end
+      while true do
+        local newSide = { os.pullEvent("mouse_click") }   --
+        if newSide[3] > 26 and newSide[3] < 34 then       --
+          for j,k in pairs(tSide) do                      -- Select shield (redstone output) side
+            if newSide[4] == tPos[j] then                 --          or internal iris
+              gateSettings.shield = k                     --
+              return false                                --
+            end
+          end
+        end
+      end
+    else
+      -- Select redstone output side
+      term.clear()
+      term.setTextColor(white)
+      term.setCursorPos(2,2)
+      -- Draw side list
+      term.write("Please select the shield/redstone output side")
+      local theseSides = { "top", "bottom", "left", "right", "front", "back" }
+      local l,m
+      for l,m in pairs(theseSides) do                                            --
+        term.setCursorPos(2,l+4)                                                 -- Side selection list for standard computers and turtles
+        term.write(tostring(l) .. " = " .. string.upper(m):sub(1,1) .. m:sub(2)) --
+      end
+      term.setCursorPos(2,12)
+      while true do
+        local getSide = tonumber(read())
+        if getSide ~= nil then
+          if getSide > 0 and getSide < 7 then
+            local n,o
+            for n,o in pairs(theseSides) do
+              if getSide == n then
+                gateSettings.shield = o
+              end
+            end
+            break
           end
         end
       end
@@ -613,8 +676,8 @@ local function initGate()
     end
   end
   if not gate then
-    term.setBackgroundColor(colors.black)
-    term.setTextColor(colors.red)
+    term.setBackgroundColor(black)
+    term.setTextColor(red)
     term.clear()
     term.setCursorPos(1,1)
     term.write("No Stargate detected!")
@@ -645,11 +708,12 @@ local function initMe()
   -- Check for first time install
   if not fs.exists("/data/gateSettings") then
     firstRun()
-    term.setBackgroundColor(colors.black)
+    term.setBackgroundColor(black)
     term.clear()
     saveData()
   end
   ingestData()
+  modemSide = "none"
   for k,v in pairs(rs.getSides()) do
         -- Modem
     if peripheral.getType(v) == "modem" then
@@ -675,6 +739,14 @@ local function initMe()
       end
     end
   end
+  if modemSide == "none" then
+    term.clear()
+    term.setCursorPos(2,2)
+    term.setTextColor(red)
+    term.write("gateLiaison requires a wireless modem")
+    term.setCursorPos(1,4)
+    return
+  end
   if gateSettings.shield == "iris" then
     shieldStatus, _ = pcall(gate.isIrisClosed)
   else
@@ -689,6 +761,7 @@ end
 
 initMe()
 if not gate then return end
+if modemSide == "none" then return end
 
 while true do
   gateKernel()
