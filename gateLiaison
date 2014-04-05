@@ -6,14 +6,14 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.1.02"
+local gVer = "1.1.03"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
-  - LanteaCraft (snapshot 82+ & RC1_15+)
+  - LanteaCraft (snapshot 82+ & RC1_15-RC1_22)
   - ComputerCraft ver. 1.57+ for MC 1.6.4
     - HTTP API enabled (for pastebin installer - not required for gateLiaison)
-    - 1 Computer (standard or advanced), 3 optional Monitors (standard or advanced)
+    - 1 Computer (standard or advanced), 3 optional Monitors (standard or advanced) - probably best not to mix, though
       - or 1 Wireless Turtle (standard or advanced), no monitors
     - ccDHD running on an Advanced Computer with 4 optional Advanced Monitors
       - ccDHD also supports GopherATL's BioLock ver. 2.1.3 Fistprint scanner (updated for 1.6.4 by gamax92)
@@ -53,10 +53,8 @@ local cyan = colors.cyan
 local lime = colors.lime
 local green = colors.green
 if not term.isColor() then
-  white = colors.white
   lgray = colors.white
   gray = colors.black
-  black = colors.black
   brown = colors.white
   yellow = colors.white
   orange = colors.white
@@ -169,70 +167,70 @@ local function displayStatus(select)
   end
 end
 
+local function drawElement(x,y,w,h,txtColor,bgdColor,text)
+  local deText = tostring(text)
+  term.setCursorPos(x,y)
+  term.setBackgroundColor(bgdColor)   -- Draw 'element' (line_seg/box/rect)
+  term.setTextColor(txtColor)
+  for i = 1,h,1 do
+    term.write(string.rep(" ",w))
+    term.setCursorPos(x,y+i)
+  end
+  if deText ~= "" and deText ~= "nil" then
+    local xW = (x + w/2) - #deText/2 -- Center the text horizontally
+    local xH = y + h/2               -- Center the text vertically
+    term.setCursorPos(xW,xH)
+    term.write(deText)
+  end
+end
+
 local function drawTermScreen()
   term.setBackgroundColor(black)
   term.clear()
+  local stColor,sbColor
   if mon == "none" then
-    term.setBackgroundColor(lblue)
-    term.setTextColor(black)
+    sbColor = lblue
+    stColor = black
   else
-    term.setBackgroundColor(blue)
-    term.setTextColor(white)
+    sbColor = blue
+    stColor = white
   end
   if fuelGuage == false then
-    term.setBackgroundColor(red)
-    term.setTextColor(white)
+    sbColor = red
+    stColor = white
   end
-  term.setCursorPos(2,2)
-  term.write(" Gate Liaison            ver. " .. gVer .. " ")
-  term.setCursorPos(2,10)
-  term.write(string.rep(" ",37))
-  term.setCursorPos(2,10)
-  term.write(" " .. os.getComputerLabel())
-  local cID = tostring(os.getComputerID())
-  term.setCursorPos(39-(6+#cID),10)
-  term.write("cc # " .. cID)
-  term.setBackgroundColor(lgray)
-  term.setTextColor(black)
-  for i = 2,14,1 do
-    for j = 3,9,1 do
-      term.setCursorPos(i,j)
-      term.write(" ")
-    end
-  end
+  local glHeaderTxt = " Gate Liaison" .. string.rep(" ",12) .. "ver. " .. gVer .. " "
+  drawElement(2,2,#glHeaderTxt,1,stColor,sbColor,glHeaderTxt) -- Header
+  drawElement(2,10,37,1,stColor,sbColor,"") -- lowline
+  local me = os.getComputerLabel()
+  drawElement(3,10,#me,1,stColor,sbColor,me)
+  local cID = "cc # " .. tostring(os.getComputerID())
+  drawElement(38-(#cID),10,#cID,1,stColor,sbColor,cID)
+  drawElement(2,3,12,7,black,lgray,"") -- Information background
   local readouts = { " Gate:", " State:", " Target:",  " Iris:", " Fuel:", " Status:", " Network:" }
   for i = 1,7,1 do
-    term.setCursorPos(2,i+2)
-    term.write(readouts[i])
+    drawElement(2,i+2,readouts[i]:len(),1,black,lgray,readouts[i])
   end
   if #thisGate == 7 then
-    term.setCursorPos(2,6)
-    term.write(" Shield:")
+    drawElement(2,7,7,1,black,lgray," Shield:")
   end
-  term.setCursorPos(17,3)
-  term.setBackgroundColor(black)
-  term.setTextColor(yellow)
-  term.write(thisGate)
-  term.setCursorPos(17,4)
-  term.setTextColor(blue)
+  drawElement(17,3,#thisGate,1,yellow,black,thisGate)
+  local sTxtColor = blue
   if gateStatus == "Disconnected" then
-    term.setTextColor(green)
+    sTxtColor = green
   elseif gateStatus == "Connected" then
-    term.setTextColor(orange)
+    sTxtColor = orange
   elseif gateStatus == "Dialing" then
-    term.setTextColor(lblue)
+    sTxtColor = lblue
   end
   if gateStatus == "Dialing" and dialAddress == "none" then
-    term.write("Incoming Connection")
+    drawElement(17,4,19,1,sTxtColor,black,"Incoming Connection")
   elseif gateStatus == "lockdown" then
-    term.setTextColor(red)
-    term.write("!! LOCKDOWN !!")
+    drawElement(17,4,14,1,red,black,"!! LOCKDOWN !!")
   else
-    term.write(gateStatus)
+    drawElement(17,4,#gateStatus,1,sTxtColor,black,gateStatus)
   end
-  term.setCursorPos(17,5)
-  term.setTextColor(brown)
-  term.write(dialAddress)
+  drawElement(17,5,#dialAddress,1,brown,black,dialAddress)
   term.setCursorPos(17,6)
   if shieldStatus == true then
     term.setTextColor(green)
@@ -263,9 +261,7 @@ local function drawTermScreen()
     term.setTextColor(magenta)
     term.write("ERROR")
   end
-  term.setCursorPos(17,8)
-  term.setTextColor(lblue)
-  term.write(pData)
+  drawElement(17,8,#pData,1,lblue,black,pData)
   term.setCursorPos(17,9)
   if gateSettings.net == "R" then
     term.setTextColor(red)
@@ -568,16 +564,10 @@ local function firstRun()
   term.clear()
   -- Select shield/redstone output side
   --if #thisGate == 7 then                              -- implement when iris control is introduced?
-    term.setTextColor(lblue)
-    term.setCursorPos(2,2)
-    term.write("Please select the shield/redstone output side")
-    term.setTextColor(gray)
-    term.setCursorPos(2,4)
-    term.write("(select an unused side")
-    term.setCursorPos(2,5)
-    term.write("if not using redstone")
-    term.setCursorPos(2,6)
-    term.write("output)")
+    drawElement(2,2,45,1,lblue,black,"Please select the shield/redstone output side")
+    drawElement(2,4,22,1,gray,black,"(select an unused side")
+    drawElement(2,5,21,1,gray,black,"if not using redstone")
+    drawElement(2,6,7,1,gray,black,"output)")
     if term.isColor() then
       -- Draw side list
       local tPos = { }
@@ -591,23 +581,14 @@ local function firstRun()
         --tPos = { 5,7,9,11,13,15,17 }
         --tSide = { "top","bottom","front","back","left","right","iris" }
       end
-      term.setBackgroundColor(gray)
-      term.setTextColor(white)
-      if #thisGate == 7 then                              --
-        for i = 4,16,1 do                                 -- Draw blank menu (snapshot 82+)
-          term.setCursorPos(26,i)                         --
-          term.write(string.rep(" ",8))                   --
-        end
-      elseif #thisGate > 7 then                           --
-        --for i = 4,18,1 do                               --
-        for i = 4,16,1 do                                 -- Draw blank menu (RC1)
-          term.setCursorPos(26,i)                         --
-          term.write(string.rep(" ",8))                   --
-        end
+      if #thisGate == 7 then
+        drawElement(26,4,8,13,white,gray,"")              -- Draw blank menu (snapshot 82+)
+      elseif #thisGate > 7 then
+        drawElement(26,4,8,13,white,gray,"")              -- Draw blank menu (RC1)
       end
-      for j,k in pairs(tSide) do                          --
-        term.setCursorPos(27,tPos[j])                     -- Draw side labels in menu
-        term.write(string.upper(k):sub(1,1) .. k:sub(2) ) --
+      for j,k in pairs(tSide) do                            --
+        local tSides = string.upper(k):sub(1,1) .. k:sub(2) -- Draw side labels in menu
+        drawElement(27,tPos[j],#tSides,1,white,gray,tSides) --
       end
       while true do
         local newSide = { os.pullEvent("mouse_click") }   --
@@ -623,15 +604,14 @@ local function firstRun()
     else
       -- Select redstone output side
       term.clear()
-      term.setTextColor(white)
-      term.setCursorPos(2,2)
+      drawElement(2,2,45,1,white,black,"Please select the shield/redstone output side")
       -- Draw side list
-      term.write("Please select the shield/redstone output side")
+      term.setTextColor(white)
       local theseSides = { "top", "bottom", "left", "right", "front", "back" }
       local l,m
-      for l,m in pairs(theseSides) do                                            --
-        term.setCursorPos(2,l+4)                                                 -- Side selection list for standard computers and turtles
-        term.write(tostring(l) .. " = " .. string.upper(m):sub(1,1) .. m:sub(2)) --
+      for l,m in pairs(theseSides) do
+        local sSides = tostring(l) .. " = " .. string.upper(m):sub(1,1) .. m:sub(2)
+        drawElement(2,l+4,#sSides,1,white,black,sSides)  -- Side selection list for standard computers and turtles
       end
       term.setCursorPos(2,12)
       while true do
