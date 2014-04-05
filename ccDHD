@@ -121,11 +121,7 @@ local function recordSessionData() -- Human readable log files (last gate & hist
   lastCall.writeLine(dialAddress)
   lastCall.close()
   if dhdSettings.logs == "ON" then
-    if not fs.exists(dhdSettings.gateHistory) then
-      local tmpHist = fs.open(dhdSettings.gateHistory,"w")
-      tmpHist.close()
-    end
-    local gateArchive = fs.open(dhdSettings.gateHistory,"a")
+    local gateArchive = fs.open(dhdSettings.gateHistory, fs.exists(dhdSettings.gateHistory) and "a" or "w")
     gateArchive.writeLine(dateStamp)
     gateArchive.writeLine(dialAddress)
     gateArchive.close()
