@@ -6,7 +6,7 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.1.03"
+local gVer = "1.1.04"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -198,6 +198,10 @@ local function drawTermScreen()
   if fuelGuage == false then
     sbColor = red
     stColor = white
+  end
+  if not term.isColor() then
+    sbColor = white
+    stColor = black
   end
   local glHeaderTxt = " Gate Liaison" .. string.rep(" ",12) .. "ver. " .. gVer .. " "
   drawElement(2,2,#glHeaderTxt,1,stColor,sbColor,glHeaderTxt) -- Header
