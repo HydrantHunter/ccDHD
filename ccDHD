@@ -2851,9 +2851,9 @@ local function firstRun()
     local myGateInfo = { os.pullEvent("modem_message") }
     if myGateInfo[3] == dhdSettings.channels.recv and myGateInfo[4] == dhdSettings.channels.send then
       local tempSettings = myGateInfo[5]
-      dhdSettings.thisGate = tempSettings.gate
+      dhdSettings.thisGate = tempSettings.addr
       allGates[1].addr = dhdSettings.thisGate
-      dhdSettings.gate = tempSettings.server
+      dhdSettings.gate = tempSettings.gate
       break
     end
   end
