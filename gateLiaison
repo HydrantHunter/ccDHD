@@ -30,7 +30,7 @@ local pollTimer, timePoller = 0,0
 local longName = ""
 local mon = "none"
 local gateSettings = { shield = "front",
-                       DHD = 1,
+                       DHD = 99999,
                        chan = { send = 1787, recv = 1776 },
                        net = "C",
                        pollTime = 2,
@@ -286,8 +286,8 @@ end
 
 local function netSend(dataPack)
   if gateSettings.net == "R" then
-    if gateSettings.DHD ~= 999 then
-      rednet.send(gateSettings.DHD,dataPack,true)
+    if gateSettings.DHD ~= 99999 then
+      rednet.send(gateSettings.DHD,dataPack)
     end
   elseif gateSettings.net == "C" then
     if gateSettings.chan.recv ~= 2 then
@@ -451,7 +451,7 @@ local function doCommand(thisCommand)
         end
       end
       local me = os.getComputerID()
-      local tempSettings = { gate = thisGate, server = me }
+      local tempSettings = { addr = thisGate, gate = me }
       sleep(0.1)
       netSend(tempSettings)
       return
