@@ -172,7 +172,7 @@ local function drawElement(x,y,w,h,txtColor,bgdColor,text)
   term.setCursorPos(x,y)
   term.setBackgroundColor(bgdColor)   -- Draw 'element' (line_seg/box/rect)
   term.setTextColor(txtColor)
-  if w < #text then w = #text end
+  if w < #deText then w = #deText end
   for i = 1,h,1 do
     term.write(string.rep(" ",w))
     term.setCursorPos(x,y+i)
