@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.17"
+local ccDHDVer = "1.1.18"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -561,6 +561,7 @@ local function drawElement(x,y,w,h,txtColor,bgdColor,text)
   else
     term.setBackgroundColor(bgdColor)   -- Draw 'element' (line_seg/box/rect)
     term.setTextColor(txtColor)
+    if w < #text then w = #text end
     for i = 1,h,1 do
       term.write(string.rep(" ",w))
       term.setCursorPos(x,y+i)
