@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.18"
+local ccDHDVer = "1.1.19"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -559,12 +559,14 @@ local function drawElement(x,y,w,h,txtColor,bgdColor,text)
     term.setBackgroundColor(gray)
     term.write("  ")
   else
-    term.setBackgroundColor(bgdColor)   -- Draw 'element' (line_seg/box/rect)
+    term.setBackgroundColor(bgdColor)
     term.setTextColor(txtColor)
     if w < #deText then w = #deText end
-    for i = 1,h,1 do
-      term.write(string.rep(" ",w))
-      term.setCursorPos(x,y+i)
+    if w > #sText or h > 1 then        -- We're 'drawing' something more than text
+      for i = 1,h,1 do
+        term.write(string.rep(" ",w))  -- Draw the 'element' (box/rectangle/line-seg)
+        term.setCursorPos(x,y+i)       --
+      end
     end
     if deText ~= "" and deText ~= "nil" then
       local xW = (x + w/2) - #deText/2 -- Center the text horizontally
