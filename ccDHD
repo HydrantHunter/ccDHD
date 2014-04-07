@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.19"
+local ccDHDVer = "1.1.20"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -561,8 +561,8 @@ local function drawElement(x,y,w,h,txtColor,bgdColor,text)
   else
     term.setBackgroundColor(bgdColor)
     term.setTextColor(txtColor)
-    if w < #deText then w = #deText end
-    if w > #sText or h > 1 then        -- We're 'drawing' something more than text
+    if w < #deText and deText ~= "nil" and deText ~= "" then w = #deText end -- Ensure minimum length
+    if w > #deText or h > 1 then        -- We're 'drawing' something more than text
       for i = 1,h,1 do
         term.write(string.rep(" ",w))  -- Draw the 'element' (box/rectangle/line-seg)
         term.setCursorPos(x,y+i)       --
