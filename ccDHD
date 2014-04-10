@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.20"
+local ccDHDVer = "1.1.21"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -695,33 +695,33 @@ local function drawControlUI()
   end
   if runState == "Dial" then
     if #dhdSettings.thisGate == 7 then
-      drawElement(45,9,5,1,white,lblue,dhdCommandOptions[4] .. "   ")    -- Shield
+      drawElement(43,9,1,1,white,lblue,dhdCommandOptions[4] .. "   ")    -- Shield
     else
-      drawElement(45,9,4,1,white,lblue,dhdCommandOptions[5] .. "    ")   -- Iris
+      drawElement(43,9,1,1,white,lblue,dhdCommandOptions[5] .. "    ")   -- Iris
     end
     if shieldStatus == "ON" then
       drawElement(termX,9,1,1,white,green,"")  -- Iris/Shield pip ON
     else
       drawElement(termX,9,1,1,white,orange,"") -- Iris/Shield pip OFF
     end
-    drawElement(45,11,6,1,black,orange,dhdCommandOptions[6] .. " ")      -- endCall
-    drawElement(45,13,8,1,orange,red,dhdCommandOptions[7] .. "   ")      -- Lockdown
-    drawElement(46,15,4,1,gray,cyan,dhdCommandOptions[8] .. "     ")     -- rCmd
+    drawElement(43,11,1,1,black,orange,dhdCommandOptions[6] .. " ")      -- endCall
+    drawElement(43,13,1,1,orange,red,dhdCommandOptions[7] .. "   ")      -- Lockdown
+    drawElement(43,15,1,1,gray,cyan,dhdCommandOptions[8] .. "     ")     -- rCmd
   elseif runState == "Edit" then
     if #allGates < 23977 then
-      drawElement(45,9,6,1,white,blue,dhdCommandOptions[9] .. "  ")      -- +Entry
+      drawElement(43,9,1,1,white,blue,dhdCommandOptions[9] .. "  ")      -- +Entry
     end
-    drawElement(45,11,6,1,white,orange,dhdCommandOptions[10] .. "    ")  -- Import Gate Data
-    drawElement(45,13,6,1,white,green,dhdCommandOptions[11] .. "    ")   -- Export Gate Data
+    drawElement(43,11,1,1,white,orange,dhdCommandOptions[10] .. "    ")  -- Import Gate Data
+    drawElement(43,13,1,1,white,green,dhdCommandOptions[11] .. "    ")   -- Export Gate Data
     if gateChange then
-      drawElement(46,15,4,1,lime,cyan,dhdCommandOptions[12] .. "     ")  -- Save Gate Data
+      drawElement(43,15,1,1,lime,cyan,dhdCommandOptions[12] .. "     ")  -- Save Gate Data
       term.setTextColor(lime)
     else
-      drawElement(46,15,4,1,white,cyan,dhdCommandOptions[12] .. "     ") -- Save Gate Data
+      drawElement(43,15,1,1,white,cyan,dhdCommandOptions[12] .. "     ") -- Save Gate Data
     end
   elseif runState == "Trim" then
-    drawElement(44,11,8,1,gray,lgray,dhdCommandOptions[13] .. " ")       -- Undo
-    drawElement(44,13,8,1,black,red,dhdCommandOptions[14] .. " ")        -- Commit
+    drawElement(43,11,8,1,gray,lgray,dhdCommandOptions[13] .. " ")       -- Undo
+    drawElement(43,13,8,1,black,red,dhdCommandOptions[14] .. " ")        -- Commit
   end
   term.setBackgroundColor(black)
 end
@@ -1960,7 +1960,7 @@ local function mClick()
         end
       end
     end
-    -- Page Navigation via click
+     -- Page Navigation via click
     if mcY == termY then
       if runState == "Dial" or runState == "Edit" or runState == "Trim" then
         if mcX < 20 and mcY == termY then -- Bottom row of screen - Back
@@ -1983,7 +1983,7 @@ local function mClick()
         end
       end
     end
-    -- Dial a listed address, view it's info, edit entry, or enter trim mode & delete gates
+     -- Dial a listed address, view it's info, edit entry, or enter trim mode & delete gates
     local j = ((pageNum - 1) * 23) + pageNum
     local k = ((pageNum - 1) * 23)
     local l = ((pageNum - 1) * 24)
