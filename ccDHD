@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.21"
+local ccDHDVer = "1.1.22"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -579,14 +579,14 @@ local function drawElement(x,y,w,h,txtColor,bgdColor,text)
   else
     term.setBackgroundColor(bgdColor)
     term.setTextColor(txtColor)
-    if w < #deText and deText ~= "nil" and deText ~= "" then w = #deText end -- Ensure minimum length
-    if w > #deText or h > 1 then        -- We're 'drawing' something more than text
-      for i = 1,h,1 do
+    if w > #deText or h > 1 then       -- We're 'drawing' something more than text
+      for i = 1,h,1 do                 --
         term.write(string.rep(" ",w))  -- Draw the 'element' (box/rectangle/line-seg)
         term.setCursorPos(x,y+i)       --
       end
     end
     if deText ~= "" and deText ~= "nil" then
+      if w < #deText and deText ~= "nil" and deText ~= "" then w = #deText end -- Ensure minimum length
       local xW = (x + w/2) - #deText/2 -- Center the text horizontally
       local xH = y + h/2               -- Center the text vertically
       term.setCursorPos(xW,xH)
@@ -695,7 +695,7 @@ local function drawHeader()
     end
     if gateStatus == "Disconnected" and fuelGauge == false then
       local nf = "N O  F U E L" .. string.rep(" ",13)
-      drawElement(26,3,#nf,1,red,gray,nf)
+      drawElement(26,3,1,1,red,gray,nf)
     end
   end
   if secureStatus == "allclear" then displayStatus() end
@@ -863,7 +863,7 @@ local function drawHelpUI()
   drawElement(2,2,9,1,lgray,gray,"-- Key --")
   drawElement(termX-6,2,7,1,red,lgray," Close ")
   for q,r in pairs(colorDefs) do -- Color key for gate classifications
-    drawElement(xMod,yMod,#tostring(colorDesc[q]),1,r,black,colorDesc[q])
+    drawElement(xMod,yMod,1,1,r,black,colorDesc[q])
     if xMod == 2 then
       xMod = 20
     elseif xMod == 20 then
@@ -876,9 +876,9 @@ local function drawHelpUI()
   drawElement(1,colorCount,termX,1,lgray,gray,"")
   drawElement(2,colorCount,11,1,lgray,gray,"-- Notes --")
   local lowLine = "ccDHD ver. " .. ccDHDVer .. string.rep(" ",5) .. "cc# " .. os.getComputerID()
-  drawElement(2,termY,#lowLine,1,lgray,gray,lowLine)
+  drawElement(2,termY,1,1,lgray,gray,lowLine)
   local tmpLabel = os.getComputerLabel()
-  drawElement(termX-#tmpLabel,termY,#tmpLabel,1,lgray,gray,tmpLabel)
+  drawElement(termX-#tmpLabel,termY,1,1,lgray,gray,tmpLabel)
   if runState == "DialHelp" then
     drawElement(2,colorCount+2,31,1,white,black,"- Left click an address to dial")
     drawElement(2,colorCount+3,40,1,white,black,"- Right click an address to view details")
@@ -905,7 +905,7 @@ local function drawSettingsUI()
   drawElement(1,1,termX,1,white,lblue,"")
   drawElement(1,2,termX,1,white,gray,"")
   local settingsHeader = " " .. dhdSettings.thisGate .. " Settings "
-  drawElement((termX/2)-((#dhdSettings.thisGate/2))-4,1,#settingsHeader,1,white,gray,settingsHeader)
+  drawElement((termX/2)-((#dhdSettings.thisGate/2))-4,1,1,1,white,gray,settingsHeader)
   drawElement(1,termY,termX,1,white,gray,"")
   local tsColor
   if configChange then
@@ -917,21 +917,21 @@ local function drawSettingsUI()
   drawElement(45,2,7,1,red,lgray," Close ")    --
    -- Settings 1st Column
   drawElement(2,4,9,1,gray,black,"This gate")
-  drawElement(17,4,#dhdSettings.thisGate,1,cyan,black,dhdSettings.thisGate) -- thisGate
-  drawElement(2,6,13,1,gray,black,"Lockdown pass")
-  drawElement(17,6,#dhdSettings.password,1,orange,black,dhdSettings.password) -- superSecretPassword
-  drawElement(2,8,13,1,gray,black,"Biolock Login")
+  drawElement(17,4,1,1,cyan,black,dhdSettings.thisGate) -- thisGate
+  drawElement(2,6,1,1,gray,black,"Lockdown pass")
+  drawElement(17,6,1,1,orange,black,dhdSettings.password) -- superSecretPassword
+  drawElement(2,8,1,1,gray,black,"Biolock Login")
   if dhdSettings.bio.lock == "OFF" then -- Fistprint Authentication (Biolock mod)
     drawElement(17,8,"OFF")
   elseif dhdSettings.bio.lock == "ON" then
     drawElement(17,8,"ON")
   end
   drawElement(23,8,1,1,black,gray,"#") -- Biolock auth. level
-  drawElement(2,10,4,1,gray,black,"Net:")
+  drawElement(2,10,1,1,gray,black,"Net:")
   if dhdSettings.net == "R" then     -- redNet (specify server #)
-    drawElement(7,10,6,1,red,black,"redNet")
+    drawElement(7,10,1,1,red,black,"redNet")
   elseif dhdSettings.net == "C" then -- ccNet (specify send/receive channels)
-    drawElement(7,10,5,1,green,black,"ccNet")
+    drawElement(7,10,1,1,green,black,"ccNet")
   end
   if dhdSettings.net == "R" then     -- Red for redNet
     drawElement(17,10,"OFF")
@@ -940,20 +940,20 @@ local function drawSettingsUI()
   end
   drawElement(23,10,1,1,black,gray,"#") -- hardware.netSide
   if dhdSettings.net == "R" then     -- if redNet show "Gate Liaison"
-    drawElement(2,12,12,1,gray,black,"Gate Liaison")
+    drawElement(2,12,1,1,gray,black,"Gate Liaison")
   elseif dhdSettings.net == "C" then -- if ccNet show "Send/Rec"
-    drawElement(2,12,8,1,gray,black,"Send/Rec")
+    drawElement(2,12,1,1,gray,black,"Send/Rec")
   end
   if dhdSettings.net == "R" then
-    drawElement(17,12,#tostring(dhdSettings.gate),1,red,black,tostring(dhdSettings.gate)) -- Gate Liaison (redNet)
+    drawElement(17,12,1,1,red,black,tostring(dhdSettings.gate)) -- Gate Liaison (redNet)
   elseif dhdSettings.net == "C" then
     local ccSnd = string.rep(" ",5-#tostring(dhdSettings.channels.send)) .. tostring(dhdSettings.channels.send)
-    drawElement(11,12,#ccSnd,1,green,black,ccSnd)
+    drawElement(11,12,1,1,green,black,ccSnd)
     drawElement(16,12,1,1,lgray,black,"/")
     local ccRec = string.rep(" ",5-#tostring(dhdSettings.channels.recv)) .. tostring(dhdSettings.channels.recv)
-    drawElement(17,12,#ccRec,1,green,black,ccRec)
+    drawElement(17,12,1,1,green,black,ccRec)
   end
-  drawElement(2,14,7,1,gray,black,"Marquee") -- Marquee (monB)
+  drawElement(2,14,1,1,gray,black,"Marquee") -- Marquee (monB)
   if dhdSettings.monB == "none" then
     drawElement(17,14,"OFF")
   else
@@ -968,29 +968,29 @@ local function drawSettingsUI()
   end
   drawElement(23,16,1,1,black,gray,"#") -- List Monitor side (monA)
   -- Settings 2nd column
-  drawElement(28,4,14,1,gray,black,"Highlight gate") -- Whether or not to display the local gate differently than the rest of the list
+  drawElement(28,4,1,1,gray,black,"Highlight gate") -- Whether or not to display the local gate differently than the rest of the list
   if dhdSettings.highlight == "YES" then
     drawElement(45,4,"ON")
   elseif dhdSettings.highlight == "NO" then
     drawElement(45,4,"OFF")
   end
-  drawElement(28,6,16,1,gray,black,"pSync (ccDialer)") -- Enable/Disable ccDialer pSync
+  drawElement(28,6,1,1,gray,black,"pSync (ccDialer)") -- Enable/Disable ccDialer pSync
   if dhdSettings.pSync == "ON" then
     drawElement(45,6,"ON")
   elseif dhdSettings.pSync == "OFF" then
     drawElement(45,6,"OFF")
   end
-  drawElement(28,8,5,1,gray,black,"Bio: ") -- Whether Biolock controls shield or initiates lockdown or does nothing (this is separate from BioLogin)
+  drawElement(28,8,1,1,gray,black,"Bio: ") -- Whether Biolock controls shield or initiates lockdown or does nothing (this is separate from BioLogin)
   if dhdSettings.bio.func == "none" then
-    drawElement(33,8,11,1,lgray,black,"No Function")
+    drawElement(33,8,1,1,lgray,black,"No Function")
   elseif dhdSettings.bio.func == "shield" then
     if #dhdSettings.thisGate == 7 then
-      drawElement(33,8,6,1,green,black,"Shield")
+      drawElement(33,8,1,1,green,black,"Shield")
     elseif #dhdSettings.thisGate > 7 then
-      drawElement(33,8,4,1,green,black,"Iris")
+      drawElement(33,8,1,1,green,black,"Iris")
     end
   elseif dhdSettings.bio.func == "lock" then
-    drawElement(33,8,8,1,red,black,"Lockdown")
+    drawElement(33,8,1,1,red,black,"Lockdown")
   end
   term.setCursorPos(45,8)
   if dhdSettings.bio.func == "none" then -- Bio - Iris/Lockdown/None function switch
@@ -1006,9 +1006,9 @@ local function drawSettingsUI()
     drawElement(45,8,"OFF")
   end
   if #dhdSettings.thisGate == 7 then
-    drawElement(28,10,14,1,gray,black,"STARTUP Shield")
+    drawElement(28,10,1,1,gray,black,"STARTUP Shield")
   elseif #dhdSettings.thisGate > 7 then
-    drawElement(28,10,12,1,gray,black,"STARTUP Iris")
+    drawElement(28,10,1,1,gray,black,"STARTUP Iris")
   end
   if dhdSettings.startShield == "OFF" then
     drawElement(45,10,"OFF")
@@ -1016,22 +1016,22 @@ local function drawSettingsUI()
     drawElement(45,10,"ON")
   end
   if #dhdSettings.thisGate == 7 then -- END Call Shield (ON/OFF)
-    drawElement(28,12,15,1,gray,black,"END Call Shield")
+    drawElement(28,12,1,1,gray,black,"END Call Shield")
   elseif #dhdSettings.thisGate > 7 then
-    drawElement(28,12,13,1,gray,black,"END Call Iris")
+    drawElement(28,12,1,1,gray,black,"END Call Iris")
   end
   if dhdSettings.ecShield == "OFF" then
     drawElement(45,12,"OFF")
   elseif dhdSettings.ecShield == "ON" then
     drawElement(45,12,"ON")
   end
-  drawElement(28,14,12,1,gray,black,"Call Logging") -- ccDHD should/not log outbound calls
+  drawElement(28,14,1,1,gray,black,"Call Logging") -- ccDHD should/not log outbound calls
   if dhdSettings.logs == "OFF" then
     drawElement(45,14,"OFF")
   elseif dhdSettings.logs == "ON" then
     drawElement(45,14,"ON")
   end
-  drawElement(28,16,14,1,gray,black,"Initiator Only") -- Only call initiator can end call (ON/OFF)
+  drawElement(28,16,1,1,gray,black,"Initiator Only") -- Only call initiator can end call (ON/OFF)
   if dhdSettings.callEnd == "OFF" then
     drawElement(45,16,"OFF")
   elseif dhdSettings.callEnd == "ON" then
@@ -1056,8 +1056,8 @@ local function drawSecureUI()
   term.setBackgroundColor(black)
   term.clear()
   drawHeader()
-  drawElement((termX/2)-7,9,14,1,red,black,"!! LOCKDOWN !!")
-  drawElement((termX/2)-10,15,9,1,gray,black,"password:")
+  drawElement((termX/2)-7,9,1,1,red,black,"!! LOCKDOWN !!")
+  drawElement((termX/2)-10,15,1,1,gray,black,"password:")
 end
 
 drawCLI = function()
@@ -1103,7 +1103,7 @@ local function drawSideList(pSide)
       tsColor = white
     end
     local tWord = string.upper(k):sub(1,1) .. k:sub(2)
-    drawElement(27,tPos[j],#tWord,1,tsColor,gray,tWord)
+    drawElement(27,tPos[j],1,1,tsColor,gray,tWord)
   end
 end
 
@@ -2271,7 +2271,7 @@ local function mClick()
       elseif mcY == 13 then
         if mcX > 4 and mcX < 10 then
           local oldX = tostring(allGates[currentEdit].loc.x)
-          drawElement(5,13,#oldX,1,gray,black,oldX)
+          drawElement(5,13,1,1,gray,black,oldX)
           local newX = tonumber(readInput(5,13,brown))
           if tostring(newX) ~= "" and newX ~= nil and newX ~= allGates[currentEdit].loc.x then
             allGates[currentEdit].loc.x = newX
@@ -2279,7 +2279,7 @@ local function mClick()
           end
           drawElement(5,13,6,1,white,black,"")
           local tmpX = tostring(allGates[currentEdit].loc.x)
-          drawElement(5,13,#tmpX,1,brown,black,tmpX)
+          drawElement(5,13,1,1,brown,black,tmpX)
         end
          -- Gate Y position
       elseif mcY == 14 then
