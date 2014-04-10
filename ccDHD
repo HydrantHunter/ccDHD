@@ -418,7 +418,16 @@ local function ingestLogData()
 end
 
 local function assignColor(gateNumber)
-  local colorBurst = { B = blue, H = lblue, V = brown, M = purple, S = green, C = orange, D = red, U = lgray, X = magenta }
+  local colorBurst = { B = blue,
+                       H = lblue,
+                       V = brown,
+                       M = purple,
+                       S = green,
+                       C = orange,
+                       D = red,
+                       U = lgray,
+                       X = magenta
+                     }
   for v,w in pairs(colorBurst) do
     if allGates[gateNumber].rating == tostring(v) then
       return w
@@ -427,7 +436,16 @@ local function assignColor(gateNumber)
 end
 
 local function assignRating(gateNumber)
-  local ratingBurst = { B = "Base/Outpost/Hub", H = "Home/Camp", V = "Village", M = "Misc/Special", S = "Safe", C = "Caution", D = "Danger", U = "Unknown", Z = "Zog" }
+  local ratingBurst = { B = "Base/Outpost/Hub",
+                        H = "Home/Camp",
+                        V = "Village",
+                        M = "Misc/Special",
+                        S = "Safe",
+                        C = "Caution",
+                        D = "Danger",
+                        U = "Unknown",
+                        Z = "Zog"
+                      }
   for i,j in pairs(ratingBurst) do
     if allGates[gateNumber].rating == tostring(i) then
       return j
@@ -582,7 +600,16 @@ local function drawHeader()
   term.setBackgroundColor(black)
   term.setTextColor(white)
   if secureStatus == "allclear" then
-    local runStates = { Dial = blue, rCmd = blue, viewing = blue, goPage = blue, Edit = brown, GateEdit = brown, Trim = orange, logs = yellow, quit = purple }
+    local runStates = { Dial = blue,
+                        rCmd = blue,
+                        viewing = blue,
+                        goPage = blue,
+                        Edit = brown,
+                        GateEdit = brown,
+                        Trim = orange,
+                        logs = yellow,
+                        quit = purple,
+                      }
     for j,k in pairs(runStates) do
       if tostring(j) == runState then
         bgColor = k
@@ -675,7 +702,20 @@ local function drawHeader()
 end
 
 local function drawControlUI()
-  local dhdCommandOptions = { " D I A L", " E D I T", " T R I M", "Shield", "Iris", "END Call", "LOCKDOWN", "rCmd", "+ Entry", "Import", "Export", "Save", "- Undo -", "-COMMIT-" }
+  local dhdCommandOptions = { " D I A L",
+                              " E D I T",
+                              " T R I M",
+                              "Shield", "Iris",
+                              "END Call",
+                              "LOCKDOWN",
+                              "rCmd",
+                              "+ Entry",
+                              "Import",
+                              "Export",
+                              "Save",
+                              "- Undo -",
+                              "-COMMIT-",
+                            }
   drawElement(42,6,10,11,white,gray,"") -- Control UI 'box'
   term.setTextColor(white)
   term.setCursorPos(43,7)
@@ -804,7 +844,7 @@ end
 
 local function drawHelpUI()
   local colorDefs = { blue, green, purple, lblue, orange, lgray, brown, red }
-  local colorDesc = { "Base/Outpost/Hub", "Secured/Safe", "Misc./Special", "Home/Camp", "Caution", "Unknown", "Village", "Danger" }
+  local colorDesc = { "Base/Outpost/Hub", "Secured/Safe", "Misc./Special", "Home/Camp", "Caution", "Unknown", "Village", "Danger", }
   local colorCount = #colorDesc
   local xMod = 2
   local yMod = 4
