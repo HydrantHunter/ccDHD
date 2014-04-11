@@ -6,7 +6,7 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.1.09"
+local gVer = "1.1.10"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -180,8 +180,8 @@ local function drawElement(x,y,w,h,txtColor,bgdColor,text)
   if deText ~= "" and deText ~= "nil" then
     term.setTextColor(txtColor)
     if w < #deText then w = #deText end -- Ensure minimum length
-    local xW = (x + w/2) - #deText/2 -- Center the text horizontally
-    local xH = y + h/2               -- Center the text vertically
+    local xW = (x + math.floor(w/2)) - math.floor(#deText/2) -- Center the text horizontally
+    local xH = y + math.floor(h/2)   -- Center the text vertically
     term.setCursorPos(xW,xH)
     term.write(deText)
   end
@@ -207,21 +207,21 @@ local function drawTermScreen()
     stColor = black
   end
   local glHeaderTxt = " Gate Liaison" .. string.rep(" ",12) .. "ver. " .. gVer .. " "
-  drawElement(2,2,#glHeaderTxt,1,stColor,sbColor,glHeaderTxt) -- Header
+  drawElement(2,2,1,1,stColor,sbColor,glHeaderTxt) -- Header
   drawElement(2,10,37,1,stColor,sbColor,"") -- lowline
   local me = os.getComputerLabel()
-  drawElement(3,10,#me,1,stColor,sbColor,me)
+  drawElement(3,10,1,1,stColor,sbColor,me)
   local cID = "cc # " .. tostring(os.getComputerID())
-  drawElement(38-(#cID),10,#cID,1,stColor,sbColor,cID)
+  drawElement(38-(#cID),10,1,1,stColor,sbColor,cID)
   drawElement(2,3,12,7,black,lgray,"") -- Information background
   local readouts = { " Gate:", " State:", " Target:",  " Iris:", " Fuel:", " Status:", " Network:" }
   for i = 1,7,1 do
-    drawElement(2,i+2,readouts[i]:len(),1,black,lgray,readouts[i])
+    drawElement(2,i+2,1,1,black,lgray,readouts[i])
   end
   if #thisGate == 7 then
-    drawElement(2,7,7,1,black,lgray," Shield:")
+    drawElement(2,7,1,1,black,lgray," Shield:")
   end
-  drawElement(17,3,#thisGate,1,yellow,black,thisGate)
+  drawElement(17,3,1,1,yellow,black,thisGate)
   local sTxtColor = blue
   if gateStatus == "Disconnected" then
     sTxtColor = green
@@ -231,13 +231,13 @@ local function drawTermScreen()
     sTxtColor = lblue
   end
   if gateStatus == "Dialing" and dialAddress == "none" then
-    drawElement(17,4,19,1,sTxtColor,black,"Incoming Connection")
+    drawElement(17,4,1,1,sTxtColor,black,"Incoming Connection")
   elseif gateStatus == "lockdown" then
-    drawElement(17,4,14,1,red,black,"!! LOCKDOWN !!")
+    drawElement(17,4,1,1,red,black,"!! LOCKDOWN !!")
   else
-    drawElement(17,4,#gateStatus,1,sTxtColor,black,gateStatus)
+    drawElement(17,4,1,1,sTxtColor,black,gateStatus)
   end
-  drawElement(17,5,#dialAddress,1,brown,black,dialAddress)
+  drawElement(17,5,1,1,brown,black,dialAddress)
   term.setCursorPos(17,6)
   if shieldStatus == true then
     term.setTextColor(green)
@@ -268,7 +268,7 @@ local function drawTermScreen()
     term.setTextColor(magenta)
     term.write("ERROR")
   end
-  drawElement(17,8,#pData,1,lblue,black,pData)
+  drawElement(17,8,1,1,lblue,black,pData)
   term.setCursorPos(17,9)
   if gateSettings.net == "R" then
     term.setTextColor(red)
