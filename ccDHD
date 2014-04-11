@@ -1109,8 +1109,15 @@ end
 
 local function drawRatingList(gRating,currentGate)
   local trColor
+  drawElement(14,6,1,1,white,blue,"")    -- B pip
+  drawElement(14,7,1,1,white,lblue,"")   -- H pip
+  drawElement(14,8,1,1,white,brown,"")   -- V pip
+  drawElement(14,9,1,1,white,purple,"")  -- M pip
+  drawElement(14,10,1,1,white,green,"")  -- S pip
+  drawElement(14,11,1,1,white,orange,"") -- C pip
+  drawElement(14,12,1,1,white,red,"")    -- D pip
+  drawElement(14,13,1,1,white,lgray,"")  -- U pip
   drawElement(14,6,19,8,white,gray,"")  -- menu body
-  drawElement(14,6,1,1,white,blue,"")   -- B pip
   if gRating == "B" then
     drawElement(33,6,1,8,white,blue,"") -- B line
     trColor = blue
@@ -1118,7 +1125,6 @@ local function drawRatingList(gRating,currentGate)
     trColor = lgray
   end
   drawElement(16,6,16,1,trColor,gray,"Base/Outpost/Hub")
-  drawElement(14,7,1,1,white,lblue,"")   -- H pip
   if gRating == "H" then
     drawElement(33,6,1,8,white,lblue,"") -- H line
     trColor = lblue
@@ -1126,7 +1132,6 @@ local function drawRatingList(gRating,currentGate)
     trColor = lgray
   end
   drawElement(16,7,9,1,trColor,gray,"Home/Camp")
-  drawElement(14,8,1,1,white,brown,"")   -- V pip
   if gRating == "V" then
     drawElement(33,6,1,8,white,brown,"") -- V line
     trColor = brown
@@ -1134,7 +1139,6 @@ local function drawRatingList(gRating,currentGate)
     trColor = lgray
   end
   drawElement(16,8,7,1,trColor,gray,"Village")
-  drawElement(14,9,1,1,white,purple,"")   -- M pip
   if gRating == "M" then
     drawElement(33,6,1,8,white,purple,"") -- M line
     trColor = purple
@@ -1142,7 +1146,6 @@ local function drawRatingList(gRating,currentGate)
     trColor = lgray
   end
   drawElement(16,9,12,1,trColor,gray,"Misc/Special")
-  drawElement(14,10,1,1,white,green,"")  -- S pip
   if gRating == "S" then
     drawElement(33,6,1,8,white,green,"") -- S line
     trColor = green
@@ -1150,7 +1153,6 @@ local function drawRatingList(gRating,currentGate)
     trColor = lgray
   end
   drawElement(16,10,12,1,trColor,gray,"Safe/Secured")
-  drawElement(14,11,1,1,white,orange,"")  -- C pip
   if gRating == "C" then
     drawElement(33,6,1,8,white,orange,"") -- C line
     trColor = orange
@@ -1158,7 +1160,6 @@ local function drawRatingList(gRating,currentGate)
     trColor = lgray
   end
   drawElement(16,11,7,1,trColor,gray,"Caution")
-  drawElement(14,12,1,1,white,red,"")  -- D pip
   if gRating == "D" then
     drawElement(33,6,1,8,white,red,"") -- D line
     trColor = red
@@ -1166,7 +1167,6 @@ local function drawRatingList(gRating,currentGate)
     trColor = lgray
   end
   drawElement(16,12,6,1,trColor,gray,"Danger")
-  drawElement(14,13,1,1,white,lgray,"")  -- U pip
   if gRating == "U" then
     drawElement(33,6,1,8,white,lgray,"") -- U line
     trColor = white
