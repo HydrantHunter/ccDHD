@@ -6,7 +6,7 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.1.08"
+local gVer = "1.1.09"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
