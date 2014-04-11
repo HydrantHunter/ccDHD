@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.23"
+local ccDHDVer = "1.1.24"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -587,8 +587,8 @@ local function drawElement(x,y,w,h,txtColor,bgdColor,text)
     if deText ~= "" and deText ~= "nil" then
       term.setTextColor(txtColor)
       if w < #deText then w = #deText end -- Ensure minimum length
-      local xW = (x + w/2) - #deText/2 -- Center the text horizontally
-      local xH = y + h/2               -- Center the text vertically
+      local xW = (x + math.floor(w/2)) - math.floor(#deText/2) -- Center the text horizontally
+      local xH = y + math.floor(h/2)   -- Center the text vertically
       term.setCursorPos(xW,xH)
       term.write(deText)
     end
@@ -843,8 +843,24 @@ local function drawMainUI() -- Gate Address Book (Dial / Edit / Trim)
 end
 
 local function drawHelpUI()
-  local colorDefs = { blue, green, purple, lblue, orange, lgray, brown, red }
-  local colorDesc = { "Base/Outpost/Hub", "Secured/Safe", "Misc./Special", "Home/Camp", "Caution", "Unknown", "Village", "Danger", }
+  local colorDefs = { blue,
+                      green,
+                      purple,
+                      lblue,
+                      orange,
+                      lgray,
+                      brown,
+                      red
+                    }
+  local colorDesc = { "Base/Outpost/Hub",
+                      "Secured/Safe",
+                      "Misc./Special",
+                      "Home/Camp",
+                      "Caution",
+                      "Unknown",
+                      "Village",
+                      "Danger",
+                    }
   local colorCount = #colorDesc
   local xMod = 2
   local yMod = 4
@@ -1109,31 +1125,31 @@ end
 
 local function drawRatingList(gRating,currentGate)
   local trColor
-  drawElement(14,6,1,1,white,blue,"")    -- B pip
-  drawElement(14,7,1,1,white,lblue,"")   -- H pip
-  drawElement(14,8,1,1,white,brown,"")   -- V pip
-  drawElement(14,9,1,1,white,purple,"")  -- M pip
-  drawElement(14,10,1,1,white,green,"")  -- S pip
-  drawElement(14,11,1,1,white,orange,"") -- C pip
-  drawElement(14,12,1,1,white,red,"")    -- D pip
-  drawElement(14,13,1,1,white,lgray,"")  -- U pip
-  drawElement(14,6,19,8,white,gray,"")  -- menu body
+  drawElement(14,6,1,1,white,blue,"")     -- B pip
+  drawElement(14,7,1,1,white,lblue,"")    -- H pip
+  drawElement(14,8,1,1,white,brown,"")    -- V pip
+  drawElement(14,9,1,1,white,purple,"")   -- M pip
+  drawElement(14,10,1,1,white,green,"")   -- S pip
+  drawElement(14,11,1,1,white,orange,"")  -- C pip
+  drawElement(14,12,1,1,white,red,"")     -- D pip
+  drawElement(14,13,1,1,white,lgray,"")   -- U pip
+  drawElement(14,6,19,8,white,gray,"")    -- menu body
   if gRating == "B" then
-    drawElement(33,6,1,8,white,blue,"") -- B line
+    drawElement(33,6,1,8,white,blue,"")   -- B line
     trColor = blue
   else
     trColor = lgray
   end
   drawElement(16,6,16,1,trColor,gray,"Base/Outpost/Hub")
   if gRating == "H" then
-    drawElement(33,6,1,8,white,lblue,"") -- H line
+    drawElement(33,6,1,8,white,lblue,"")  -- H line
     trColor = lblue
   else
     trColor = lgray
   end
   drawElement(16,7,9,1,trColor,gray,"Home/Camp")
   if gRating == "V" then
-    drawElement(33,6,1,8,white,brown,"") -- V line
+    drawElement(33,6,1,8,white,brown,"")  -- V line
     trColor = brown
   else
     trColor = lgray
@@ -1147,7 +1163,7 @@ local function drawRatingList(gRating,currentGate)
   end
   drawElement(16,9,12,1,trColor,gray,"Misc/Special")
   if gRating == "S" then
-    drawElement(33,6,1,8,white,green,"") -- S line
+    drawElement(33,6,1,8,white,green,"")  -- S line
     trColor = green
   else
     trColor = lgray
@@ -1161,14 +1177,14 @@ local function drawRatingList(gRating,currentGate)
   end
   drawElement(16,11,7,1,trColor,gray,"Caution")
   if gRating == "D" then
-    drawElement(33,6,1,8,white,red,"") -- D line
+    drawElement(33,6,1,8,white,red,"")    -- D line
     trColor = red
   else
     trColor = lgray
   end
   drawElement(16,12,6,1,trColor,gray,"Danger")
   if gRating == "U" then
-    drawElement(33,6,1,8,white,lgray,"") -- U line
+    drawElement(33,6,1,8,white,lgray,"")  -- U line
     trColor = white
   else
     trColor = lgray
@@ -1376,12 +1392,13 @@ local function deleteGate(tGate) -- TRIM mode: delete gate
   end
 end
 
-local function readInput(cX,cY,cO)  -- cursor X,Y and color
+local function readInput(cX,cY,cO,bG)  -- cursor X,Y,text color,bg color
   local word = ""
   local curX, curY = cX, cY
+  if bG == nil then bG = black end
   term.setTextColor(cO)
   term.setCursorBlink(true)
-  term.setCursorPos(curX, curY)
+  term.setCursorPos(curX,curY)
   while true do
     local kEvent = { os.pullEvent() }
     if kEvent[1] == "key" then
@@ -1391,17 +1408,17 @@ local function readInput(cX,cY,cO)  -- cursor X,Y and color
           word = word:sub(1,#word-1)
         end
         term.setTextColor(cO)
-        term.setBackgroundColor(black)
-        term.setCursorPos(curX, curY)
+        term.setBackgroundColor(bG)
+        term.setCursorPos(curX,curY)
         term.write(" ")
-        term.setCursorPos(curX, curY)
+        term.setCursorPos(curX,curY)
       elseif kEvent[2] == keys.enter then
         term.setCursorBlink(false)
         return word
       end
     elseif kEvent[1] == "char" then
       term.setTextColor(cO)
-      term.setBackgroundColor(black)
+      term.setBackgroundColor(bG)
       term.setCursorPos(curX, curY)
       term.write(kEvent[2])
    	  word = word .. kEvent[2]
