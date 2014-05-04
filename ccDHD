@@ -620,8 +620,7 @@ local function drawHeader()
   if runState == "logs" then
     drawElement(1,1,termX,1,black,bgColor,longName) -- header for logs
   else
-    drawElement(1,1,termX,1,white,bgColor,runState) -- header for all else
-    --drawElement(1,1,termX,1,white,bgColor,longName) -- header for all else
+    drawElement(1,1,termX,1,white,bgColor,longName) -- header for all else
   end
   if runState == "logs" then                        -- If we're viewing the logs, show the last call info instead of connect/shield info
     term.setBackgroundColor(gray)
