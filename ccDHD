@@ -1989,8 +1989,7 @@ local function mClick()
             flashChoice("lock")
             secureStatus = "lockdown"
             netSend(secureStatus)
-            sleep(0.1)
-            --drawCLI()
+            sleep(0.1) -- this gives ccDHD time to get updated info from gateLiaison before invoking secureUI()
           elseif runState == "Edit" then
             if fs.exists("/disk") then
               flashChoice("export")
