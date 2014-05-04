@@ -1252,7 +1252,7 @@ local function flashChoice(choice)
   elseif choice == "clear" then
     drawElement(termX-6,4,7,1,white,orange," Clear ")
     sleep(0.1)
-    drawElement(termX-6,4,7,1,orange,lgray," Clear ")
+    drawElement(termX-6,4,7,1,gray,lgray," Clear ")
   elseif choice == "cfgsave" then
     drawElement(termX-12,2,6,1,white,green," Save ")
     sleep(0.1)
