@@ -6,7 +6,7 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.1.10"
+local gVer = "1.1.11"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -565,7 +565,7 @@ end
 local function firstRun()
   -- Set computer label
   local ccLabel = os.getComputerLabel()
-  if ccLabel == nil or ccLabel == "" or ccLabel == "Gate" then
+  if ccLabel == nil or tostring(ccLabel) == "" or ccLabel == "Gate" then
     os.setComputerLabel(thisGate .. " gate")
   end
   term.clear()
@@ -593,14 +593,14 @@ local function firstRun()
       elseif #thisGate > 7 then
         drawElement(26,4,8,13,white,gray,"")              -- Draw blank menu (RC1)
       end
-      for j,k in pairs(tSide) do                            --
+      for j,k in ipairs(tSide) do                           --
         local tSides = string.upper(k):sub(1,1) .. k:sub(2) -- Draw side labels in menu
         drawElement(27,tPos[j],#tSides,1,white,gray,tSides) --
       end
       while true do
         local newSide = { os.pullEvent("mouse_click") }   --
         if newSide[3] > 26 and newSide[3] < 34 then       --
-          for j,k in pairs(tSide) do                      -- Select shield (redstone output) side
+          for j,k in ipairs(tSide) do                     -- Select shield (redstone output) side
             if newSide[4] == tPos[j] then                 --          or internal iris
               gateSettings.shield = k                     --
               return false                                --
@@ -616,7 +616,7 @@ local function firstRun()
       term.setTextColor(white)
       local theseSides = { "top", "bottom", "left", "right", "front", "back" }
       local l,m
-      for l,m in pairs(theseSides) do
+      for l,m in ipairs(theseSides) do
         local sSides = tostring(l) .. " = " .. string.upper(m):sub(1,1) .. m:sub(2)
         drawElement(2,l+4,#sSides,1,white,black,sSides)  -- Side selection list for standard computers and turtles
       end
@@ -626,7 +626,7 @@ local function firstRun()
         if getSide ~= nil then
           if getSide > 0 and getSide < 7 then
             local n,o
-            for n,o in pairs(theseSides) do
+            for n,o in ipairs(theseSides) do
               if getSide == n then
                 gateSettings.shield = o
               end
@@ -641,7 +641,7 @@ end
 
 -- AUTOMATIC/STATIC CONFIGURATION (Part 2)
 local function initGate()
-  for k,v in pairs(rs.getSides()) do
+  for k,v in ipairs(rs.getSides()) do
         -- Stargate
     if peripheral.getType(v) == "stargate" then
       if not gate then
@@ -651,7 +651,7 @@ local function initGate()
     elseif peripheral.getType(v) == "modem" then
       if peripheral.call(tostring(v),"isWireless") == false then
         local mPerps = peripheral.call(tostring(v),"getNamesRemote")
-        for num,mPerp in pairs(mPerps) do
+        for _,mPerp in ipairs(mPerps) do
           if tostring(mPerp):sub(1,8) == "stargate" then
             if not gate then
               gate = peripheral.wrap(mPerp)
@@ -701,7 +701,7 @@ local function initMe()
   end
   ingestData()
   modemSide = "none"
-  for k,v in pairs(rs.getSides()) do
+  for k,v in ipairs(rs.getSides()) do
         -- Modem
     if peripheral.getType(v) == "modem" then
       if peripheral.call(tostring(v),"isWireless") == true then
@@ -718,7 +718,7 @@ local function initMe()
         -- Monitor
       elseif peripheral.call(tostring(v),"isWireless") == false then
         local mPerps = peripheral.call(tostring(v),"getNamesRemote")
-        for num,mPerp in pairs(mPerps) do
+        for _,mPerp in ipairs(mPerps) do
           if tostring(mPerp):sub(1,7) == "monitor" then
             mon = peripheral.wrap(mPerp)
           end
