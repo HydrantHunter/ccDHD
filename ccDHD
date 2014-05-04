@@ -877,7 +877,7 @@ local function drawHelpUI()
   drawElement(1,termY,termX,1,white,gray,"") -- Footer
   drawElement(2,2,9,1,lgray,gray,"-- Key --")
   drawElement(termX-6,2,7,1,red,lgray," Close ")
-  for q,r in pairs(colorDefs) do -- Color key for gate classifications
+  for q,r in ipairs(colorDefs) do -- Color key for gate classifications
     drawElement(xMod,yMod,1,1,r,black,colorDesc[q])
     if xMod == 2 then
       xMod = 20
@@ -1111,7 +1111,7 @@ local function drawSideList(pSide)
   local tSide = { "top","bottom","front","back","left","right" }
   drawElement(26,4,8,13,white,gray,"") -- menu body
   local tsColor
-  for j,k in pairs(tSide) do
+  for j,k in ipairs(tSide) do
     if pSide == k then
       tsColor = lime
     else
@@ -1195,7 +1195,7 @@ local function drawAuthList(cAuth)
   local cPos = { 5,7,9,11,13 }
   drawElement(26,4,3,11,white,gray,"") -- menu body
   local taColor
-  for j,k in pairs(cPos) do
+  for j,k in ipairs(cPos) do
     if cAuth == j then
       taColor = lime
     else
@@ -2428,7 +2428,7 @@ local function mClickSettings()
         local bioAuth = { os.pullEvent("mouse_click") }
         if bioAuth[3] > 26 and bioAuth[2] < 31 then
           local secPos = { 5, 7, 9, 11, 13 }
-          for j,k in pairs(secPos) do
+          for j,k in ipairs(secPos) do
             if bioAuth[4] == k then
               dhdSettings.bio.auth = j
               configChange = true
@@ -2461,7 +2461,7 @@ local function mClickSettings()
           drawSideList(hardware.netSide)
           local modemSide = { os.pullEvent("mouse_click") }
           if modemSide[3] > 26 and modemSide[2] < 35 then
-            for jr,kr in pairs(cfgPos) do
+            for jr,kr in ipairs(cfgPos) do
               if modemSide[4] == kr then
                 wrapPerp("R",cfgSides[jr])
                 break
@@ -2474,7 +2474,7 @@ local function mClickSettings()
           drawSideList(hardware.netSide)
           local modemSide = { os.pullEvent("mouse_click") }
           if modemSide[3] > 26 and modemSide[2] < 35 then
-            for jc,kc in pairs(cfgPos) do
+            for jc,kc in ipairs(cfgPos) do
               if modemSide[4] == kc then
                 wrapPerp("C",cfgSides[jc])
                 break
@@ -2537,7 +2537,7 @@ local function mClickSettings()
           drawSideList(dhdSettings.monB)
           local monBSide = { os.pullEvent("mouse_click") }
           if monBSide[3] > 26 and monBSide[2] < 35 then
-            for jb,kb in pairs(cfgPos) do
+            for jb,kb in ipairs(cfgPos) do
               if monBSide[4] == kb then
                 wrapPerp("B",cfgSides[jb])
                 break
@@ -2558,7 +2558,7 @@ local function mClickSettings()
           drawSideList(dhdSettings.monA)
           local monASide = { os.pullEvent("mouse_click") }
           if monASide[3] > 26 and monASide[2] < 35 then
-            for jb,kb in pairs(cfgPos) do
+            for jb,kb in ipairs(cfgPos) do
               if monASide[4] == kb then
                 wrapPerp("A",cfgSides[jb])
                 break
@@ -2864,7 +2864,7 @@ end
 local function detectHardware(hType)
   if hType == "bio" then
     hardware.bioSide = "none"
-    for _,bSide in pairs(rs.getSides()) do
+    for _,bSide in ipairs(rs.getSides()) do
       if peripheral.isPresent(bSide) then
         if peripheral.getType(bSide) == "biolock" then
           hardware.bioSide = bSide
@@ -2884,7 +2884,7 @@ local function detectHardware(hType)
     end
     hardware.netSide = "none"
     local side
-    for _,side in pairs(rs.getSides()) do
+    for _,side in ipairs(rs.getSides()) do
       if peripheral.isPresent(tostring(side)) then
         local perp = peripheral.getType(tostring(side))
         if tostring(perp) == "modem" then
@@ -2906,7 +2906,7 @@ local function detectHardware(hType)
     dhdSettings.monA = "none"
     dhdSettings.monB = "none"
     local side
-    for _,side in pairs(rs.getSides()) do
+    for _,side in ipairs(rs.getSides()) do
       if peripheral.isPresent(tostring(side)) then
         local perp = peripheral.getType(tostring(side))
         if tostring(perp) == "monitor" then
