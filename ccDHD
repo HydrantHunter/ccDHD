@@ -1252,7 +1252,7 @@ local function flashChoice(choice)
   elseif choice == "clear" then
     drawElement(termX-6,4,7,1,white,orange," Clear ")
     sleep(0.1)
-    drawElement(termX-6,4,7,1,gray,lgray," Clear ")
+    drawElement(termX-6,4,7,1,orange,lgray," Clear ")
   elseif choice == "cfgsave" then
     drawElement(termX-12,2,6,1,white,green," Save ")
     sleep(0.1)
@@ -1293,6 +1293,26 @@ local function flashChoice(choice)
     drawElement(((termX/2) - (math.floor(#tostring(pNum)/4)))-5,termY,3,1,black,white,pNum)
     sleep(0.1)
     drawCLI()
+  end
+end
+
+local function areYouSure()
+  runState = "asking"
+  drawElement(termX/2-5,math.floor(termY/2)-2,13,1,black,yellow,"Clear Logs?")
+  drawElement(termX/2-5,math.floor(termY/2)-1,13,3,white,gray,"")
+  drawElement(termX/2-4,math.floor(termY/2),5,1,white,green,"YES")
+  drawElement(termX/2+2,math.floor(termY/2),5,1,white,red,"N O")
+  while true do
+    local question = { os.pullEvent("mouse_click") }
+    if question[4] == math.floor(termY/2) then
+      if question[3] > termX/2 - 5 and question[3] < termX/2 then
+        runState = "logs"
+        return true
+      elseif question[3] > termX/2 and question[3] < termX/2 + 6 then
+        runState = "logs"
+        return false
+      end
+    end
   end
 end
 
@@ -1894,12 +1914,15 @@ local function mClick()
           return
         elseif mcX > 44 and mcY == 4 then
           flashChoice("clear")
-          local clearLog = fs.open("/data/DHDhistory","w")
-          clearLog.close()
-          callHistory = { }
-          --lastCall = { }
-          histPages = 1
-          histPage = 1
+          local makeSure = areYouSure()
+          if makeSure then
+            local clearLog = fs.open("/data/DHDhistory","w")
+            clearLog.close()
+            callHistory = { }
+            --lastCall = { }
+            histPages = 1
+            histPage = 1
+          end
           viewLogs()
           return
         end
