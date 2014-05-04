@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.24"
+local ccDHDVer = "1.1.25"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -426,7 +426,6 @@ local function assignColor(gateNumber)
                        C = orange,
                        D = red,
                        U = lgray,
-                       X = magenta
                      }
   for v,w in pairs(colorBurst) do
     if allGates[gateNumber].rating == tostring(v) then
@@ -2772,6 +2771,7 @@ local function secKernel()       -- LOCKDOWN handler
   while secureStatus == "lockdown" do
     drawElement(termX/2,15,termX,1,yellow,black,"")
     term.setCursorPos(termX/2,15)
+    term.setTextColor(yellow)
     local securePass = tostring(read(passSymbols[math.random(1,#passSymbols)]))
     if securePass == dhdSettings.password then
       netSend("allclear")
@@ -2920,7 +2920,7 @@ local function firstRun()
   end
   -- Check and, if necessary, set computer label
   local ccLabel = os.getComputerLabel()
-  if tostring(ccLabel) == "nil" or ccLabel == "" or ccLabel == "DHD" then
+  if ccLabel == nil or tostring(ccLabel) == "" or ccLabel == "DHD" then
     os.setComputerLabel(dhdSettings.thisGate .. " DHD")
   end
 end
