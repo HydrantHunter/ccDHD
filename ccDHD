@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.25"
+local ccDHDVer = "1.1.26"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -68,7 +68,6 @@ local configChange = false
 local gateChange = false
 local tempState, currentEdit
 local fuelGauge, dialAddress
-local h,i,j,k,l,m,n,q,r,v,w
  -- Gate List
 local pNum = "001"
 local numPages,pageNum = 1,1
