@@ -6,7 +6,7 @@
 --[[  AfterLifeLochie  ]]--
 --[[ pastebin xSHHqL0h ]]--
 --[[      GPL v3       ]]--
-local gVer = "1.1.11"
+local gVer = "1.1.12"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -615,7 +615,6 @@ local function firstRun()
       -- Draw side list
       term.setTextColor(white)
       local theseSides = { "top", "bottom", "left", "right", "front", "back" }
-      local l,m
       for l,m in ipairs(theseSides) do
         local sSides = tostring(l) .. " = " .. string.upper(m):sub(1,1) .. m:sub(2)
         drawElement(2,l+4,#sSides,1,white,black,sSides)  -- Side selection list for standard computers and turtles
@@ -625,7 +624,6 @@ local function firstRun()
         local getSide = tonumber(read())
         if getSide ~= nil then
           if getSide > 0 and getSide < 7 then
-            local n,o
             for n,o in ipairs(theseSides) do
               if getSide == n then
                 gateSettings.shield = o
