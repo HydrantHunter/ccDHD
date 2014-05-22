@@ -1305,6 +1305,7 @@ local function areYouSure()
     local question = { os.pullEvent("mouse_click") }
     if question[4] == math.floor(termY/2) then
       if question[3] > termX/2 - 5 and question[3] < termX/2 then
+        drawElement(termX/2-5,math.floor(termY/2)-2,13,4,white,black,"")
         runState = "logs"
         return true
       elseif question[3] > termX/2 and question[3] < termX/2 + 6 then
