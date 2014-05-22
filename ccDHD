@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.26"
+local ccDHDVer = "1.1.27"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -1308,6 +1308,7 @@ local function areYouSure()
         runState = "logs"
         return true
       elseif question[3] > termX/2 and question[3] < termX/2 + 6 then
+        drawElement(termX/2-5,math.floor(termY/2)-2,13,4,white,black,"")
         runState = "logs"
         return false
       end
