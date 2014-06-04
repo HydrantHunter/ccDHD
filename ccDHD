@@ -8,7 +8,7 @@
 --[[    Bomb Bloke     ]]--
 --[[ pastebin CR92ZjdE ]]--
 --[[      GPL v3       ]]--
-local ccDHDVer = "1.1.27"
+local ccDHDVer = "1.1.28"
 --[[
 Tested with/requires:
   - Mincraft 1.6.4
@@ -599,14 +599,17 @@ local function drawHeader()
   term.setTextColor(white)
   if secureStatus == "allclear" then
     local runStates = { Dial = blue,
+                        DialCfg = lblue,
                         rCmd = blue,
                         viewing = blue,
                         goPage = blue,
                         Edit = brown,
+                        EditCfg = lblue,
                         GateEdit = brown,
                         Trim = orange,
                         logs = yellow,
                         quit = purple,
+                        init = blue,
                       }
     for j,k in pairs(runStates) do
       if tostring(j) == runState then
@@ -1131,7 +1134,7 @@ local function drawRatingList(gRating,currentGate)
   drawElement(14,11,1,1,white,orange,"")  -- C pip
   drawElement(14,12,1,1,white,red,"")     -- D pip
   drawElement(14,13,1,1,white,lgray,"")   -- U pip
-  drawElement(14,6,19,8,white,gray,"")    -- menu body
+  drawElement(15,6,18,8,white,gray,"")    -- menu body
   if gRating == "B" then
     drawElement(33,6,1,8,white,blue,"")   -- B line
     trColor = blue
