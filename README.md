@@ -11,10 +11,8 @@ REQUIREMENTS:
 - ComputerCraft 1.57+ for MC 1.6.4
 - LanteaCraft (snapshot 82 or RC1+) for MC 1.6.4
 
-DHD requires the following:
+ccDHD requires the following:
  - Advanced Computer (color/mouse)
- - or
- - Advanced Wireless Turtle (color/mouse) but list monitor and Biometric Scanner can not be installed simultaneously
  - .
  - new directory:  /data
  - 3 or (3 & 1) Advanced Monitors (optional Marque and List)
