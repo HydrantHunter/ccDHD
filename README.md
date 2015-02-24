@@ -1,15 +1,18 @@
 ccDHD 1.1
 =========
 
-ComputerCraft DHD for LanteaCraft and Minecraft 1.6.4
+ComputerCraft DHD for LanteaCraft (Minecraft 1.6.4)
 
-Requires gateLiaison running on 'gate' computer
+NOTE: This version is for MC 1.6.4, CC 1.58, and LanteaCraft RC1_37
+      For the latest version please visit
+      http://www.computercraft.info/forums2/index.php?/topic/16656-lanteacraft-ccdhd-20-rc7q/
 
 
 REQUIREMENTS:
 
 - ComputerCraft 1.58 for MC 1.6.4
 - LanteaCraft RC1_37 for MC 1.6.4
+- gateLiaison running on 'gate' computer
 
 ccDHD requires the following:
  - Advanced Computer (color/mouse)
