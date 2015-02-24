@@ -5,7 +5,7 @@ ComputerCraft DHD for LanteaCraft (Minecraft 1.6.4)
 
 NOTE: This version is for MC 1.6.4, CC 1.58, and LanteaCraft RC1_37. 
       For the latest version please visit...
-      http://www.computercraft.info/forums2/index.php?/topic/16656-lanteacraft-ccdhd-20-rc7q/
+      http://www.computercraft.info/forums2/index.php?/topic/16656-lanteacraft-ccdhd-20/
 
 
 REQUIREMENTS:
