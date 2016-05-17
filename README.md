@@ -18,15 +18,15 @@ ccDHD requires the following:
  - Advanced Computer (color/mouse)
  - .
  - new directory:  /data
- - 3 or (3 & 1) Advanced Monitors (optional Marque and List)
+ - 3 or (3 & 1) Advanced Monitors (optional Marquee and List)
 
 gateLiaison requires the following:
  - Advanced Computer (color)
  - or
- - Advanced Wireless Turtle (color) if no Marque monitor is installed
+ - Advanced Wireless Turtle (color) if no Marquee monitor is installed
  - .
  - new directory:  /logs
- - 3 Advanced Monitors (optional Marque)
+ - 3 Advanced Monitors (optional Marquee)
 
 
 SUPPORTS:
